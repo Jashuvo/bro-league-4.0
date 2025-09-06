@@ -1,4 +1,4 @@
-// src/services/fplApi.js - Fixed Version with Correct Rankings
+// src/services/fplApi.js - Complete Version with Full History
 
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 const FPL_BASE_URL = 'https://fantasy.premierleague.com/api';
@@ -9,6 +9,7 @@ class FPLApiService {
     this.isAuthenticated = false;
     this.leagueId = '1858389';
     this.managerCache = new Map();
+    this.historyCache = new Map();
   }
 
   // Get current gameweek and general data
@@ -38,7 +39,7 @@ class FPLApiService {
     }
   }
 
-  // Simplified authentication
+  // Authentication
   async authenticate() {
     console.log('🔐 Skipping complex authentication for browser compatibility...');
     return { success: true, message: 'Browser compatibility mode' };
@@ -85,7 +86,56 @@ class FPLApiService {
     }
   }
 
-  // Get league standings
+  // Get FULL manager history - THIS IS THE KEY ADDITION
+  async getManagerHistory(entryId) {
+    try {
+      if (this.historyCache.has(entryId)) {
+        return this.historyCache.get(entryId);
+      }
+
+      console.log(`📈 Fetching complete history for manager ${entryId}...`);
+      const url = `${FPL_BASE_URL}/entry/${entryId}/history/`;
+      const response = await fetch(`${CORS_PROXY}${url}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Extract gameweek-by-gameweek performance with REAL transfer data
+      const gameweekHistory = data.current?.map(gw => ({
+        gameweek: gw.event,
+        points: gw.points,
+        totalPoints: gw.total_points,
+        rank: gw.overall_rank,
+        gameweekRank: gw.rank,
+        transfers: gw.event_transfers,  // REAL transfer count
+        transferCost: gw.event_transfers_cost, // REAL transfer cost
+        bench: gw.points_on_bench, // REAL bench points
+        value: gw.value / 10, // Team value in millions
+        bankBalance: gw.bank / 10 // Money in bank
+      })) || [];
+
+      const historyData = {
+        gameweeks: gameweekHistory,
+        seasonHistory: data.past || [],
+        chips: data.chips || []
+      };
+
+      this.historyCache.set(entryId, historyData);
+      return historyData;
+    } catch (error) {
+      console.warn(`⚠️ Could not fetch history for entry ${entryId}:`, error);
+      return {
+        gameweeks: [],
+        seasonHistory: [],
+        chips: []
+      };
+    }
+  }
+
+  // Get league standings with FULL historical data
   async getLeagueStandings() {
     try {
       console.log(`📋 Fetching league standings for League ID: ${this.leagueId}...`);
@@ -100,22 +150,26 @@ class FPLApiService {
       const data = await response.json();
       console.log('✅ League standings loaded successfully');
       
-      // Fetch manager details for each entry
-      console.log('👥 Fetching manager details...');
-      const standingsWithDetails = await Promise.all(
+      // Fetch COMPLETE data for each manager
+      console.log('👥 Fetching complete manager details and history...');
+      const standingsWithFullData = await Promise.all(
         data.standings.results.map(async (entry) => {
-          const managerData = await this.getManagerData(entry.entry);
+          const [managerData, historyData] = await Promise.all([
+            this.getManagerData(entry.entry),
+            this.getManagerHistory(entry.entry)
+          ]);
           
           return {
             ...entry,
-            managerData
+            managerData,
+            historyData
           };
         })
       );
 
       return {
         league: data.league,
-        standings: standingsWithDetails,
+        standings: standingsWithFullData,
         hasNext: data.standings?.has_next || false
       };
     } catch (error) {
@@ -124,43 +178,117 @@ class FPLApiService {
     }
   }
 
-  // Generate gameweek table - ONLY for current gameweek with real data
-  generateGameweekTable(standings, currentGameweek = 3) {
+  // Generate COMPLETE gameweek table with REAL historical data
+  generateCompleteGameweekTable(standings, currentGameweek = 3, totalGameweeks = 38) {
     const gameweekTable = [];
     
-    // Only create data for current gameweek using REAL API data
-    const currentGWData = {
-      gameweek: currentGameweek,
-      managers: standings.map(manager => {
-        return {
-          id: manager.entry,
-          managerName: manager.managerData?.fullName || `Manager ${manager.entry}`,
-          teamName: manager.managerData?.teamName || manager.entry_name || 'Unknown',
-          points: manager.event_total || 0, // Real current gameweek points
-          totalPoints: manager.total || 0, // Real total points
-          transfers: 0, // We don't have transfer data in league standings
-          transferCost: 0, // We don't have transfer cost data in league standings
-          bench: 0 // We don't have bench data in league standings
-        };
-      }).sort((a, b) => b.points - a.points) // Sort by gameweek points
-    };
-    
-    // Add gameweek ranks
-    currentGWData.managers.forEach((manager, index) => {
-      manager.gameweekRank = index + 1;
-    });
-    
-    // Only add current gameweek - no fake historical data
-    gameweekTable.push(currentGWData);
+    // Create table for ALL gameweeks (past, current, and future)
+    for (let gw = 1; gw <= totalGameweeks; gw++) {
+      const gameweekData = {
+        gameweek: gw,
+        status: gw < currentGameweek ? 'completed' : gw === currentGameweek ? 'current' : 'upcoming',
+        managers: standings.map(manager => {
+          // Get REAL data from manager history
+          const gwData = manager.historyData?.gameweeks?.find(h => h.gameweek === gw);
+          
+          if (gwData) {
+            // REAL historical data
+            return {
+              id: manager.entry,
+              managerName: manager.managerData?.fullName || `Manager ${manager.entry}`,
+              teamName: manager.managerData?.teamName || manager.entry_name || 'Unknown',
+              points: gwData.points,
+              totalPoints: gwData.totalPoints,
+              rank: gwData.rank,
+              gameweekRank: 0, // Will be calculated below
+              transfers: gwData.transfers,
+              transferCost: gwData.transferCost,
+              bench: gwData.bench,
+              value: gwData.value,
+              bankBalance: gwData.bankBalance
+            };
+          } else if (gw <= currentGameweek) {
+            // Gameweek should have data but doesn't - manager might have joined late
+            return {
+              id: manager.entry,
+              managerName: manager.managerData?.fullName || `Manager ${manager.entry}`,
+              teamName: manager.managerData?.teamName || manager.entry_name || 'Unknown',
+              points: 0,
+              totalPoints: 0,
+              rank: 0,
+              gameweekRank: 0,
+              transfers: 0,
+              transferCost: 0,
+              bench: 0,
+              value: 100.0,
+              bankBalance: 0.0,
+              note: 'No data - joined late?'
+            };
+          } else {
+            // Future gameweek - no data yet
+            return {
+              id: manager.entry,
+              managerName: manager.managerData?.fullName || `Manager ${manager.entry}`,
+              teamName: manager.managerData?.teamName || manager.entry_name || 'Unknown',
+              points: null,
+              totalPoints: null,
+              rank: null,
+              gameweekRank: null,
+              transfers: null,
+              transferCost: null,
+              bench: null,
+              value: null,
+              bankBalance: null,
+              note: 'Future gameweek'
+            };
+          }
+        }).filter(manager => manager.points !== null) // Remove future gameweeks' null data
+           .sort((a, b) => b.points - a.points) // Sort by gameweek points
+      };
+      
+      // Add gameweek ranks for completed/current gameweeks
+      if (gw <= currentGameweek) {
+        gameweekData.managers.forEach((manager, index) => {
+          manager.gameweekRank = index + 1;
+        });
+      }
+      
+      gameweekTable.push(gameweekData);
+    }
     
     return gameweekTable;
   }
 
-  // Transform FPL API data with CORRECT RANKING
+  // Calculate REAL weekly winners
+  calculateWeeklyWinners(gameweekTable, currentGameweek) {
+    return gameweekTable
+      .filter(gw => gw.gameweek <= currentGameweek && gw.managers.length > 0)
+      .map(gwData => {
+        const winner = gwData.managers[0]; // Already sorted by points
+        return {
+          gameweek: gwData.gameweek,
+          winner: {
+            id: winner.id,
+            managerName: winner.managerName,
+            teamName: winner.teamName,
+            points: winner.points,
+            transfers: winner.transfers,
+            transferCost: winner.transferCost,
+            prize: 30
+          },
+          topThree: gwData.managers.slice(0, 3),
+          averageScore: Math.round(gwData.managers.reduce((sum, m) => sum + m.points, 0) / gwData.managers.length),
+          highestScore: Math.max(...gwData.managers.map(m => m.points)),
+          lowestScore: Math.min(...gwData.managers.map(m => m.points))
+        };
+      });
+  }
+
+  // Transform league data with correct ranking
   transformLeagueData(apiData) {
     if (!apiData.standings) return [];
 
-    // IMPORTANT: Sort by total points to ensure correct ranking
+    // Sort by total points for correct ranking
     const sortedStandings = [...apiData.standings].sort((a, b) => b.total - a.total);
 
     return sortedStandings.map((entry, index) => {
@@ -176,32 +304,40 @@ class FPLApiService {
         teamName: teamName,
         totalPoints: entry.total,
         gameweekPoints: entry.event_total || 0,
-        rank: index + 1, // Correct rank based on sorted order
+        rank: index + 1, // Correct rank
         lastRank: entry.last_rank,
         avatar: entry.managerData 
           ? `${entry.managerData.firstName?.charAt(0) || 'M'}${entry.managerData.lastName?.charAt(0) || ''}` 
           : `M${entry.entry.toString().slice(-1)}`,
         region: entry.managerData?.region || '',
         startedEvent: entry.managerData?.startedEvent || 1,
-        overallRank: entry.managerData?.overallRank || 0
+        overallRank: entry.managerData?.overallRank || 0,
+        historyData: entry.historyData || { gameweeks: [] }
       };
     });
   }
 
-  // Main initialization
+  // Main initialization with COMPLETE data
   async initializeWithAuth() {
-    console.log('🔐 Initializing FPL API for BRO League 4.0...');
+    console.log('🔐 Initializing COMPLETE FPL API for BRO League 4.0...');
     
     const authResult = await this.authenticate();
     const bootstrapData = await this.getBootstrapData();
     
     if (authResult.success) {
-      console.log('✅ Authentication successful, fetching league data...');
+      console.log('✅ Authentication successful, fetching COMPLETE league data...');
       const leagueData = await this.getLeagueStandings();
       const transformedStandings = this.transformLeagueData(leagueData);
       
-      // Generate gameweek table
-      const gameweekTable = this.generateGameweekTable(leagueData.standings, bootstrapData.currentGameweek);
+      // Generate COMPLETE gameweek table with REAL data
+      const gameweekTable = this.generateCompleteGameweekTable(
+        leagueData.standings, 
+        bootstrapData.currentGameweek, 
+        bootstrapData.totalGameweeks
+      );
+      
+      // Calculate REAL weekly winners
+      const weeklyWinners = this.calculateWeeklyWinners(gameweekTable, bootstrapData.currentGameweek);
       
       // Calculate league stats
       const leagueStats = {
@@ -220,6 +356,7 @@ class FPLApiService {
         league: leagueData,
         standings: transformedStandings,
         gameweekTable: gameweekTable,
+        weeklyWinners: weeklyWinners,
         leagueStats: leagueStats
       };
     } else {
@@ -232,34 +369,17 @@ class FPLApiService {
         league: mockLeagueData,
         standings: this.transformLeagueData(mockLeagueData),
         gameweekTable: [],
+        weeklyWinners: [],
         leagueStats: {}
       };
     }
   }
 
-  // Fallback mock data
+  // Mock data fallback
   getMockStandings() {
     return {
-      league: {
-        name: 'BRO League 4.0',
-        created: '2024-08-01T00:00:00Z'
-      },
-      standings: [
-        { 
-          entry: 1827725, 
-          total: 206, 
-          event_total: 69, 
-          rank: 1, 
-          last_rank: 2,
-          entry_name: 'La Roja ❤️',
-          managerData: {
-            firstName: 'Sarwar',
-            lastName: 'Raj',
-            fullName: 'Sarwar Raj',
-            teamName: 'La Roja ❤️'
-          }
-        }
-      ],
+      league: { name: 'BRO League 4.0', created: '2024-08-01T00:00:00Z' },
+      standings: [],
       hasNext: false
     };
   }

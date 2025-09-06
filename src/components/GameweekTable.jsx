@@ -1,8 +1,8 @@
-// src/components/GameweekTable.jsx
+// src/components/GameweekTable.jsx - Real Data Version
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Trophy, TrendingUp, Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Trophy, TrendingUp, Users, Zap, Clock } from 'lucide-react'
 
-const GameweekTable = ({ gameweekTable, currentGameweek }) => {
+const GameweekTable = ({ gameweekTable, currentGameweek, bootstrap }) => {
   const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek || 3)
 
   if (!gameweekTable || gameweekTable.length === 0) {
@@ -10,8 +10,8 @@ const GameweekTable = ({ gameweekTable, currentGameweek }) => {
       <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
         <div className="p-8 text-center">
           <Calendar className="mx-auto mb-4 text-gray-400" size={48} />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">No Gameweek Data Available</h3>
-          <p className="text-gray-500">Gameweek history will appear here once data is loaded.</p>
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">Loading Complete Gameweek History...</h3>
+          <p className="text-gray-500">Fetching historical data from FPL API for all managers.</p>
         </div>
       </div>
     )
@@ -41,6 +41,22 @@ const GameweekTable = ({ gameweekTable, currentGameweek }) => {
     return 'bg-red-100 text-red-800'
   }
 
+  const getTransferDisplay = (transfers, transferCost) => {
+    if (transfers === 0) {
+      return { text: '0', style: 'text-blue-600', note: '(saved)' }
+    } else if (transfers === 1 && transferCost === 0) {
+      return { text: '1', style: 'text-green-600', note: '(free)' }
+    } else if (transferCost > 0) {
+      return { text: transfers.toString(), style: 'text-red-600', note: `(-${transferCost})` }
+    }
+    return { text: transfers.toString(), style: 'text-gray-600', note: '' }
+  }
+
+  // Get gameweek info from bootstrap data
+  const gameweekInfo = bootstrap?.gameweeks?.find(gw => gw.id === selectedGameweek)
+  const deadline = gameweekInfo?.deadline_time ? new Date(gameweekInfo.deadline_time) : null
+  const averageScore = gameweekInfo?.average_entry_score || null
+
   return (
     <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
       {/* Header */}
@@ -51,8 +67,10 @@ const GameweekTable = ({ gameweekTable, currentGameweek }) => {
               <Calendar className="text-white" size={24} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">Gameweek Points Table</h2>
-              <p className="text-indigo-100 text-sm">Weekly performance breakdown</p>
+              <h2 className="text-2xl font-bold text-white">Gameweek History</h2>
+              <p className="text-indigo-100 text-sm">
+                Complete data with real transfers & bench points
+              </p>
             </div>
           </div>
           
@@ -81,8 +99,37 @@ const GameweekTable = ({ gameweekTable, currentGameweek }) => {
         </div>
       </div>
 
-      {/* Gameweek Quick Stats */}
-      {currentGameweekData && (
+      {/* Gameweek Info */}
+      {gameweekInfo && (
+        <div className="bg-gray-50 border-b border-gray-200 p-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="font-semibold text-gray-900">{gameweekInfo.name}</h3>
+              {deadline && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Clock size={14} />
+                  <span>Deadline: {deadline.toLocaleDateString('en-GB', { 
+                    weekday: 'short', 
+                    day: 'numeric', 
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}</span>
+                </div>
+              )}
+            </div>
+            {averageScore && (
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-700">{averageScore}</div>
+                <div className="text-sm text-gray-500">Global Average</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Gameweek Stats */}
+      {currentGameweekData && currentGameweekData.managers.length > 0 && (
         <div className="bg-gray-50 border-b border-gray-200 p-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
@@ -101,8 +148,8 @@ const GameweekTable = ({ gameweekTable, currentGameweek }) => {
               <div className="text-2xl font-bold text-blue-600">
                 {Math.round(currentGameweekData.managers.reduce((sum, m) => sum + m.points, 0) / currentGameweekData.managers.length)}
               </div>
-              <div className="text-sm text-gray-600">Average Score</div>
-              <div className="text-xs text-gray-500">League average</div>
+              <div className="text-sm text-gray-600">League Average</div>
+              <div className="text-xs text-gray-500">This gameweek</div>
             </div>
             
             <div className="text-center">
@@ -129,106 +176,122 @@ const GameweekTable = ({ gameweekTable, currentGameweek }) => {
       )}
 
       {/* Table */}
-      {currentGameweekData ? (
+      {currentGameweekData && currentGameweekData.managers.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-100 border-b border-gray-200">
               <tr>
-                <th className="text-left p-4 font-semibold text-gray-700 text-sm">GW Rank</th>
+                <th className="text-left p-4 font-semibold text-gray-700 text-sm">Rank</th>
                 <th className="text-left p-4 font-semibold text-gray-700 text-sm">Manager</th>
                 <th className="text-left p-4 font-semibold text-gray-700 text-sm hidden md:table-cell">Team</th>
-                <th className="text-center p-4 font-semibold text-gray-700 text-sm">GW Points</th>
+                <th className="text-center p-4 font-semibold text-gray-700 text-sm">Points</th>
                 <th className="text-center p-4 font-semibold text-gray-700 text-sm hidden sm:table-cell">Transfers</th>
                 <th className="text-center p-4 font-semibold text-gray-700 text-sm hidden lg:table-cell">Bench</th>
                 <th className="text-center p-4 font-semibold text-gray-700 text-sm">Total</th>
               </tr>
             </thead>
             <tbody>
-              {currentGameweekData.managers.map((manager, index) => (
-                <tr 
-                  key={manager.id}
-                  className={`
-                    border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150
-                    ${index === 0 ? 'bg-gradient-to-r from-yellow-50 to-orange-50' : ''}
-                    ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
-                  `}
-                >
-                  {/* GW Rank */}
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <span className={`
-                        font-bold text-lg
-                        ${index === 0 ? 'text-yellow-600' : 
-                          index === 1 ? 'text-gray-600' : 
-                          index === 2 ? 'text-orange-600' : 'text-gray-700'}
+              {currentGameweekData.managers.map((manager, index) => {
+                const transferInfo = getTransferDisplay(manager.transfers, manager.transferCost)
+                
+                return (
+                  <tr 
+                    key={manager.id}
+                    className={`
+                      border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150
+                      ${index === 0 ? 'bg-gradient-to-r from-yellow-50 to-orange-50' : ''}
+                      ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
+                    `}
+                  >
+                    {/* Rank */}
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`
+                          font-bold text-lg
+                          ${index === 0 ? 'text-yellow-600' : 
+                            index === 1 ? 'text-gray-600' : 
+                            index === 2 ? 'text-orange-600' : 'text-gray-700'}
+                        `}>
+                          {manager.gameweekRank}
+                        </span>
+                        {index === 0 && <Trophy size={16} className="text-yellow-600" />}
+                      </div>
+                    </td>
+
+                    {/* Manager */}
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                          {manager.managerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900">{manager.managerName}</div>
+                          <div className="text-sm text-gray-500 md:hidden">{manager.teamName}</div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Team Name */}
+                    <td className="p-4 hidden md:table-cell">
+                      <span className="text-gray-700">{manager.teamName}</span>
+                    </td>
+
+                    {/* Points */}
+                    <td className="p-4 text-center">
+                      <div className={`
+                        inline-flex items-center gap-1 px-3 py-1 rounded-full font-semibold text-sm
+                        ${getPointsBadgeClass(manager.points)}
                       `}>
-                        {manager.gameweekRank}
+                        {manager.points >= 80 && <TrendingUp size={12} />}
+                        {manager.points}
+                      </div>
+                    </td>
+
+                    {/* Transfers */}
+                    <td className="p-4 text-center hidden sm:table-cell">
+                      <div className="flex flex-col items-center">
+                        <span className={`font-medium ${transferInfo.style}`}>
+                          {transferInfo.text}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {transferInfo.note}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Bench Points */}
+                    <td className="p-4 text-center hidden lg:table-cell">
+                      <span className={`
+                        ${manager.bench > 10 ? 'text-red-600 font-semibold' : 'text-gray-600'}
+                      `}>
+                        {manager.bench}
                       </span>
-                      {index === 0 && <Trophy size={16} className="text-yellow-600" />}
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Manager */}
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                        {manager.managerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900">{manager.managerName}</div>
-                        <div className="text-sm text-gray-500 md:hidden">{manager.teamName}</div>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Team Name */}
-                  <td className="p-4 hidden md:table-cell">
-                    <span className="text-gray-700">{manager.teamName}</span>
-                  </td>
-
-                  {/* GW Points */}
-                  <td className="p-4 text-center">
-                    <div className={`
-                      inline-flex items-center gap-1 px-3 py-1 rounded-full font-semibold text-sm
-                      ${getPointsBadgeClass(manager.points)}
-                    `}>
-                      {manager.points >= 80 && <TrendingUp size={12} />}
-                      {manager.points}
-                    </div>
-                  </td>
-
-                  {/* Transfers */}
-                  <td className="p-4 text-center hidden sm:table-cell">
-                    <div className="flex items-center justify-center gap-1">
-                      <span className="text-gray-700">{manager.transfers}</span>
-                      {manager.transferCost > 0 && (
-                        <span className="text-red-500 text-xs">(-{manager.transferCost})</span>
-                      )}
-                      {manager.transfers === 0 && (
-                        <span className="text-gray-400 text-xs">(saved)</span>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* Bench Points */}
-                  <td className="p-4 text-center hidden lg:table-cell">
-                    <span className="text-gray-600">{manager.bench}</span>
-                  </td>
-
-                  {/* Total Points */}
-                  <td className="p-4 text-center">
-                    <span className="font-bold text-lg text-gray-900">
-                      {manager.totalPoints?.toLocaleString()}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                    {/* Total Points */}
+                    <td className="p-4 text-center">
+                      <span className="font-bold text-lg text-gray-900">
+                        {manager.totalPoints?.toLocaleString()}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       ) : (
         <div className="p-8 text-center">
-          <p className="text-gray-500">No data available for Gameweek {selectedGameweek}</p>
+          <Calendar className="mx-auto mb-4 text-gray-400" size={48} />
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">
+            {selectedGameweek > currentGameweek ? 'Future Gameweek' : 'No Data Available'}
+          </h3>
+          <p className="text-gray-500">
+            {selectedGameweek > currentGameweek 
+              ? `Gameweek ${selectedGameweek} hasn't started yet.`
+              : `No data available for Gameweek ${selectedGameweek}.`
+            }
+          </p>
         </div>
       )}
 
@@ -238,8 +301,9 @@ const GameweekTable = ({ gameweekTable, currentGameweek }) => {
           <div className="flex items-center justify-center gap-2">
             <Users size={16} />
             <span>
-              Showing Gameweek {selectedGameweek} results • 
-              {availableGameweeks.length} gameweeks available
+              Real data from FPL API • 
+              {availableGameweeks.length} gameweeks available • 
+              GW {selectedGameweek} {selectedGameweek <= currentGameweek ? 'completed' : 'upcoming'}
             </span>
           </div>
         </div>
