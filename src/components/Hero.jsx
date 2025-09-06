@@ -5,16 +5,8 @@ const Hero = ({ leagueConfig, gameweekInfo }) => {
   const gameweeksLeft = gameweekInfo.total - gameweekInfo.current
 
   return (
-    <div className="hero min-h-[50vh] bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute top-10 left-10 animate-bounce">⚽</div>
-        <div className="absolute top-20 right-20 animate-pulse">🏆</div>
-        <div className="absolute bottom-20 left-20 animate-ping">⭐</div>
-        <div className="absolute bottom-10 right-10 animate-bounce delay-1000">🔥</div>
-      </div>
-      
-      <div className="hero-content text-center text-white relative z-10">
+    <div className="hero min-h-[50vh] bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 relative">
+      <div className="hero-content text-center text-white">
         <div className="max-w-4xl">
           <h1 className="mb-6 text-4xl md:text-6xl font-bold animate-fade-in">
             <Trophy className="inline mr-4 text-yellow-400" size={60} />
@@ -33,48 +25,47 @@ const Hero = ({ leagueConfig, gameweekInfo }) => {
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <div className="stat bg-white/10 backdrop-blur rounded-lg">
-              <div className="stat-figure text-yellow-400">
-                <Trophy size={32} />
-              </div>
-              <div className="stat-title text-white/80">Prize Pool</div>
-              <div className="stat-value text-yellow-400 text-2xl">
-                {leagueConfig.currency}{leagueConfig.totalPrizePool.toLocaleString()}
-              </div>
-            </div>
-            
-            <div className="stat bg-white/10 backdrop-blur rounded-lg">
-              <div className="stat-figure text-bro-secondary">
-                <Users size={32} />
-              </div>
-              <div className="stat-title text-white/80">Participants</div>
-              <div className="stat-value text-bro-secondary text-2xl">
-                {leagueConfig.totalParticipants}
+            <div className="stat bg-white/10 backdrop-blur rounded-lg p-4">
+              <div className="text-center">
+                <Trophy className="mx-auto text-yellow-400 mb-2" size={32} />
+                <div className="text-sm text-white/80">Prize Pool</div>
+                <div className="text-2xl font-bold text-yellow-400">
+                  {leagueConfig.currency}{leagueConfig.totalPrizePool.toLocaleString()}
+                </div>
               </div>
             </div>
             
-            <div className="stat bg-white/10 backdrop-blur rounded-lg">
-              <div className="stat-figure text-blue-300">
-                <Calendar size={32} />
-              </div>
-              <div className="stat-title text-white/80">GWs Left</div>
-              <div className="stat-value text-blue-300 text-2xl">
-                {gameweeksLeft}
+            <div className="stat bg-white/10 backdrop-blur rounded-lg p-4">
+              <div className="text-center">
+                <Users className="mx-auto text-green-400 mb-2" size={32} />
+                <div className="text-sm text-white/80">Participants</div>
+                <div className="text-2xl font-bold text-green-400">
+                  {leagueConfig.totalParticipants}
+                </div>
               </div>
             </div>
             
-            <div className="stat bg-white/10 backdrop-blur rounded-lg">
-              <div className="stat-figure text-pink-300">
-                <Target size={32} />
+            <div className="stat bg-white/10 backdrop-blur rounded-lg p-4">
+              <div className="text-center">
+                <Calendar className="mx-auto text-blue-300 mb-2" size={32} />
+                <div className="text-sm text-white/80">GWs Left</div>
+                <div className="text-2xl font-bold text-blue-300">
+                  {gameweeksLeft}
+                </div>
               </div>
-              <div className="stat-title text-white/80">Entry Fee</div>
-              <div className="stat-value text-pink-300 text-2xl">
-                {leagueConfig.currency}{leagueConfig.entryFee}
+            </div>
+            
+            <div className="stat bg-white/10 backdrop-blur rounded-lg p-4">
+              <div className="text-center">
+                <Target className="mx-auto text-pink-300 mb-2" size={32} />
+                <div className="text-sm text-white/80">Entry Fee</div>
+                <div className="text-2xl font-bold text-pink-300">
+                  {leagueConfig.currency}{leagueConfig.entryFee}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Islamic greeting */}
           <div className="mt-8 text-sm opacity-80">
             "Assalamualaikum Everyone! 🤝 May the best manager win! 🏆"
           </div>

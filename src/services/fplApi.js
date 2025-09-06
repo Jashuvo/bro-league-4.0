@@ -1,10 +1,6 @@
 // src/services/fplApi.js
 
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
-// Alternative CORS proxies if one doesn't work:
-// const CORS_PROXY = 'https://corsproxy.io/?';
-// const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
-
 const FPL_BASE_URL = 'https://fantasy.premierleague.com/api';
 const LOGIN_URL = 'https://users.premierleague.com/accounts/login/';
 
@@ -12,12 +8,41 @@ class FPLApiService {
   constructor() {
     this.cookies = '';
     this.isAuthenticated = false;
-    this.leagueId = '1858389'; // Your league ID
+    this.leagueId = '1858389'; // Your BRO League ID
+  }
+
+  // Get current gameweek and general data
+  async getBootstrapData() {
+    try {
+      console.log('📊 Fetching FPL bootstrap data...');
+      const response = await fetch(`${CORS_PROXY}${FPL_BASE_URL}/bootstrap-static/`);
+      const data = await response.json();
+      
+      console.log('✅ Bootstrap data loaded successfully');
+      return {
+        currentGameweek: data.events?.find(event => event.is_current)?.id || 15,
+        totalGameweeks: data.events?.length || 38,
+        gameweeks: data.events || [],
+        teams: data.teams || [],
+        players: data.elements || []
+      };
+    } catch (error) {
+      console.error('❌ Error fetching bootstrap data:', error);
+      return {
+        currentGameweek: 15,
+        totalGameweeks: 38,
+        gameweeks: [],
+        teams: [],
+        players: []
+      };
+    }
   }
 
   // Authenticate with FPL
   async authenticate(email, password) {
     try {
+      console.log('🔐 Attempting FPL authentication...');
+      
       const loginData = new URLSearchParams({
         login: email,
         password: password,
@@ -35,15 +60,12 @@ class FPLApiService {
         body: loginData
       });
 
-      // Extract cookies from response headers
-      const setCookieHeader = response.headers.get('set-cookie');
-      if (setCookieHeader) {
-        this.cookies = setCookieHeader;
+      if (response.ok) {
         this.isAuthenticated = true;
         console.log('✅ FPL Authentication successful');
         return { success: true, message: 'Authentication successful' };
       } else {
-        console.log('❌ FPL Authentication failed - no cookies received');
+        console.log('❌ FPL Authentication failed');
         return { success: false, message: 'Authentication failed' };
       }
     } catch (error) {
@@ -52,99 +74,30 @@ class FPLApiService {
     }
   }
 
-  // Get current gameweek and general data
-  async getBootstrapData() {
+  // Get league standings
+  async getLeagueStandings() {
     try {
-      const response = await fetch(`${CORS_PROXY}${FPL_BASE_URL}/bootstrap-static/`);
-      const data = await response.json();
+      console.log(`📋 Fetching league standings for League ID: ${this.leagueId}...`);
       
-      return {
-        currentGameweek: data.events?.find(event => event.is_current)?.id || null,
-        totalGameweeks: data.events?.length || 38,
-        gameweeks: data.events || [],
-        teams: data.teams || [],
-        players: data.elements || []
-      };
-    } catch (error) {
-      console.error('❌ Error fetching bootstrap data:', error);
-      return null;
-    }
-  }
-
-  // Get league standings (requires authentication for private leagues)
-  async getLeagueStandings(page = 1) {
-    try {
-      let url = `${FPL_BASE_URL}/leagues-classic/${this.leagueId}/standings/`;
-      if (page > 1) {
-        url += `?page_standings=${page}`;
-      }
-
-      const response = await fetch(`${CORS_PROXY}${url}`, {
-        headers: {
-          'Cookie': this.cookies,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
+      const url = `${FPL_BASE_URL}/leagues-classic/${this.leagueId}/standings/`;
+      const response = await fetch(`${CORS_PROXY}${url}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('✅ League standings loaded successfully');
       
       return {
         league: data.league,
         standings: data.standings?.results || [],
-        hasNext: data.standings?.has_next || false,
-        page: page
+        hasNext: data.standings?.has_next || false
       };
     } catch (error) {
       console.error('❌ Error fetching league standings:', error);
-      
-      // Return mock data if API fails
+      console.log('📋 Using mock data as fallback...');
       return this.getMockStandings();
-    }
-  }
-
-  // Get manager details
-  async getManagerDetails(managerId) {
-    try {
-      const response = await fetch(`${CORS_PROXY}${FPL_BASE_URL}/entry/${managerId}/`, {
-        headers: {
-          'Cookie': this.cookies,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error(`❌ Error fetching manager ${managerId} details:`, error);
-      return null;
-    }
-  }
-
-  // Get manager's team for specific gameweek
-  async getManagerTeam(managerId, gameweek) {
-    try {
-      const response = await fetch(`${CORS_PROXY}${FPL_BASE_URL}/entry/${managerId}/event/${gameweek}/picks/`, {
-        headers: {
-          'Cookie': this.cookies,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error(`❌ Error fetching manager ${managerId} team for GW ${gameweek}:`, error);
-      return null;
     }
   }
 
@@ -152,7 +105,7 @@ class FPLApiService {
   transformLeagueData(apiData) {
     if (!apiData.standings) return [];
 
-    return apiData.standings.map((entry, index) => ({
+    return apiData.standings.map((entry) => ({
       id: entry.entry,
       managerName: `${entry.player_first_name} ${entry.player_last_name}`,
       teamName: entry.entry_name,
@@ -160,14 +113,12 @@ class FPLApiService {
       gameweekPoints: entry.event_total || 0,
       rank: entry.rank,
       lastRank: entry.last_rank,
-      avatar: entry.player_first_name?.charAt(0) + entry.player_last_name?.charAt(0) || '??'
+      avatar: `${entry.player_first_name?.charAt(0) || ''}${entry.player_last_name?.charAt(0) || ''}`
     }));
   }
 
-  // Fallback mock data if API fails
+  // Fallback mock data
   getMockStandings() {
-    console.log('📋 Using mock data - API authentication may have failed');
-    
     return {
       league: {
         name: 'BRO League 4.0',
@@ -325,27 +276,24 @@ class FPLApiService {
           last_rank: 14 
         }
       ],
-      hasNext: false,
-      page: 1
+      hasNext: false
     };
   }
 
   // Auto-login and fetch data
   async initializeWithAuth() {
-    console.log('🔐 Initializing FPL API with authentication...');
+    console.log('🔐 Initializing FPL API for BRO League 4.0...');
     
     // Try to authenticate
     const authResult = await this.authenticate('Jubayedsr@gmail.com', '00zZ@00321');
     
+    // Fetch bootstrap data (always works)
+    const bootstrapData = await this.getBootstrapData();
+    
     if (authResult.success) {
-      console.log('✅ Authentication successful, fetching league data...');
+      console.log('✅ Authentication successful, fetching live league data...');
+      const leagueData = await this.getLeagueStandings();
       
-      // Fetch bootstrap data and league standings
-      const [bootstrapData, leagueData] = await Promise.all([
-        this.getBootstrapData(),
-        this.getLeagueStandings()
-      ]);
-
       return {
         authenticated: true,
         bootstrap: bootstrapData,
@@ -354,9 +302,6 @@ class FPLApiService {
       };
     } else {
       console.log('❌ Authentication failed, using mock data');
-      
-      // Still get bootstrap data (public) and use mock league data
-      const bootstrapData = await this.getBootstrapData();
       const mockLeagueData = this.getMockStandings();
       
       return {

@@ -74,14 +74,14 @@ const LeagueTable = ({ standings, loading, authStatus, gameweekInfo }) => {
         <div className="overflow-x-auto">
           <table className="table table-zebra w-full">
             <thead>
-              <tr className="bg-bro-primary text-white border-none">
+              <tr className="bg-purple-900 text-white border-none">
                 <th className="text-center">Pos</th>
                 <th className="hidden sm:table-cell text-center">Change</th>
                 <th>Manager</th>
                 <th className="hidden md:table-cell">Team Name</th>
                 <th className="text-center">GW{gameweekInfo?.current || ''}</th>
                 <th className="text-center">Total</th>
-                <th className="hidden lg:table-cell text-center">Season Prize</th>
+                <th className="hidden lg:table-cell text-center">Prize</th>
               </tr>
             </thead>
             <tbody>
@@ -112,7 +112,7 @@ const LeagueTable = ({ standings, loading, authStatus, gameweekInfo }) => {
                   <td>
                     <div className="flex items-center gap-3">
                       <div className="avatar placeholder">
-                        <div className="bg-bro-secondary text-bro-primary rounded-full w-10 h-10">
+                        <div className="bg-green-500 text-black rounded-full w-10 h-10">
                           <span className="text-sm font-bold">
                             {manager.avatar || manager.managerName.split(' ').map(n => n[0]).join('')}
                           </span>
@@ -123,11 +123,6 @@ const LeagueTable = ({ standings, loading, authStatus, gameweekInfo }) => {
                         <div className="text-sm opacity-70 text-gray-300 md:hidden">
                           {manager.teamName}
                         </div>
-                        {authStatus?.authenticated && (
-                          <div className="text-xs text-gray-500">
-                            ID: {manager.id}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </td>
@@ -173,39 +168,39 @@ const LeagueTable = ({ standings, loading, authStatus, gameweekInfo }) => {
 
         {/* Quick Stats */}
         <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="stat bg-white/5 rounded-lg">
-            <div className="stat-title text-gray-300">Highest GW</div>
+          <div className="stat bg-white/5 rounded-lg p-3">
+            <div className="stat-title text-gray-300 text-sm">Highest GW</div>
             <div className="stat-value text-green-400 text-xl">
               {highestGW || '--'}
             </div>
-            <div className="stat-desc text-gray-400">
+            <div className="stat-desc text-gray-400 text-xs">
               {topScorer?.managerName || '--'}
             </div>
           </div>
 
-          <div className="stat bg-white/5 rounded-lg">
-            <div className="stat-title text-gray-300">Average GW</div>
+          <div className="stat bg-white/5 rounded-lg p-3">
+            <div className="stat-title text-gray-300 text-sm">Average GW</div>
             <div className="stat-value text-blue-400 text-xl">
               {avgScore || '--'}
             </div>
-            <div className="stat-desc text-gray-400">This gameweek</div>
+            <div className="stat-desc text-gray-400 text-xs">This gameweek</div>
           </div>
 
-          <div className="stat bg-white/5 rounded-lg">
-            <div className="stat-title text-gray-300">Top Score</div>
+          <div className="stat bg-white/5 rounded-lg p-3">
+            <div className="stat-title text-gray-300 text-sm">Top Score</div>
             <div className="stat-value text-purple-400 text-xl">
               {standings.length > 0 ? Math.max(...standings.map(s => s.totalPoints)).toLocaleString() : '--'}
             </div>
-            <div className="stat-desc text-gray-400">Season high</div>
+            <div className="stat-desc text-gray-400 text-xs">Season high</div>
           </div>
 
-          <div className="stat bg-white/5 rounded-lg">
-            <div className="stat-title text-gray-300">Gap to Top</div>
+          <div className="stat bg-white/5 rounded-lg p-3">
+            <div className="stat-title text-gray-300 text-sm">Gap to Top</div>
             <div className="stat-value text-yellow-400 text-xl">
               {standings.length >= 2 ? 
                 (standings[0]?.totalPoints - standings[standings.length - 1]?.totalPoints) : '--'}
             </div>
-            <div className="stat-desc text-gray-400">Points difference</div>
+            <div className="stat-desc text-gray-400 text-xs">Points difference</div>
           </div>
         </div>
 

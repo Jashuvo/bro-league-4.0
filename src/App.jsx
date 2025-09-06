@@ -7,32 +7,64 @@ import PrizeDistribution from './components/PrizeDistribution'
 import MonthlyPrizes from './components/MonthlyPrizes'
 import WeeklyPrizes from './components/WeeklyPrizes'
 import Footer from './components/Footer'
-import { mockStandings, gameweekInfo, leagueConfig } from './data/leagueData'
+import { leagueConfig } from './data/leagueData'
+import fplApi from './services/fplApi'
 
 function App() {
   const [standings, setStandings] = useState([])
+  const [gameweekInfo, setGameweekInfo] = useState({ current: 15, total: 38 })
   const [loading, setLoading] = useState(true)
   const [currentTab, setCurrentTab] = useState('standings')
+  const [authStatus, setAuthStatus] = useState({ authenticated: false, message: '' })
+  const [lastUpdated, setLastUpdated] = useState(null)
 
   useEffect(() => {
-    // Simulate API call
-    const loadData = async () => {
-      setLoading(true)
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setStandings(mockStandings)
-      setLoading(false)
-    }
-    
-    loadData()
+    loadRealData()
   }, [])
 
-  const refreshData = async () => {
+  const loadRealData = async () => {
     setLoading(true)
-    // In real implementation, fetch from FPL API
-    await new Promise(resolve => setTimeout(resolve, 500))
-    setStandings([...mockStandings]) // Trigger re-render
-    setLoading(false)
+    try {
+      console.log('🚀 Loading real FPL data for BRO League 4.0...')
+      
+      const result = await fplApi.initializeWithAuth()
+      
+      // Update authentication status
+      setAuthStatus({
+        authenticated: result.authenticated,
+        message: result.authenticated ? 'Connected to FPL API' : 'Using offline data'
+      })
+
+      // Update gameweek info from bootstrap data
+      if (result.bootstrap) {
+        setGameweekInfo({
+          current: result.bootstrap.currentGameweek || 15,
+          total: result.bootstrap.totalGameweeks || 38,
+          status: 'active'
+        })
+      }
+
+      // Update standings
+      if (result.standings && result.standings.length > 0) {
+        setStandings(result.standings)
+        console.log(`✅ Loaded ${result.standings.length} managers from ${result.authenticated ? 'FPL API' : 'mock data'}`)
+      }
+
+      setLastUpdated(new Date())
+      
+    } catch (error) {
+      console.error('❌ Error loading FPL data:', error)
+      setAuthStatus({
+        authenticated: false,
+        message: 'Failed to load data'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const refreshData = async () => {
+    await loadRealData()
   }
 
   return (

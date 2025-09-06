@@ -3,30 +3,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 135, 0.6);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 255, 135, 0.8);
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
 /* Custom animations */
 @keyframes fade-in {
   from {
@@ -43,24 +19,6 @@ html {
   animation: fade-in 0.6s ease-out;
 }
 
-/* Glass morphism effects */
-.glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Custom gradient backgrounds */
-.gradient-bg {
-  background: linear-gradient(135deg, #38003c 0%, #00ff87 100%);
-}
-
-/* Hover effects for cards */
-.card:hover {
-  transform: translateY(-2px);
-  transition: all 0.3s ease;
-}
-
 /* Mobile-first responsive design */
 @media (max-width: 768px) {
   .container {
@@ -71,119 +29,34 @@ html {
   .hero {
     min-height: 50vh;
   }
-  
-  .stat {
-    padding: 1rem;
-  }
-}
-
-/* Table responsive enhancements */
-.table th,
-.table td {
-  padding: 0.75rem 0.5rem;
-}
-
-@media (max-width: 640px) {
-  .table th,
-  .table td {
-    padding: 0.5rem 0.25rem;
-    font-size: 0.875rem;
-  }
-}
-
-/* Badge styles */
-.badge-success {
-  background-color: #10b981;
-  border-color: #10b981;
-}
-
-.badge-warning {
-  background-color: #f59e0b;
-  border-color: #f59e0b;
-}
-
-.badge-error {
-  background-color: #ef4444;
-  border-color: #ef4444;
 }
 
 /* Custom button hover effects */
 .btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* Loading animation */
-.loading-spinner {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 /* Tab active states */
 .tab-active {
   background-color: rgba(0, 255, 135, 0.2);
   color: #00ff87;
-  border-color: #00ff87;
 }
 
-/* Prize card glow effects */
-.prize-card-gold {
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+/* Alert styles */
+.alert {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-.prize-card-silver {
-  box-shadow: 0 0 20px rgba(192, 192, 192, 0.3);
+.alert-success {
+  background-color: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #22c55e;
 }
 
-.prize-card-bronze {
-  box-shadow: 0 0 20px rgba(205, 127, 50, 0.3);
-}
-
-/* Islamic theme elements */
-.islamic-border {
-  border: 2px solid transparent;
-  background: linear-gradient(45deg, #00ff87, #38003c) border-box;
-  border-image: linear-gradient(45deg, #00ff87, #38003c) 1;
-}
-
-/* Mobile menu improvements */
-@media (max-width: 1024px) {
-  .navbar-center {
-    display: none;
-  }
-}
-
-/* Footer background pattern */
-footer {
-  background-image: 
-    radial-gradient(circle at 25% 25%, rgba(0, 255, 135, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, rgba(56, 0, 60, 0.1) 0%, transparent 50%);
-}
-
-/* Enhanced focus states for accessibility */
-.btn:focus,
-.tab:focus,
-input:focus,
-select:focus {
-  outline: 2px solid #00ff87;
-  outline-offset: 2px;
-}
-
-/* Dark mode optimizations */
-@media (prefers-color-scheme: dark) {
-  .card {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-  
-  .table-zebra tbody tr:nth-child(even) {
-    background-color: rgba(255, 255, 255, 0.02);
-  }
+.alert-warning {
+  background-color: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
 }

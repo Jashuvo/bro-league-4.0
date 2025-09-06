@@ -1,9 +1,9 @@
 // src/components/Footer.jsx
-import { Heart, MessageCircle, Trophy, Users } from 'lucide-react'
+import { Heart, Trophy, Users } from 'lucide-react'
 
 const Footer = () => {
   return (
-    <footer className="bg-bro-primary/80 backdrop-blur text-white mt-16">
+    <footer className="bg-purple-900/80 backdrop-blur text-white mt-16">
       <div className="container mx-auto px-4 py-12">
         
         {/* Main Footer Content */}
@@ -27,7 +27,7 @@ const Footer = () => {
 
           {/* Quick Stats */}
           <div className="text-center">
-            <h4 className="text-lg font-bold mb-4 text-bro-secondary">League Stats</h4>
+            <h4 className="text-lg font-bold mb-4 text-green-400">League Stats</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Total Prize Pool:</span>
@@ -38,24 +38,16 @@ const Footer = () => {
                 <span className="font-bold">৳800</span>
               </div>
               <div className="flex justify-between">
-                <span>Season Progress:</span>
-                <span className="font-bold text-green-400">39%</span>
-              </div>
-              <div className="flex justify-between">
                 <span>Current Gameweek:</span>
                 <span className="font-bold text-blue-400">15/38</span>
               </div>
             </div>
           </div>
 
-          {/* Contact & Social */}
+          {/* Contact */}
           <div className="text-center md:text-right">
-            <h4 className="text-lg font-bold mb-4 text-bro-secondary">Stay Connected</h4>
+            <h4 className="text-lg font-bold mb-4 text-green-400">Stay Connected</h4>
             <div className="space-y-3">
-              <div className="flex items-center justify-center md:justify-end gap-2">
-                <MessageCircle size={16} className="text-green-400" />
-                <span className="text-sm">WhatsApp Group</span>
-              </div>
               <div className="text-sm text-gray-400">
                 Updates every Tuesday after gameweek
               </div>
@@ -66,9 +58,9 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Prize Breakdown Summary */}
+        {/* Prize Summary */}
         <div className="border-t border-white/20 pt-8 mb-8">
-          <h4 className="text-center text-lg font-bold mb-4 text-bro-secondary">
+          <h4 className="text-center text-lg font-bold mb-4 text-green-400">
             Prize Distribution Summary
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -100,9 +92,9 @@ const Footer = () => {
               © 2024 BRO League 4.0. Built with React + Vite
             </div>
 
-            {/* Islamic blessing */}
+            {/* Islamic greeting */}
             <div className="text-sm text-center">
-              <span className="text-bro-secondary">Assalamualaikum wa rahmatullahi wa barakatuh</span>
+              <span className="text-green-400">Assalamualaikum wa rahmatullahi wa barakatuh</span>
             </div>
 
             {/* Last Updated */}
