@@ -9,6 +9,7 @@ class FPLApiService {
     this.cookies = '';
     this.isAuthenticated = false;
     this.leagueId = '1858389'; // Your BRO League ID
+    this.managerCache = new Map(); // Cache for manager details
   }
 
   // Get current gameweek and general data
@@ -20,7 +21,7 @@ class FPLApiService {
       
       console.log('✅ Bootstrap data loaded successfully');
       return {
-        currentGameweek: data.events?.find(event => event.is_current)?.id || 15,
+        currentGameweek: data.events?.find(event => event.is_current)?.id || 3,
         totalGameweeks: data.events?.length || 38,
         gameweeks: data.events || [],
         teams: data.teams || [],
@@ -29,7 +30,7 @@ class FPLApiService {
     } catch (error) {
       console.error('❌ Error fetching bootstrap data:', error);
       return {
-        currentGameweek: 15,
+        currentGameweek: 3,
         totalGameweeks: 38,
         gameweeks: [],
         teams: [],
@@ -42,13 +43,48 @@ class FPLApiService {
   async authenticate(email, password) {
     try {
       console.log('🔐 Skipping complex authentication for browser compatibility...');
-      console.log('ℹ️  Will attempt to fetch public data or use demo data');
+      console.log('ℹ️  Will attempt to fetch public data');
       
       // For now, always return "success" and let the league fetch handle the actual connectivity
       return { success: true, message: 'Browser compatibility mode' };
     } catch (error) {
       console.error('❌ Authentication error:', error);
       return { success: false, message: 'Network error during authentication' };
+    }
+  }
+
+  // Get individual manager data to get names
+  async getManagerData(entryId) {
+    try {
+      if (this.managerCache.has(entryId)) {
+        return this.managerCache.get(entryId);
+      }
+
+      const url = `${FPL_BASE_URL}/entry/${entryId}/`;
+      const response = await fetch(`${CORS_PROXY}${url}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const managerData = {
+        firstName: data.player_first_name || '',
+        lastName: data.player_last_name || '',
+        fullName: `${data.player_first_name || ''} ${data.player_last_name || ''}`.trim(),
+        teamName: data.name || 'Unknown Team'
+      };
+
+      this.managerCache.set(entryId, managerData);
+      return managerData;
+    } catch (error) {
+      console.warn(`⚠️ Could not fetch manager data for entry ${entryId}:`, error);
+      return {
+        firstName: '',
+        lastName: '',
+        fullName: `Manager ${entryId}`,
+        teamName: 'Unknown Team'
+      };
     }
   }
 
@@ -67,9 +103,21 @@ class FPLApiService {
       const data = await response.json();
       console.log('✅ League standings loaded successfully');
       
+      // Fetch manager details for each entry
+      console.log('👥 Fetching manager details...');
+      const standingsWithManagers = await Promise.all(
+        data.standings.results.map(async (entry) => {
+          const managerData = await this.getManagerData(entry.entry);
+          return {
+            ...entry,
+            managerData
+          };
+        })
+      );
+
       return {
         league: data.league,
-        standings: data.standings?.results || [],
+        standings: standingsWithManagers,
         hasNext: data.standings?.has_next || false
       };
     } catch (error) {
@@ -83,19 +131,32 @@ class FPLApiService {
   transformLeagueData(apiData) {
     if (!apiData.standings) return [];
 
-    return apiData.standings.map((entry) => ({
-      id: entry.entry,
-      managerName: `${entry.player_first_name} ${entry.player_last_name}`,
-      teamName: entry.entry_name,
-      totalPoints: entry.total,
-      gameweekPoints: entry.event_total || 0,
-      rank: entry.rank,
-      lastRank: entry.last_rank,
-      avatar: `${entry.player_first_name?.charAt(0) || ''}${entry.player_last_name?.charAt(0) || ''}`
-    }));
+    return apiData.standings.map((entry) => {
+      // Handle both real API data with managerData and mock data
+      const managerName = entry.managerData 
+        ? entry.managerData.fullName || `Manager ${entry.entry}`
+        : entry.player_first_name && entry.player_last_name
+        ? `${entry.player_first_name} ${entry.player_last_name}`
+        : `Manager ${entry.entry}`;
+
+      const teamName = entry.managerData?.teamName || entry.entry_name || 'Unknown Team';
+
+      return {
+        id: entry.entry,
+        managerName: managerName,
+        teamName: teamName,
+        totalPoints: entry.total,
+        gameweekPoints: entry.event_total || 0,
+        rank: entry.rank,
+        lastRank: entry.last_rank,
+        avatar: entry.managerData 
+          ? `${entry.managerData.firstName?.charAt(0) || 'M'}${entry.managerData.lastName?.charAt(0) || ''}` 
+          : `M${entry.entry.toString().slice(-1)}`
+      };
+    });
   }
 
-  // Fallback mock data
+  // Fallback mock data with proper manager names
   getMockStandings() {
     return {
       league: {
@@ -104,154 +165,174 @@ class FPLApiService {
       },
       standings: [
         { 
-          entry: 1, 
+          entry: 1827725, 
           player_first_name: 'Jubayes', 
           player_last_name: 'Rahman', 
-          entry_name: 'Dhaka Dragons', 
-          total: 1847, 
-          event_total: 89, 
+          entry_name: 'La Roja ❤️', 
+          total: 206, 
+          event_total: 69, 
           rank: 1, 
           last_rank: 2 
         },
         { 
-          entry: 2, 
+          entry: 2963674, 
           player_first_name: 'Sakib', 
           player_last_name: 'Hassan', 
-          entry_name: 'Chittagong Champions', 
-          total: 1823, 
-          event_total: 67, 
+          entry_name: 'Dhaka Dynamos', 
+          total: 181, 
+          event_total: 50, 
           rank: 2, 
           last_rank: 1 
         },
         { 
-          entry: 3, 
-          player_first_name: 'Nasir', 
+          entry: 8686882, 
+          player_first_name: 'Rafiq', 
           player_last_name: 'Ahmed', 
-          entry_name: 'Sylhet Stars', 
-          total: 1789, 
-          event_total: 78, 
+          entry_name: 'Din ekhon Plasticer', 
+          total: 178, 
+          event_total: 52, 
           rank: 3, 
           last_rank: 4 
         },
         { 
-          entry: 4, 
-          player_first_name: 'Fahim', 
-          player_last_name: 'Khan', 
-          entry_name: 'Khulna Kings', 
-          total: 1756, 
-          event_total: 82, 
+          entry: 9406410, 
+          player_first_name: 'Tanvir', 
+          player_last_name: 'Islam', 
+          entry_name: 'bhorar jonne ready', 
+          total: 175, 
+          event_total: 55, 
           rank: 4, 
           last_rank: 3 
         },
         { 
-          entry: 5, 
-          player_first_name: 'Tarik', 
-          player_last_name: 'Islam', 
-          entry_name: 'Barisal Bulls', 
-          total: 1734, 
-          event_total: 91, 
+          entry: 8934051, 
+          player_first_name: 'Riaz', 
+          player_last_name: 'Khan', 
+          entry_name: 'ravenClaw', 
+          total: 171, 
+          event_total: 50, 
           rank: 5, 
-          last_rank: 6 
-        },
-        { 
-          entry: 6, 
-          player_first_name: 'Rifat', 
-          player_last_name: 'Ali', 
-          entry_name: 'Comilla Crushers', 
-          total: 1712, 
-          event_total: 56, 
-          rank: 6, 
           last_rank: 5 
         },
         { 
-          entry: 7, 
-          player_first_name: 'Karim', 
-          player_last_name: 'Sheikh', 
-          entry_name: 'Rajshahi Riders', 
-          total: 1698, 
-          event_total: 73, 
-          rank: 7, 
+          entry: 7092890, 
+          player_first_name: 'Ashraf', 
+          player_last_name: 'Mahmud', 
+          entry_name: 'ASHRAF M', 
+          total: 170, 
+          event_total: 46, 
+          rank: 6, 
           last_rank: 7 
         },
         { 
-          entry: 8, 
-          player_first_name: 'Monir', 
-          player_last_name: 'Hossain', 
-          entry_name: 'Rangpur Rangers', 
-          total: 1687, 
-          event_total: 84, 
+          entry: 3075674, 
+          player_first_name: 'Gazi', 
+          player_last_name: 'Nazrul', 
+          entry_name: 'Gazi bazi Xi', 
+          total: 169, 
+          event_total: 64, 
+          rank: 7, 
+          last_rank: 6 
+        },
+        { 
+          entry: 4109608, 
+          player_first_name: 'Helsinki', 
+          player_last_name: 'Manager', 
+          entry_name: 'Helsinki', 
+          total: 159, 
+          event_total: 34, 
           rank: 8, 
           last_rank: 9 
         },
         { 
-          entry: 9, 
-          player_first_name: 'Ratul', 
-          player_last_name: 'Das', 
-          entry_name: 'Mymensingh Mavericks', 
-          total: 1673, 
-          event_total: 62, 
+          entry: 4476759, 
+          player_first_name: 'Sinan', 
+          player_last_name: 'Papa', 
+          entry_name: "Sinan's Papa", 
+          total: 159, 
+          event_total: 49, 
           rank: 9, 
           last_rank: 8 
         },
         { 
-          entry: 10, 
-          player_first_name: 'Shahin', 
-          player_last_name: 'Alam', 
-          entry_name: 'Gazipur Giants', 
-          total: 1659, 
-          event_total: 79, 
+          entry: 1020756, 
+          player_first_name: 'Latanmoy', 
+          player_last_name: 'X', 
+          entry_name: 'xlatanmoy', 
+          total: 145, 
+          event_total: 31, 
           rank: 10, 
           last_rank: 11 
         },
         { 
-          entry: 11, 
-          player_first_name: 'Mamun', 
-          player_last_name: 'Sheikh', 
-          entry_name: 'Narayanganj Ninjas', 
-          total: 1645, 
-          event_total: 68, 
+          entry: 7988994, 
+          player_first_name: 'Chodor', 
+          player_last_name: 'Bodor', 
+          entry_name: 'FC ChodorBodor', 
+          total: 142, 
+          event_total: 47, 
           rank: 11, 
           last_rank: 10 
         },
         { 
-          entry: 12, 
-          player_first_name: 'Ibrahim', 
-          player_last_name: 'Khan', 
-          entry_name: 'Tangail Tigers', 
-          total: 1634, 
-          event_total: 75, 
+          entry: 430947, 
+          player_first_name: 'Soccer', 
+          player_last_name: 'Siren', 
+          entry_name: 'Soccer Siren Fc', 
+          total: 136, 
+          event_total: 50, 
           rank: 12, 
           last_rank: 12 
         },
         { 
-          entry: 13, 
-          player_first_name: 'Sabbir', 
-          player_last_name: 'Ahmed', 
-          entry_name: 'Jamalpur Jaguars', 
-          total: 1621, 
-          event_total: 58, 
+          entry: 9387862, 
+          player_first_name: 'Amaro', 
+          player_last_name: 'Bou', 
+          entry_name: 'Amaro ekta Bou ache', 
+          total: 133, 
+          event_total: 43, 
           rank: 13, 
           last_rank: 13 
         },
         { 
-          entry: 14, 
-          player_first_name: 'Milon', 
-          player_last_name: 'Rahman', 
-          entry_name: 'Faridpur Falcons', 
-          total: 1598, 
-          event_total: 71, 
+          entry: 4364027, 
+          player_first_name: 'Chompa', 
+          player_last_name: 'Manager', 
+          entry_name: 'Chompa', 
+          total: 121, 
+          event_total: 49, 
           rank: 14, 
           last_rank: 15 
         },
         { 
-          entry: 15, 
-          player_first_name: 'Rubel', 
-          player_last_name: 'Hasan', 
-          entry_name: 'Kishoreganj Kites', 
-          total: 1576, 
-          event_total: 64, 
+          entry: 2073469, 
+          player_first_name: 'Levi', 
+          player_last_name: 'Squad', 
+          entry_name: "Levi's Squad", 
+          total: 113, 
+          event_total: 28, 
           rank: 15, 
           last_rank: 14 
+        },
+        { 
+          entry: 4064025, 
+          player_first_name: 'Baller', 
+          player_last_name: 'FC', 
+          entry_name: "Baller's FC", 
+          total: 113, 
+          event_total: 38, 
+          rank: 16, 
+          last_rank: 16 
+        },
+        { 
+          entry: 1702990, 
+          player_first_name: 'Shawon', 
+          player_last_name: 'FC', 
+          entry_name: 'SH@WON FC', 
+          total: 90, 
+          event_total: 37, 
+          rank: 17, 
+          last_rank: 17 
         }
       ],
       hasNext: false
