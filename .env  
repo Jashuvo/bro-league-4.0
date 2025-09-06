@@ -1,0 +1,20 @@
+# .env - Environment Configuration for BRO League 4.0
+
+# FPL API Configuration
+VITE_FPL_EMAIL=Jubayedsr@gmail.com
+VITE_FPL_LEAGUE_ID=1858389
+
+# CORS Proxy URLs (fallbacks)
+VITE_CORS_PROXY_1=https://api.allorigins.win/raw?url=
+VITE_CORS_PROXY_2=https://corsproxy.io/?
+VITE_CORS_PROXY_3=https://cors-anywhere.herokuapp.com/
+
+# League Configuration
+VITE_LEAGUE_NAME="BRO League 4.0"
+VITE_TOTAL_PARTICIPANTS=15
+VITE_ENTRY_FEE=800
+VITE_TOTAL_PRIZE_POOL=12000
+
+# Development
+VITE_DEV_MODE=true
+VITE_API_TIMEOUT=10000
