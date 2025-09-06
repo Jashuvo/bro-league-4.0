@@ -33,6 +33,15 @@ jobs:
       - name: Build project
         run: npm run build
         
+      - name: List build output (debug)
+        run: |
+          echo "Contents of dist folder:"
+          ls -la dist/
+          echo "Contents of dist/assets folder:"
+          ls -la dist/assets/ || echo "No assets folder"
+          echo "Contents of index.html:"
+          head -20 dist/index.html
+        
       - name: Setup Pages
         uses: actions/configure-pages@v4
         
