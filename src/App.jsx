@@ -227,6 +227,7 @@ function App() {
           <MonthlyPrizes 
             standings={standings}
             gameweekInfo={gameweekInfo}
+            gameweekTable={gameweekTable}
           />
         )}
 
@@ -234,6 +235,7 @@ function App() {
           <WeeklyPrizes 
             standings={standings}
             gameweekInfo={gameweekInfo}
+            gameweekTable={gameweekTable}
           />
         )}
       </main>

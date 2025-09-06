@@ -199,15 +199,15 @@ const GameweekTable = ({ gameweekTable, currentGameweek }) => {
 
                   {/* Transfers */}
                   <td className="p-4 text-center hidden sm:table-cell">
-                    <span className={`
-                      font-medium
-                      ${manager.transfers > 1 ? 'text-red-600' : 'text-gray-700'}
-                    `}>
-                      {manager.transfers}
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="text-gray-700">{manager.transfers}</span>
                       {manager.transferCost > 0 && (
-                        <span className="text-red-500 text-xs ml-1">(-{manager.transferCost})</span>
+                        <span className="text-red-500 text-xs">(-{manager.transferCost})</span>
                       )}
-                    </span>
+                      {manager.transfers === 0 && (
+                        <span className="text-gray-400 text-xs">(saved)</span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Bench Points */}
