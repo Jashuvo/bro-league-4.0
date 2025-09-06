@@ -1,12 +1,11 @@
-// src/components/MonthlyPrizes.jsx - Updated with Real Data
-import { Calendar, TrendingUp, Award, Trophy, Users, Target } from 'lucide-react'
+// src/components/MonthlyPrizes.jsx - Real Monthly Calculations (Fixed)
+import { Calendar, Trophy, Users, TrendingUp, Crown, Award, Target, Star, Medal } from 'lucide-react'
+import { useState } from 'react'
 
 const MonthlyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [] }) => {
   const currentGW = gameweekInfo.current || 3
   
-  // Calculate current month based on gameweek (every 4 GWs = 1 month)
-  const currentMonth = Math.ceil(currentGW / 4)
-
+  // Define monthly periods with correct prize structure
   const months = [
     { id: 1, name: "Month 1", gameweeks: [1, 2, 3, 4], prizes: [350, 250, 150], status: currentGW > 4 ? 'completed' : currentGW >= 1 ? 'active' : 'upcoming' },
     { id: 2, name: "Month 2", gameweeks: [5, 6, 7, 8], prizes: [350, 250, 150], status: currentGW > 8 ? 'completed' : currentGW >= 5 ? 'active' : 'upcoming' },
@@ -19,279 +18,355 @@ const MonthlyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [] }
     { id: 9, name: "Month 9 (Final)", gameweeks: [33, 34, 35, 36, 37, 38], prizes: [500, 400, 250], status: currentGW > 38 ? 'completed' : currentGW >= 33 ? 'active' : 'upcoming' }
   ]
 
-  // Calculate monthly standings from real gameweek data
-  const calculateMonthlyStandings = (monthGameweeks) => {
-    if (!gameweekTable || gameweekTable.length === 0) {
-      // Fallback to current standings if no gameweek data
-      return standings.slice(0, 10).map((manager, index) => ({
-        rank: index + 1,
-        id: manager.id,
-        managerName: manager.managerName,
-        teamName: manager.teamName,
-        monthlyPoints: Math.floor(manager.totalPoints / Math.max(1, Math.ceil(currentGW / 4))), // Estimate
-        gameweeksPlayed: monthGameweeks.filter(gw => gw <= currentGW).length,
-        avatar: manager.avatar
-      }))
-    }
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    // Find current month based on current gameweek
+    const currentMonth = months.find(month => 
+      month.gameweeks.includes(currentGW)
+    )
+    return currentMonth?.id || 1
+  })
 
-    // Calculate from real gameweek data
-    const monthlyScores = standings.map(manager => {
-      let monthlyPoints = 0
-      let gameweeksPlayed = 0
+  // Calculate monthly standings from real gameweek data with transfer costs deducted
+  const calculateMonthlyStandings = (monthId) => {
+    const month = months.find(m => m.id === monthId)
+    if (!month) return []
 
-      monthGameweeks.forEach(gwNumber => {
-        const gwData = gameweekTable.find(gw => gw.gameweek === gwNumber)
-        if (gwData) {
-          const managerGwData = gwData.managers.find(m => m.id === manager.id)
-          if (managerGwData) {
-            monthlyPoints += managerGwData.points
-            gameweeksPlayed++
+    // Get all managers from standings
+    const managers = standings.map(manager => ({
+      id: manager.id,
+      managerName: manager.managerName,
+      teamName: manager.teamName,
+      monthlyPoints: 0,
+      gameweeksPlayed: 0,
+      transfersCost: 0,
+      averageGW: 0
+    }))
+
+    // Calculate points for each manager in this month (subtract transfer costs)
+    managers.forEach(manager => {
+      let totalPoints = 0
+      let totalTransfersCost = 0
+      let gameweeksWithData = 0
+
+      month.gameweeks.forEach(gw => {
+        const gameweekData = gameweekTable.find(gwData => gwData.gameweek === gw)
+        if (gameweekData) {
+          const managerGWData = gameweekData.managers.find(m => m.id === manager.id)
+          if (managerGWData) {
+            totalPoints += (managerGWData.points || 0)
+            totalTransfersCost += (managerGWData.transfersCost || 0)
+            gameweeksWithData++
           }
         }
       })
 
-      return {
-        id: manager.id,
-        managerName: manager.managerName,
-        teamName: manager.teamName,
-        monthlyPoints,
-        gameweeksPlayed,
-        average: gameweeksPlayed > 0 ? (monthlyPoints / gameweeksPlayed).toFixed(1) : 0,
-        avatar: manager.avatar
-      }
+      // Subtract transfer costs from total points
+      manager.monthlyPoints = totalPoints - totalTransfersCost
+      manager.transfersCost = totalTransfersCost
+      manager.gameweeksPlayed = gameweeksWithData
+      manager.averageGW = gameweeksWithData > 0 ? Math.round((totalPoints - totalTransfersCost) / gameweeksWithData) : 0
     })
 
-    // Sort by monthly points and assign ranks
-    return monthlyScores
+    // Sort by monthly points (after transfer costs) and add ranks
+    return managers
+      .filter(manager => manager.gameweeksPlayed > 0) // Only include managers with data
       .sort((a, b) => b.monthlyPoints - a.monthlyPoints)
       .map((manager, index) => ({
         ...manager,
         rank: index + 1
       }))
-      .slice(0, 10) // Top 10
   }
 
-  const currentMonthData = months.find(m => m.status === 'active') || months[currentMonth - 1]
-  const currentMonthStandings = calculateMonthlyStandings(currentMonthData?.gameweeks || [])
+  // Get current month's standings
+  const currentMonthStandings = calculateMonthlyStandings(selectedMonth)
+  const selectedMonthData = months.find(m => m.id === selectedMonth)
+  
+  // Calculate total prizes distributed and remaining
+  const completedMonths = months.filter(month => month.status === 'completed')
+  const totalDistributed = completedMonths.reduce((sum, month) => sum + month.prizes.reduce((prizeSum, prize) => prizeSum + prize, 0), 0)
+  const totalPrizePool = months.reduce((sum, month) => sum + month.prizes.reduce((prizeSum, prize) => prizeSum + prize, 0), 0)
+  const remainingPrizes = totalPrizePool - totalDistributed
 
-  const completedMonths = months.filter(m => m.status === 'completed').length
-  const totalPrizesDistributed = completedMonths * 750 // 350+250+150 per month
-  const remainingMonths = months.filter(m => m.status === 'upcoming').length
+  // Get month winner
+  const monthWinner = currentMonthStandings[0]
+  
+  // Get progress percentage for active month
+  const getMonthProgress = (month) => {
+    if (month.status === 'completed') return 100
+    if (month.status === 'upcoming') return 0
+    const completedGWs = month.gameweeks.filter(gw => gw < currentGW).length
+    return Math.round((completedGWs / month.gameweeks.length) * 100)
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Current Month Progress */}
-      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
-        <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-lg">
-                <Calendar className="text-white" size={24} />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white">{currentMonthData?.name} Progress</h2>
-                <p className="text-green-100 text-sm">
-                  Gameweeks {currentMonthData?.gameweeks[0]}-{currentMonthData?.gameweeks[currentMonthData.gameweeks.length - 1]} • 
-                  Prize Pool: ৳{currentMonthData?.prizes.reduce((a, b) => a + b, 0)}
-                </p>
-              </div>
-            </div>
-            
-            <div className={`
-              px-4 py-2 rounded-full text-sm font-medium
-              ${currentMonthData?.status === 'active' ? 'bg-yellow-400/20 text-yellow-100' :
-                currentMonthData?.status === 'completed' ? 'bg-green-400/20 text-green-100' :
-                'bg-gray-400/20 text-gray-100'}
-            `}>
-              {currentMonthData?.status === 'active' ? 'In Progress' :
-               currentMonthData?.status === 'completed' ? 'Completed' : 'Upcoming'}
-            </div>
-          </div>
-        </div>
-
-        {/* Current Month Leaderboard */}
-        <div className="p-6">
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Trophy className="text-yellow-500" size={20} />
-              Current Month Leaderboard
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {/* Top 3 Podium */}
-              {currentMonthStandings.slice(0, 3).map((manager, index) => (
-                <div 
-                  key={manager.id}
-                  className={`
-                    p-4 rounded-xl text-center border-2
-                    ${index === 0 ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-300' :
-                      index === 1 ? 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300' :
-                      'bg-gradient-to-br from-orange-50 to-red-50 border-orange-300'}
-                  `}
-                >
-                  <div className="relative mb-3">
-                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg mx-auto">
-                      {manager.avatar || manager.managerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                    </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg">
-                      <span className="text-2xl">
-                        {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                      </span>
-                    </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="card bg-gradient-to-br from-green-600 to-blue-600 text-white shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title text-3xl mb-4 flex items-center gap-2">
+            <Calendar className="text-yellow-300" size={32} />
+            Monthly Competition
+            <div className="badge badge-accent">{selectedMonthData?.name}</div>
+          </h2>
+          
+          {/* Current Month Spotlight */}
+          {monthWinner && (
+            <div className="bg-white/10 backdrop-blur rounded-xl p-6 mb-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    {selectedMonthData?.status === 'completed' ? (
+                      <>
+                        <Crown className="text-yellow-300" size={24} />
+                        <span className="text-xl font-bold">Month Winner</span>
+                      </>
+                    ) : (
+                      <>
+                        <Star className="text-yellow-300" size={24} />
+                        <span className="text-xl font-bold">Current Leader</span>
+                      </>
+                    )}
+                    <span className="badge badge-accent">
+                      {selectedMonthData?.name}
+                    </span>
                   </div>
-                  
-                  <h4 className="font-bold text-gray-900 mb-1">{manager.managerName}</h4>
-                  <p className="text-sm text-gray-600 mb-2">{manager.teamName}</p>
-                  
-                  <div className="space-y-1">
-                    <div className="text-2xl font-bold text-purple-600">{manager.monthlyPoints}</div>
-                    <div className="text-xs text-gray-500">
-                      {manager.gameweeksPlayed} GWs • Avg: {manager.average}
-                    </div>
-                    <div className={`
-                      text-sm font-semibold
-                      ${index === 0 ? 'text-yellow-600' : index === 1 ? 'text-gray-600' : 'text-orange-600'}
-                    `}>
-                      ৳{currentMonthData?.prizes[index]}
-                    </div>
+                  <h3 className="text-2xl font-bold text-yellow-300">{monthWinner.managerName}</h3>
+                  <p className="text-white/80">{monthWinner.teamName}</p>
+                  <div className="flex items-center gap-4 mt-2 text-sm">
+                    <span className="flex items-center gap-1">
+                      <Target size={16} />
+                      {monthWinner.gameweeksPlayed}/{selectedMonthData?.gameweeks.length} GWs
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <TrendingUp size={16} />
+                      {monthWinner.averageGW} avg
+                    </span>
+                    {monthWinner.transfersCost > 0 && (
+                      <span className="flex items-center gap-1 text-red-300">
+                        <span>-{monthWinner.transfersCost} penalties</span>
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Extended Leaderboard */}
-            {currentMonthStandings.length > 3 && (
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="text-left p-3 font-semibold text-gray-700 text-sm">Rank</th>
-                      <th className="text-left p-3 font-semibold text-gray-700 text-sm">Manager</th>
-                      <th className="text-center p-3 font-semibold text-gray-700 text-sm hidden sm:table-cell">GWs</th>
-                      <th className="text-center p-3 font-semibold text-gray-700 text-sm">Points</th>
-                      <th className="text-center p-3 font-semibold text-gray-700 text-sm hidden md:table-cell">Average</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentMonthStandings.slice(3, 10).map((manager) => (
-                      <tr key={manager.id} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="p-3">
-                          <span className="font-bold text-gray-700">{manager.rank}</span>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                              {manager.avatar}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-900 text-sm">{manager.managerName}</div>
-                              <div className="text-xs text-gray-500 sm:hidden">{manager.teamName}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3 text-center hidden sm:table-cell">
-                          <span className="text-gray-600">{manager.gameweeksPlayed}</span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className="font-bold text-purple-600">{manager.monthlyPoints}</span>
-                        </td>
-                        <td className="p-3 text-center hidden md:table-cell">
-                          <span className="text-gray-600">{manager.average}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="text-right">
+                  <div className="text-4xl font-bold text-yellow-300">{monthWinner.monthlyPoints}</div>
+                  <div className="text-white/80">net points</div>
+                  {selectedMonthData?.status === 'active' && (
+                    <div className="text-sm text-white/60">
+                      {getMonthProgress(selectedMonthData)}% complete
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Prize Pool Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-300">৳{totalDistributed}</div>
+              <div className="text-white/80 text-sm">Distributed</div>
+              <div className="text-white/60 text-xs">{completedMonths.length} months</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-300">৳{remainingPrizes}</div>
+              <div className="text-white/80 text-sm">Remaining</div>
+              <div className="text-white/60 text-xs">{months.filter(m => m.status !== 'completed').length} months</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-300">
+                ৳{selectedMonthData?.prizes.reduce((sum, prize) => sum + prize, 0) || 0}
+              </div>
+              <div className="text-white/80 text-sm">Current Pool</div>
+              <div className="text-white/60 text-xs">{selectedMonthData?.name}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-300">
+                {currentMonthStandings.length > 0 ? 
+                  Math.max(...currentMonthStandings.map(m => m.monthlyPoints)) : 0}
+              </div>
+              <div className="text-white/80 text-sm">Top Score</div>
+              <div className="text-white/60 text-xs">Net points</div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* All Months Overview */}
-      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 p-2 rounded-lg">
-              <Award className="text-white" size={24} />
+      {/* Month Selection */}
+      <div className="card bg-white shadow-xl">
+        <div className="card-body">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold">Select Month</h3>
+            <div className="text-sm text-gray-600">
+              Current: GW {currentGW}
             </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white">Monthly Prize Schedule</h2>
-              <p className="text-purple-100 text-sm">9 months • ৳6,650 total monthly prizes</p>
-            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {months.map(month => {
+              const isSelected = selectedMonth === month.id
+              
+              return (
+                <button
+                  key={month.id}
+                  onClick={() => setSelectedMonth(month.id)}
+                  className={`p-3 rounded-lg text-center transition-all ${
+                    isSelected
+                      ? 'bg-purple-600 text-white'
+                      : month.status === 'completed'
+                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                      : month.status === 'active'
+                      ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <div className="font-semibold">{month.name}</div>
+                  <div className="text-xs">
+                    GW {month.gameweeks[0]}-{month.gameweeks[month.gameweeks.length - 1]}
+                  </div>
+                  <div className="text-xs font-medium">
+                    ৳{month.prizes.reduce((sum, prize) => sum + prize, 0)}
+                  </div>
+                  {month.status === 'completed' && <div className="text-xs">✅ Complete</div>}
+                  {month.status === 'active' && <div className="text-xs">🔄 {getMonthProgress(month)}%</div>}
+                  {month.status === 'upcoming' && <div className="text-xs">⏳ Upcoming</div>}
+                </button>
+              )
+            })}
           </div>
         </div>
+      </div>
 
-        <div className="p-6">
-          {/* Progress Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-green-50 border border-green-200 p-4 rounded-lg text-center">
-              <div className="text-3xl font-bold text-green-600">{completedMonths}</div>
-              <div className="text-sm text-green-700 font-medium">Completed</div>
-              <div className="text-xs text-green-600 mt-1">৳{totalPrizesDistributed} distributed</div>
-            </div>
+      {/* Monthly Standings */}
+      <div className="card bg-white shadow-xl">
+        <div className="card-body">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <Trophy className="text-purple-600" size={24} />
+              {selectedMonthData?.name} Standings
+              {selectedMonthData?.status === 'completed' && <span className="text-green-600">🏆 Final</span>}
+              {selectedMonthData?.status === 'active' && <span className="text-blue-600">📊 Live</span>}
+            </h3>
             
-            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg text-center">
-              <div className="text-3xl font-bold text-blue-600">1</div>
-              <div className="text-sm text-blue-700 font-medium">Active</div>
-              <div className="text-xs text-blue-600 mt-1">{currentMonthData?.name}</div>
-            </div>
-            
-            <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg text-center">
-              <div className="text-3xl font-bold text-purple-600">{remainingMonths}</div>
-              <div className="text-sm text-purple-700 font-medium">Remaining</div>
-              <div className="text-xs text-purple-600 mt-1">৳{remainingMonths * 750} pending</div>
-            </div>
-            
-            <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg text-center">
-              <div className="text-3xl font-bold text-orange-600">৳6,650</div>
-              <div className="text-sm text-orange-700 font-medium">Total Pool</div>
-              <div className="text-xs text-orange-600 mt-1">Monthly prizes</div>
-            </div>
-          </div>
-
-          {/* Months Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {months.map((month) => (
-              <div 
-                key={month.id}
-                className={`
-                  p-4 rounded-lg border-2 transition-all duration-200
-                  ${month.status === 'completed' ? 'bg-green-50 border-green-300' :
-                    month.status === 'active' ? 'bg-blue-50 border-blue-300' :
-                    'bg-gray-50 border-gray-200'}
-                `}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <h4 className="font-bold text-gray-900">{month.name}</h4>
-                  <div className={`
-                    px-2 py-1 rounded-full text-xs font-medium
-                    ${month.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      month.status === 'active' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-600'}
-                  `}>
-                    {month.status === 'completed' ? '✅ Done' :
-                     month.status === 'active' ? '🔄 Active' : '⏳ Upcoming'}
-                  </div>
-                </div>
-                
-                <div className="text-sm text-gray-600 mb-3">
-                  GW {month.gameweeks[0]}-{month.gameweeks[month.gameweeks.length - 1]}
-                </div>
-                
-                <div className="grid grid-cols-3 gap-2">
-                  {month.prizes.map((prize, index) => (
-                    <div key={index} className="text-center">
-                      <div className="text-lg font-bold text-gray-800">৳{prize}</div>
-                      <div className="text-xs text-gray-500">
-                        {index === 0 ? '🥇 1st' : index === 1 ? '🥈 2nd' : '🥉 3rd'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            <div className="text-right text-sm">
+              <div className="font-semibold">
+                Prizes: ৳{selectedMonthData?.prizes.join(', ৳') || '0'}
               </div>
-            ))}
+              <div className="text-gray-600">
+                Gameweeks: {selectedMonthData?.gameweeks.join(', ')}
+              </div>
+            </div>
           </div>
+
+          {currentMonthStandings.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100 border-b border-gray-200">
+                  <tr>
+                    <th className="text-center p-4 font-semibold text-gray-700 text-sm">Pos</th>
+                    <th className="text-left p-4 font-semibold text-gray-700 text-sm">Manager</th>
+                    <th className="text-left p-4 font-semibold text-gray-700 text-sm hidden md:table-cell">Team</th>
+                    <th className="text-center p-4 font-semibold text-gray-700 text-sm">Net Points</th>
+                    <th className="text-center p-4 font-semibold text-gray-700 text-sm hidden lg:table-cell">GWs</th>
+                    <th className="text-center p-4 font-semibold text-gray-700 text-sm hidden lg:table-cell">Average</th>
+                    <th className="text-center p-4 font-semibold text-gray-700 text-sm hidden lg:table-cell">Penalties</th>
+                    <th className="text-center p-4 font-semibold text-gray-700 text-sm">Prize</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentMonthStandings.map((manager, index) => {
+                    const isWinner = manager.rank <= 3 && selectedMonthData?.status === 'completed'
+                    const isLeader = manager.rank === 1 && selectedMonthData?.status === 'active'
+                    const prizeAmount = selectedMonthData?.prizes[manager.rank - 1] || 0
+                    
+                    return (
+                      <tr 
+                        key={manager.id}
+                        className={`
+                          border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150
+                          ${isWinner ? 'bg-gradient-to-r from-yellow-50 to-orange-50' : ''}
+                          ${isLeader ? 'bg-gradient-to-r from-blue-50 to-purple-50' : ''}
+                          ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
+                        `}
+                      >
+                        {/* Position */}
+                        <td className="p-4 text-center font-semibold">
+                          <div className="flex items-center justify-center gap-1">
+                            {manager.rank === 1 && selectedMonthData?.status === 'completed' && <Crown className="text-yellow-500" size={16} />}
+                            {manager.rank === 1 && selectedMonthData?.status === 'active' && <Star className="text-blue-500" size={16} />}
+                            {manager.rank === 2 && <Medal className="text-gray-500" size={16} />}
+                            {manager.rank === 3 && <Award className="text-orange-500" size={16} />}
+                            <span className={`
+                              ${manager.rank === 1 ? 'text-purple-600 font-bold' : 'text-gray-800'}
+                            `}>
+                              {manager.rank}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Manager Name */}
+                        <td className="p-4">
+                          <div className="font-semibold text-gray-800">{manager.managerName}</div>
+                        </td>
+
+                        {/* Team Name */}
+                        <td className="p-4 hidden md:table-cell text-gray-600 text-sm">
+                          {manager.teamName}
+                        </td>
+
+                        {/* Net Points (after transfer costs) */}
+                        <td className="p-4 text-center">
+                          <span className="font-bold text-lg text-green-600">
+                            {manager.monthlyPoints}
+                          </span>
+                        </td>
+
+                        {/* Gameweeks Played */}
+                        <td className="p-4 hidden lg:table-cell text-center">
+                          <span className="text-sm">
+                            {manager.gameweeksPlayed}/{selectedMonthData?.gameweeks.length}
+                          </span>
+                        </td>
+
+                        {/* Average */}
+                        <td className="p-4 hidden lg:table-cell text-center">
+                          <span className="text-sm font-medium text-blue-600">
+                            {manager.averageGW}
+                          </span>
+                        </td>
+
+                        {/* Penalties */}
+                        <td className="p-4 hidden lg:table-cell text-center">
+                          <span className={`text-sm ${
+                            manager.transfersCost > 0 ? 'text-red-600 font-medium' : 'text-gray-400'
+                          }`}>
+                            {manager.transfersCost > 0 ? `-${manager.transfersCost}` : '0'}
+                          </span>
+                        </td>
+
+                        {/* Prize */}
+                        <td className="p-4 text-center">
+                          <span className={`font-bold ${
+                            prizeAmount > 0 ? 'text-purple-600' : 'text-gray-400'
+                          }`}>
+                            {prizeAmount > 0 ? `৳${prizeAmount}` : '--'}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-600 mb-2">No Data Available</h3>
+              <p className="text-gray-500">
+                {selectedMonthData?.name} data will appear here once the gameweeks begin.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
