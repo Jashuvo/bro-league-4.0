@@ -26,8 +26,12 @@ function App() {
     setLoading(true)
     try {
       console.log('🚀 Loading real FPL data for BRO League 4.0...')
+      console.log('🔗 Current URL:', window.location.href)
+      console.log('🌐 Environment:', import.meta.env.MODE)
       
       const result = await fplApi.initializeWithAuth()
+      
+      console.log('📊 API Result:', result)
       
       // Update authentication status
       setAuthStatus({
@@ -54,10 +58,18 @@ function App() {
       
     } catch (error) {
       console.error('❌ Error loading FPL data:', error)
+      console.error('❌ Error stack:', error.stack)
       setAuthStatus({
         authenticated: false,
-        message: 'Failed to load data'
+        message: `Failed to load data: ${error.message}`
       })
+      
+      // Use completely static data as last resort
+      setStandings([
+        { id: 1, managerName: 'Manager 1', teamName: 'La Roja ❤️', totalPoints: 206, gameweekPoints: 69, rank: 1, lastRank: 2 },
+        { id: 2, managerName: 'Manager 2', teamName: 'Unknown', totalPoints: 181, gameweekPoints: 50, rank: 2, lastRank: 1 },
+        { id: 3, managerName: 'Manager 3', teamName: 'Din ekhon Plasticor', totalPoints: 178, gameweekPoints: 52, rank: 3, lastRank: 4 }
+      ])
     } finally {
       setLoading(false)
     }
