@@ -7,7 +7,6 @@ import PrizeDistribution from './components/PrizeDistribution'
 import MonthlyPrizes from './components/MonthlyPrizes'
 import WeeklyPrizes from './components/WeeklyPrizes'
 import Footer from './components/Footer'
-import { leagueConfig } from './data/leagueData'
 import fplApi from './services/fplApi'
 
 function App() {
@@ -48,100 +47,92 @@ function App() {
         })
       }
 
-      // Update standings
+      // Update standings - only use real API data, no demo data
       if (result.standings && result.standings.length > 0) {
         setStandings(result.standings)
-        console.log(`✅ Loaded ${result.standings.length} managers from ${result.authenticated ? 'FPL API' : 'mock data'}`)
+        console.log(`✅ Loaded ${result.standings.length} managers from FPL API`)
+      } else {
+        console.log('⚠️ No standings data available from API')
+        setStandings([]) // Clear any existing data
       }
 
       setLastUpdated(new Date())
       
     } catch (error) {
       console.error('❌ Error loading FPL data:', error)
-      console.error('❌ Error stack:', error.stack)
       setAuthStatus({
         authenticated: false,
-        message: `Failed to load data: ${error.message}`
+        message: 'Failed to connect to FPL API'
       })
-      
-      // Use completely static data as last resort
-      setStandings([
-        { id: 1, managerName: 'Manager 1', teamName: 'La Roja ❤️', totalPoints: 206, gameweekPoints: 69, rank: 1, lastRank: 2 },
-        { id: 2, managerName: 'Manager 2', teamName: 'Unknown', totalPoints: 181, gameweekPoints: 50, rank: 2, lastRank: 1 },
-        { id: 3, managerName: 'Manager 3', teamName: 'Din ekhon Plasticor', totalPoints: 178, gameweekPoints: 52, rank: 3, lastRank: 4 }
-      ])
+      setStandings([]) // Clear data on error
     } finally {
       setLoading(false)
     }
   }
 
-  const refreshData = async () => {
-    await loadRealData()
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-bro-primary via-purple-900 to-indigo-900">
-      <Header onRefresh={refreshData} authStatus={authStatus} />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <Header 
+        onRefresh={loadRealData} 
+        authStatus={authStatus}
+        loading={loading}
+      />
       
       <Hero 
-        leagueConfig={leagueConfig}
+        standings={standings}
         gameweekInfo={gameweekInfo}
+        authStatus={authStatus}
       />
-
+      
       <main className="container mx-auto px-4 py-8">
-        {/* API Status Banner */}
-        {!loading && (
-          <div className={`
-            alert mb-6 ${authStatus.authenticated ? 'alert-success' : 'alert-warning'}
-          `}>
-            <div className="flex items-center gap-2">
-              <span className={authStatus.authenticated ? '🟢' : '🟡'}>
-                {authStatus.authenticated ? '🔗' : '📡'}
-              </span>
-              <span>
-                {authStatus.authenticated 
-                  ? `✅ Live data from FPL API - League ID: 1858389` 
-                  : `⚠️ ${authStatus.message} - Demo mode active`
-                }
-              </span>
-              {lastUpdated && (
-                <span className="text-sm opacity-75 ml-auto">
-                  Last updated: {lastUpdated.toLocaleTimeString('en-US', { 
-                    timeZone: 'Asia/Dhaka', 
-                    hour12: true 
-                  })} BD
-                </span>
-              )}
-            </div>
+        {/* Tab Navigation */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-1 flex gap-1">
+            <button 
+              className={`
+                px-6 py-3 rounded-lg font-medium transition-all duration-200
+                ${currentTab === 'standings' 
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
+              `}
+              onClick={() => setCurrentTab('standings')}
+            >
+              🏆 Standings
+            </button>
+            <button 
+              className={`
+                px-6 py-3 rounded-lg font-medium transition-all duration-200
+                ${currentTab === 'prizes' 
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
+              `}
+              onClick={() => setCurrentTab('prizes')}
+            >
+              💰 Prizes
+            </button>
+            <button 
+              className={`
+                px-6 py-3 rounded-lg font-medium transition-all duration-200
+                ${currentTab === 'monthly' 
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
+              `}
+              onClick={() => setCurrentTab('monthly')}
+            >
+              📅 Monthly
+            </button>
+            <button 
+              className={`
+                px-6 py-3 rounded-lg font-medium transition-all duration-200
+                ${currentTab === 'weekly' 
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
+              `}
+              onClick={() => setCurrentTab('weekly')}
+            >
+              ⚡ Weekly
+            </button>
           </div>
-        )}
-
-        {/* Navigation Tabs */}
-        <div className="tabs tabs-boxed justify-center mb-8 bg-white/10 backdrop-blur">
-          <button 
-            className={`tab ${currentTab === 'standings' ? 'tab-active' : ''}`}
-            onClick={() => setCurrentTab('standings')}
-          >
-            🏆 Standings
-          </button>
-          <button 
-            className={`tab ${currentTab === 'prizes' ? 'tab-active' : ''}`}
-            onClick={() => setCurrentTab('prizes')}
-          >
-            💰 Prizes
-          </button>
-          <button 
-            className={`tab ${currentTab === 'monthly' ? 'tab-active' : ''}`}
-            onClick={() => setCurrentTab('monthly')}
-          >
-            📅 Monthly
-          </button>
-          <button 
-            className={`tab ${currentTab === 'weekly' ? 'tab-active' : ''}`}
-            onClick={() => setCurrentTab('weekly')}
-          >
-            ⚡ Weekly
-          </button>
         </div>
 
         {/* Content based on active tab */}
