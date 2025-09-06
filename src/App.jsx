@@ -147,11 +147,17 @@ function App() {
         )}
 
         {currentTab === 'monthly' && (
-          <MonthlyPrizes />
+          <MonthlyPrizes 
+            standings={standings}
+            gameweekInfo={gameweekInfo}
+          />
         )}
 
         {currentTab === 'weekly' && (
-          <WeeklyPrizes />
+          <WeeklyPrizes 
+            standings={standings}
+            gameweekInfo={gameweekInfo}
+          />
         )}
       </main>
 

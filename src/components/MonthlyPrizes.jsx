@@ -1,8 +1,11 @@
 // src/components/MonthlyPrizes.jsx
 import { Calendar, TrendingUp, Award } from 'lucide-react'
 
-const MonthlyPrizes = () => {
-  const currentMonth = 4 // You can make this dynamic later
+const MonthlyPrizes = ({ standings = [], gameweekInfo = {} }) => {
+  const currentGW = gameweekInfo.current || 15
+  
+  // Calculate current month based on gameweek (every 4 GWs = 1 month)
+  const currentMonth = Math.ceil(currentGW / 4)
 
   const months = [
     { id: 1, name: "Month 1", gameweeks: "GW 1-4", prizes: [350, 250, 150] },
@@ -16,12 +19,12 @@ const MonthlyPrizes = () => {
     { id: 9, name: "Month 9 (Final)", gameweeks: "GW 33-38", prizes: [500, 400, 250] }
   ]
 
-  // Mock current month standings
-  const currentStandings = [
-    { rank: 1, manager: 'Tarik Islam', points: 347 },
-    { rank: 2, manager: 'Fahim Khan', points: 332 },
-    { rank: 3, manager: 'Arif Rahman', points: 329 }
-  ]
+  // Generate current month standings from real data (simplified - in reality you'd need historical data)
+  const currentStandings = standings.slice(0, 3).map((manager, index) => ({
+    rank: index + 1,
+    manager: manager.managerName || 'Loading...',
+    points: manager.totalPoints ? Math.floor(manager.totalPoints / 4) : 0 // Rough estimate
+  }))
 
   return (
     <div id="monthly" className="space-y-8">
@@ -36,10 +39,10 @@ const MonthlyPrizes = () => {
           
           <div className="text-center mb-6">
             <div className="text-lg opacity-90 mb-2">
-              Gameweeks {(currentMonth - 1) * 4 + 1}-{currentMonth * 4}
+              Gameweeks {(currentMonth - 1) * 4 + 1}-{Math.min(currentMonth * 4, 38)}
             </div>
             <div className="text-sm opacity-75">
-              Current monthly standings
+              Current leaders (estimated from total points)
             </div>
           </div>
 
@@ -60,7 +63,7 @@ const MonthlyPrizes = () => {
                     {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
                   </div>
                   <div className="font-bold text-lg">{standing.manager}</div>
-                  <div className="text-2xl font-bold my-2">{standing.points} pts</div>
+                  <div className="text-2xl font-bold my-2">{standing.points} pts*</div>
                   <div className={`
                     badge 
                     ${index === 0 ? 'badge-warning' : 
@@ -71,6 +74,9 @@ const MonthlyPrizes = () => {
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="text-xs text-center mt-4 opacity-75">
+              * Estimated monthly points from current season total
             </div>
           </div>
         </div>
@@ -131,7 +137,7 @@ const MonthlyPrizes = () => {
           {/* Progress Summary */}
           <div className="mt-6 grid grid-cols-3 gap-4 text-center">
             <div className="bg-green-600/20 p-4 rounded-lg">
-              <div className="text-2xl font-bold text-green-400">{currentMonth - 1}</div>
+              <div className="text-2xl font-bold text-green-400">{Math.max(0, currentMonth - 1)}</div>
               <div className="text-sm text-gray-400">Completed</div>
             </div>
             <div className="bg-blue-600/20 p-4 rounded-lg">

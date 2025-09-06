@@ -1,22 +1,36 @@
 // src/components/WeeklyPrizes.jsx
 import { Zap, Phone, Trophy } from 'lucide-react'
 
-const WeeklyPrizes = () => {
-  const currentGW = 15
-  const totalGWs = 38
+const WeeklyPrizes = ({ standings = [], gameweekInfo = {} }) => {
+  const currentGW = gameweekInfo.current || 15
+  const totalGWs = gameweekInfo.total || 38
   const completedGWs = currentGW - 1
   const remainingGWs = totalGWs - currentGW + 1
 
-  // Mock recent weekly winners
-  const recentWinners = [
-    { gw: 15, manager: "Tarik Islam", points: 91, team: "Barisal Bulls" },
-    { gw: 14, manager: "Fahim Khan", points: 88, team: "Khulna Kings" },
-    { gw: 13, manager: "Arif Rahman", points: 92, team: "Dhaka Dragons" },
-    { gw: 12, manager: "Sakib Hassan", points: 85, team: "Chittagong Champions" },
-    { gw: 11, manager: "Nasir Ahmed", points: 87, team: "Sylhet Stars" }
-  ]
+  // Find current week's highest scorer from real data
+  const currentWeekWinner = standings.length > 0 
+    ? standings.reduce((prev, current) => 
+        (current.gameweekPoints > prev.gameweekPoints) ? current : prev
+      )
+    : { 
+        managerName: "No Data", 
+        teamName: "Loading...", 
+        gameweekPoints: 0 
+      }
 
-  const currentWeekWinner = recentWinners[0]
+  // Generate recent winners (mock data for past weeks since we don't have historical data)
+  const recentWinners = [
+    { 
+      gw: currentGW, 
+      manager: currentWeekWinner.managerName, 
+      points: currentWeekWinner.gameweekPoints, 
+      team: currentWeekWinner.teamName 
+    },
+    { gw: currentGW - 1, manager: "Previous Winner", points: 88, team: "Previous Team" },
+    { gw: currentGW - 2, manager: "Winner Before", points: 92, team: "Another Team" },
+    { gw: currentGW - 3, manager: "Earlier Winner", points: 85, team: "Some Team" },
+    { gw: currentGW - 4, manager: "Past Winner", points: 87, team: "Old Team" }
+  ]
 
   return (
     <div id="weekly" className="space-y-8">
@@ -26,15 +40,15 @@ const WeeklyPrizes = () => {
         <div className="card-body text-center">
           <h2 className="card-title text-3xl justify-center mb-4">
             <Zap size={36} />
-            GW {currentWeekWinner.gw} Highest Scorer
+            GW {currentGW} Highest Scorer
           </h2>
           
           <div className="text-6xl mb-4">🏆</div>
-          <div className="text-3xl font-bold mb-2">{currentWeekWinner.manager}</div>
-          <div className="text-lg opacity-90 mb-4">{currentWeekWinner.team}</div>
+          <div className="text-3xl font-bold mb-2">{currentWeekWinner.managerName}</div>
+          <div className="text-lg opacity-90 mb-4">{currentWeekWinner.teamName}</div>
           
           <div className="bg-white/20 backdrop-blur rounded-lg p-6 inline-block">
-            <div className="text-5xl font-bold mb-2">{currentWeekWinner.points}</div>
+            <div className="text-5xl font-bold mb-2">{currentWeekWinner.gameweekPoints}</div>
             <div className="text-lg">Points Scored</div>
           </div>
           
