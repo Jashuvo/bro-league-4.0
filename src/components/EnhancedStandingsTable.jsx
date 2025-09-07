@@ -1,8 +1,17 @@
-// src/components/EnhancedStandingsTable.jsx - Enhanced Standings with Visual Polish
+// src/components/EnhancedStandingsTable.jsx - FIXED VERSION - Properly Renders Table
+
+import React from 'react';
 import { Trophy, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, Crown, Medal, Award, ExternalLink, Star, Zap } from 'lucide-react'
-import ManagerBadges from './ManagerBadges'
 
 const EnhancedStandingsTable = ({ standings = [], loading = false, authStatus = {}, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
+  console.log('🔍 EnhancedStandingsTable render:', {
+    standingsCount: standings.length,
+    loading,
+    authStatus: authStatus.authenticated,
+    gameweekInfo,
+    leagueStatsKeys: Object.keys(leagueStats)
+  });
+
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
@@ -14,18 +23,6 @@ const EnhancedStandingsTable = ({ standings = [], loading = false, authStatus = 
         </div>
       </div>
     )
-  }
-
-  const getRankChangeIcon = (manager) => {
-    if (!manager.lastRank || manager.lastRank === manager.rank) {
-      return <Minus className="text-gray-400" size={16} />
-    }
-    
-    if (manager.lastRank > manager.rank) {
-      return <ArrowUp className="text-green-500" size={16} />
-    } else {
-      return <ArrowDown className="text-red-500" size={16} />
-    }
   }
 
   const getRankBadgeColor = (rank) => {
@@ -46,6 +43,13 @@ const EnhancedStandingsTable = ({ standings = [], loading = false, authStatus = 
 
   return (
     <div className="space-y-6">
+      {/* Debug Info (for development) */}
+      {import.meta.env.VITE_DEV_MODE === 'true' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+          <strong>Debug:</strong> Standings: {standings.length}, Loading: {loading.toString()}, Auth: {authStatus.authenticated.toString()}
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
@@ -91,9 +95,9 @@ const EnhancedStandingsTable = ({ standings = [], loading = false, authStatus = 
           )}
         </div>
 
-        {/* Table */}
+        {/* FIXED: Main Table Content - Always show if we have data */}
         <div className="overflow-x-auto">
-          {standings.length === 0 ? (
+          {!standings || standings.length === 0 ? (
             <div className="p-8 text-center">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trophy className="text-gray-400" size={32} />
@@ -111,121 +115,121 @@ const EnhancedStandingsTable = ({ standings = [], loading = false, authStatus = 
                 <tr>
                   <th className="text-left p-4 font-semibold text-gray-700">Position</th>
                   <th className="text-left p-4 font-semibold text-gray-700">Manager</th>
-                  <th className="text-left p-4 font-semibold text-gray-700 hidden sm:table-cell">Achievements</th>
+                  <th className="text-left p-4 font-semibold text-gray-700 hidden sm:table-cell">Team</th>
                   <th className="text-center p-4 font-semibold text-gray-700">GW Pts</th>
                   <th className="text-center p-4 font-semibold text-gray-700">Total</th>
                   <th className="text-center p-4 font-semibold text-gray-700 hidden md:table-cell">Trend</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {standings.map((manager, index) => (
-                  <tr 
-                    key={manager.id} 
-                    className={`
-                      hover:bg-gray-50 transition-colors duration-200
-                      ${manager.rank <= 3 ? 'bg-gradient-to-r from-yellow-50 to-transparent' : ''}
-                    `}
-                  >
-                    {/* Position */}
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`
-                          w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
-                          ${getRankBadgeColor(manager.rank)}
-                        `}>
-                          {getPositionIcon(manager.rank) || manager.rank}
-                        </div>
-                        
-                        {/* Rank change indicator */}
-                        <div className="hidden md:flex items-center">
-                          {getRankChangeIcon(manager)}
-                        </div>
-                      </div>
-                    </td>
+                {standings.map((manager, index) => {
+                  // FIXED: Better data handling with fallbacks
+                  const position = manager.rank || manager.position || (index + 1);
+                  const managerName = manager.managerName || manager.player_name || manager.entry_name || 'Unknown';
+                  const teamName = manager.teamName || manager.team_name || manager.entry_name || 'Unknown Team';
+                  const gameweekPoints = manager.gameweekPoints || manager.event_total || 0;
+                  const totalPoints = manager.totalPoints || manager.total || 0;
+                  const overallRank = manager.overallRank || manager.overall_rank || null;
 
-                    {/* Manager Info */}
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        {/* Avatar */}
-                        <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                          {manager.avatar || manager.managerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  return (
+                    <tr 
+                      key={manager.id || index} 
+                      className={`
+                        hover:bg-gray-50 transition-colors duration-200
+                        ${position <= 3 ? 'bg-gradient-to-r from-yellow-50 to-transparent' : ''}
+                      `}
+                    >
+                      {/* Position */}
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`
+                            w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+                            ${getRankBadgeColor(position)}
+                          `}>
+                            {getPositionIcon(position) || position}
+                          </div>
+                          <div className="hidden md:flex items-center">
+                            {position <= 3 && (
+                              <Star className="text-yellow-500 ml-2" size={16} />
+                            )}
+                          </div>
                         </div>
-                        
-                        <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-gray-900 truncate">
-                            {manager.managerName}
+                      </td>
+
+                      {/* Manager */}
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                            {manager.avatar || managerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                           </div>
-                          <div className="text-sm text-gray-600 truncate">
-                            {manager.teamName}
-                          </div>
-                          {manager.region && (
-                            <div className="text-xs text-gray-500 truncate">
-                              {manager.region}
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-gray-900 truncate">
+                              {managerName}
                             </div>
+                            <div className="text-sm text-gray-600 truncate">
+                              ID: {manager.id || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Team */}
+                      <td className="p-4 hidden sm:table-cell">
+                        <div className="font-medium text-gray-900 truncate">
+                          {teamName}
+                        </div>
+                      </td>
+
+                      {/* Gameweek Points */}
+                      <td className="p-4 text-center">
+                        <div className={`
+                          inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold
+                          ${gameweekPoints >= (leagueStats?.averageGameweek || 50)
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-700'}
+                        `}>
+                          {gameweekPoints >= (leagueStats?.highestGameweek || 0) && (
+                            <Zap className="text-yellow-500" size={14} />
                           )}
+                          {gameweekPoints}
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Achievements/Badges */}
-                    <td className="p-4 hidden sm:table-cell">
-                      <ManagerBadges 
-                        manager={manager} 
-                        gameweekTable={gameweekTable} 
-                        gameweekInfo={gameweekInfo}
-                        allManagers={standings}
-                      />
-                    </td>
-
-                    {/* Gameweek Points */}
-                    <td className="p-4 text-center">
-                      <div className={`
-                        inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold
-                        ${manager.gameweekPoints >= (leagueStats?.averageGameweek || 50) 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-700'}
-                      `}>
-                        {manager.gameweekPoints >= (leagueStats?.highestGameweek || 0) && (
-                          <Zap className="text-yellow-500" size={14} />
+                      {/* Total Points */}
+                      <td className="p-4 text-center">
+                        <div className="font-bold text-lg text-gray-900">
+                          {totalPoints?.toLocaleString()}
+                        </div>
+                        {overallRank && overallRank > 0 && (
+                          <div className="text-xs text-gray-500">
+                            #{overallRank?.toLocaleString()} overall
+                          </div>
                         )}
-                        {manager.gameweekPoints}
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Total Points */}
-                    <td className="p-4 text-center">
-                      <div className="font-bold text-lg text-gray-900">
-                        {manager.totalPoints?.toLocaleString()}
-                      </div>
-                      {manager.overallRank && manager.overallRank > 0 && (
-                        <div className="text-xs text-gray-500">
-                          #{manager.overallRank?.toLocaleString()} overall
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Trend */}
-                    <td className="p-4 text-center hidden md:table-cell">
-                      <div className="flex items-center justify-center gap-1">
-                        {manager.lastRank && manager.lastRank !== manager.rank && (
-                          <>
-                            {manager.lastRank > manager.rank ? (
+                      {/* Trend */}
+                      <td className="p-4 text-center hidden md:table-cell">
+                        <div className="flex items-center justify-center gap-1">
+                          {manager.lastRank && manager.lastRank !== position ? (
+                            manager.lastRank > position ? (
                               <div className="flex items-center gap-1 text-green-600 text-sm">
                                 <TrendingUp size={14} />
-                                <span>+{manager.lastRank - manager.rank}</span>
+                                <span>+{manager.lastRank - position}</span>
                               </div>
                             ) : (
                               <div className="flex items-center gap-1 text-red-600 text-sm">
                                 <TrendingDown size={14} />
-                                <span>-{manager.rank - manager.lastRank}</span>
+                                <span>-{position - manager.lastRank}</span>
                               </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            )
+                          ) : (
+                            <Minus className="text-gray-400" size={16} />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           )}
