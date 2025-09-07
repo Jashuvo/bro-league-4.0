@@ -1,20 +1,48 @@
-// src/components/WeeklyPrizes.jsx - Real Weekly Winners with EXACT LeagueTable Styling
+// src/components/WeeklyPrizes.jsx - Updated with Transfer Cost Deduction (Same as Monthly)
 import { Zap, Trophy, TrendingUp, Calendar, Award, Target, Users, ArrowUp, ArrowDown, Crown, Star, ExternalLink } from 'lucide-react'
 
 const WeeklyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [], weeklyWinners = [] }) => {
   const currentGW = gameweekInfo.current || 3
   
-  // Get weekly winners from real API data
+  // Get weekly winners from real API data WITH TRANSFER COST DEDUCTION
   const realWeeklyWinners = gameweekTable
     .filter(gw => gw.gameweek <= currentGW && gw.managers && gw.managers.length > 0)
     .map(gw => {
-      const sortedManagers = gw.managers
+      // Apply transfer cost deduction BEFORE sorting (same logic as MonthlyPrizes)
+      const managersWithNetPoints = gw.managers
         .filter(m => m.points > 0)
-        .sort((a, b) => b.points - a.points)
+        .map(manager => {
+          const rawPoints = manager.points || 0
+          
+          // Check ALL possible transfer cost field names (same as MonthlyPrizes)
+          const transfersCost = manager.transfersCost || 
+                               manager.event_transfers_cost || 
+                               manager.transferCost || 
+                               manager.transfers_cost ||
+                               manager.penalty ||
+                               manager.hit ||
+                               0
+
+          const netPoints = rawPoints - transfersCost
+
+          // Enhanced debugging for transfer costs
+          if (transfersCost > 0) {
+            console.log(`💰 Weekly GW${gw.gameweek} ${manager.managerName}: ${rawPoints} pts - ${transfersCost} cost = ${netPoints}`)
+          }
+
+          return {
+            ...manager,
+            rawPoints: rawPoints,
+            transfersCost: transfersCost,
+            netPoints: netPoints, // This is what we sort by
+            points: netPoints // Update points to be net points for consistency
+          }
+        })
+        .sort((a, b) => b.netPoints - a.netPoints) // Sort by NET points after transfer costs
       
-      const winner = sortedManagers[0]
-      const runnerUp = sortedManagers[1]
-      const third = sortedManagers[2]
+      const winner = managersWithNetPoints[0]
+      const runnerUp = managersWithNetPoints[1]
+      const third = managersWithNetPoints[2]
       
       return {
         gameweek: gw.gameweek,
@@ -22,30 +50,33 @@ const WeeklyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [], w
           id: winner.id,
           name: winner.managerName,
           teamName: winner.teamName,
-          points: winner.points,
+          points: winner.netPoints, // Show net points
+          rawPoints: winner.rawPoints,
           transfers: winner.transfers || 0,
-          transfersCost: winner.transfersCost || 0,
+          transfersCost: winner.transfersCost,
           totalPoints: winner.totalPoints
         } : null,
         runnerUp: runnerUp ? {
           id: runnerUp.id,
           name: runnerUp.managerName,
           teamName: runnerUp.teamName,
-          points: runnerUp.points,
+          points: runnerUp.netPoints,
+          rawPoints: runnerUp.rawPoints,
           transfers: runnerUp.transfers || 0,
-          transfersCost: runnerUp.transfersCost || 0
+          transfersCost: runnerUp.transfersCost
         } : null,
         third: third ? {
           id: third.id,
           name: third.managerName,
           teamName: third.teamName,
-          points: third.points,
+          points: third.netPoints,
+          rawPoints: third.rawPoints,
           transfers: third.transfers || 0,
-          transfersCost: third.transfersCost || 0
+          transfersCost: third.transfersCost
         } : null,
-        averageScore: gw.managers.length > 0 ? 
-          Math.round(gw.managers.reduce((sum, m) => sum + m.points, 0) / gw.managers.length) : 0,
-        totalManagers: gw.managers.length,
+        averageScore: managersWithNetPoints.length > 0 ? 
+          Math.round(managersWithNetPoints.reduce((sum, m) => sum + m.netPoints, 0) / managersWithNetPoints.length) : 0,
+        totalManagers: managersWithNetPoints.length,
         info: gw.info
       }
     })
@@ -59,7 +90,7 @@ const WeeklyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [], w
   const remainingGWs = Math.max(0, 38 - currentGW)
   const remainingPrizes = remainingGWs * 30
 
-  // Calculate weekly statistics from real data
+  // Calculate weekly statistics from real data (using net points)
   const allWinnerScores = realWeeklyWinners.map(gw => gw.winner.points).filter(score => score > 0)
   const overallAverageWeekly = allWinnerScores.length > 0 ?
     Math.round(allWinnerScores.reduce((sum, score) => sum + score, 0) / allWinnerScores.length) : 0
@@ -68,38 +99,49 @@ const WeeklyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [], w
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="card bg-gradient-to-br from-purple-600 to-blue-600 text-white shadow-xl">
+      {/* Header with Latest Winner */}
+      <div className="card bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-xl">
         <div className="card-body">
           <h2 className="card-title text-3xl mb-4 flex items-center gap-2">
-            <Trophy className="text-yellow-300" size={32} />
+            <Zap className="text-yellow-300" size={32} />
             Weekly Champions
-            <div className="badge badge-accent">GW {currentGW}</div>
+            <div className="badge badge-accent">₹30 Each</div>
           </h2>
-          
-          {/* Latest Winner Spotlight */}
+
           {latestWinner && (
             <div className="bg-white/10 backdrop-blur rounded-xl p-6 mb-4">
               <div className="flex justify-between items-center">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Crown className="text-yellow-300" size={24} />
-                    <span className="text-xl font-bold">Current Champion</span>
-                    <span className="badge badge-accent">GW {latestWinner.gameweek}</span>
+                    <Crown className="text-yellow-300" size={20} />
+                    <span className="text-lg font-semibold text-white">
+                      Latest Winner - GW {latestWinner.gameweek}
+                    </span>
                   </div>
-                  <h3 className="text-2xl font-bold text-yellow-300">{latestWinner.winner.name}</h3>
-                  <p className="text-white/80">{latestWinner.winner.teamName}</p>
+                  <div className="text-2xl font-bold text-yellow-300 mb-1">
+                    {latestWinner.winner.name}
+                  </div>
+                  <div className="text-blue-100 text-sm">
+                    {latestWinner.winner.teamName}
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-4xl font-bold text-yellow-300">{latestWinner.winner.points}</div>
-                  <div className="text-white/80">points</div>
+                  <div className="text-3xl font-bold text-yellow-300">
+                    {latestWinner.winner.points}
+                  </div>
+                  <div className="text-blue-100 text-sm">Net Points</div>
+                  {latestWinner.winner.transfersCost > 0 && (
+                    <div className="text-xs text-red-200 mt-1">
+                      {latestWinner.winner.rawPoints} - {latestWinner.winner.transfersCost} = {latestWinner.winner.points}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Prize Pool Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Stats Summary */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div className="text-center">
               <div className="text-2xl font-bold text-yellow-300">৳{totalDistributed}</div>
               <div className="text-white/80 text-sm">Distributed</div>
@@ -120,7 +162,7 @@ const WeeklyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [], w
         </div>
       </div>
 
-      {/* Weekly Champions Table - EXACT COPY of LeagueTable Structure */}
+      {/* Weekly Champions Table */}
       <div className="card bg-white shadow-xl">
         <div className="card-body">
           {/* Header matching LeagueTable */}
@@ -128,7 +170,7 @@ const WeeklyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [], w
             <h3 className="text-xl font-bold flex items-center gap-2">
               <Award className="text-purple-600" size={24} />
               Weekly Winners History
-              <div className="badge badge-primary">Live Data</div>
+              <div className="badge badge-primary">Net Points (After Penalties)</div>
             </h3>
             
             <div className="flex items-center gap-2">
@@ -145,7 +187,7 @@ const WeeklyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [], w
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">{highestWeeklyScore}</div>
                 <div className="text-sm text-gray-600">Highest Score</div>
-                <div className="text-xs text-gray-500">Season best</div>
+                <div className="text-xs text-gray-500">Season best (net)</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">{overallAverageWeekly}</div>
@@ -171,105 +213,94 @@ const WeeklyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [], w
               <table className="w-full">
                 <thead className="bg-gray-100 border-b border-gray-200">
                   <tr>
-                    <th className="text-left p-4 font-semibold text-gray-700 text-sm">#</th>
+                    <th className="text-left p-4 font-semibold text-gray-700 text-sm">GW</th>
                     <th className="text-center p-4 font-semibold text-gray-700 text-sm hidden sm:table-cell">
-                      <TrendingUp size={16} className="mx-auto" />
+                      <Crown size={16} className="mx-auto" />
                     </th>
-                    <th className="text-left p-4 font-semibold text-gray-700 text-sm">Champion</th>
+                    <th className="text-left p-4 font-semibold text-gray-700 text-sm">Winner</th>
                     <th className="text-left p-4 font-semibold text-gray-700 text-sm hidden md:table-cell">Team</th>
-                    <th className="text-center p-4 font-semibold text-gray-700 text-sm">Points</th>
+                    <th className="text-center p-4 font-semibold text-gray-700 text-sm">Net Points</th>
                     <th className="text-center p-4 font-semibold text-gray-700 text-sm">Prize</th>
-                    <th className="text-center p-4 font-semibold text-gray-700 text-sm hidden lg:table-cell">Runners-up</th>
+                    <th className="text-center p-4 font-semibold text-gray-700 text-sm hidden lg:table-cell">Penalties</th>
                   </tr>
                 </thead>
                 <tbody>
                   {realWeeklyWinners.map((gw, index) => {
-                    const isLatest = index === 0
+                    const isRecent = index < 3
                     
                     return (
                       <tr 
                         key={gw.gameweek}
                         className={`
                           border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150
-                          ${isLatest ? 'bg-gradient-to-r from-yellow-50 to-orange-50' : ''}
+                          ${isRecent ? 'bg-gradient-to-r from-blue-50 to-purple-50' : ''}
                           ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
                         `}
                       >
-                        {/* Position - EXACT COPY of LeagueTable */}
+                        {/* Gameweek */}
                         <td className="p-4">
                           <div className="flex items-center gap-2">
-                            <span className={`
-                              font-bold text-lg
-                              ${isLatest ? 'text-yellow-600' : 'text-gray-700'}
-                            `}>
+                            <span className="font-bold text-lg text-blue-600">
                               {gw.gameweek}
                             </span>
-                            {isLatest && <Star className="text-yellow-500" size={16} />}
+                            {isRecent && (
+                              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                            )}
                           </div>
                         </td>
 
-                        {/* Trend Icon - EXACT COPY of LeagueTable */}
+                        {/* Trophy Icon */}
                         <td className="p-4 text-center hidden sm:table-cell">
-                          <div className="flex justify-center">
-                            <Crown className="text-yellow-500" size={16} />
-                          </div>
+                          <Trophy className="text-yellow-500 mx-auto" size={20} />
                         </td>
 
-                        {/* Manager Info - EXACT COPY of LeagueTable */}
+                        {/* Manager */}
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="relative">
-                              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                                {gw.winner.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                              </div>
-                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center">
-                                <Award size={10} className="text-yellow-800" />
-                              </div>
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-900">{gw.winner.name}</div>
-                              <div className="text-sm text-gray-500 md:hidden">
-                                {gw.winner.teamName}
-                              </div>
+                            <div className="font-medium text-gray-900">
+                              {gw.winner.name}
                             </div>
                           </div>
                         </td>
 
-                        {/* Team Name - EXACT COPY of LeagueTable */}
+                        {/* Team */}
                         <td className="p-4 hidden md:table-cell">
-                          <span className="text-gray-700">{gw.winner.teamName}</span>
+                          <div className="text-gray-600 text-sm">
+                            {gw.winner.teamName}
+                          </div>
                         </td>
 
-                        {/* Gameweek Points - EXACT COPY of LeagueTable */}
+                        {/* Net Points (same styling as MonthlyPrizes) */}
                         <td className="p-4 text-center">
                           <div className={`
-                            inline-flex items-center gap-1 px-3 py-1 rounded-full font-semibold text-sm
+                            inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-semibold
                             bg-green-100 text-green-800
                           `}>
                             <Zap size={12} />
                             {gw.winner.points}
                           </div>
+                          {gw.winner.transfersCost > 0 && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {gw.winner.rawPoints} - {gw.winner.transfersCost} = {gw.winner.points}
+                            </div>
+                          )}
                         </td>
 
-                        {/* Prize - EXACT COPY of LeagueTable */}
+                        {/* Prize */}
                         <td className="p-4 text-center">
-                          <span className="font-bold text-lg text-purple-600">৳30</span>
+                          <span className="font-bold text-lg text-purple-600">
+                            ৳30
+                          </span>
                         </td>
 
-                        {/* Runners-up - EXACT COPY of LeagueTable */}
+                        {/* Penalties */}
                         <td className="p-4 text-center hidden lg:table-cell">
-                          <div className="space-y-1">
-                            {gw.runnerUp && (
-                              <div className="text-sm text-gray-600">
-                                2nd: {gw.runnerUp.name} ({gw.runnerUp.points})
-                              </div>
-                            )}
-                            {gw.third && (
-                              <div className="text-sm text-gray-600">
-                                3rd: {gw.third.name} ({gw.third.points})
-                              </div>
-                            )}
-                          </div>
+                          <span className={`
+                            font-semibold
+                            ${gw.winner.transfersCost > 0 ? 'text-red-600' : 'text-gray-400'}
+                          `}>
+                            {gw.winner.transfersCost > 0 ? `-${gw.winner.transfersCost}` : '0'}
+                          </span>
                         </td>
                       </tr>
                     )
@@ -280,8 +311,10 @@ const WeeklyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [], w
           ) : (
             <div className="text-center py-12">
               <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-600 mb-2">No Weekly Winners Yet</h3>
-              <p className="text-gray-500">Complete gameweek data will appear here as the season progresses.</p>
+              <h3 className="text-lg font-medium text-gray-600 mb-2">No Data Available</h3>
+              <p className="text-gray-500">
+                Weekly winners will appear here as gameweeks complete.
+              </p>
             </div>
           )}
 
@@ -291,7 +324,7 @@ const WeeklyPrizes = ({ standings = [], gameweekInfo = {}, gameweekTable = [], w
               <div className="flex items-center justify-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span>
-                  Live weekly winners from FPL API • {completedGWs} gameweeks completed • 
+                  Live weekly data from FPL API • Transfer penalties deducted • 
                   Last updated: {new Date().toLocaleString('en-US', { 
                     timeZone: 'Asia/Dhaka',
                     dateStyle: 'medium',

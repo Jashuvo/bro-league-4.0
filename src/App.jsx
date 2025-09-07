@@ -135,17 +135,7 @@ function App() {
               📊 Gameweeks
             </button>
             
-            <button 
-              className={`
-                px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
-                ${currentTab === 'prizes' 
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
-              `}
-              onClick={() => setCurrentTab('prizes')}
-            >
-              🎁 Prizes
-            </button>
+            
             
             <button 
               className={`
@@ -170,6 +160,19 @@ function App() {
             >
               📈 Weekly Winners
             </button>
+
+
+            <button 
+              className={`
+                px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
+                ${currentTab === 'prizes' 
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
+              `}
+              onClick={() => setCurrentTab('prizes')}
+            >
+              🎁 Prizes
+            </button>
           </div>
         </div>
 
@@ -193,9 +196,7 @@ function App() {
           />
         )}
 
-        {currentTab === 'prizes' && (
-          <PrizeDistribution />
-        )}
+        
 
         {currentTab === 'monthly' && (
           <MonthlyPrizes 
@@ -211,6 +212,10 @@ function App() {
             gameweekInfo={gameweekInfo}
             gameweekTable={gameweekTable}
           />
+        )}
+
+        {currentTab === 'prizes' && (
+          <PrizeDistribution />
         )}
 
         {/* Performance Stats */}
