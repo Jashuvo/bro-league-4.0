@@ -1,4 +1,4 @@
-// src/components/Hero.jsx - Fixed & More Compact Version
+// src/components/Hero.jsx - Fixed Next Transfer Deadline
 import { Trophy, Users, Calendar, Target, TrendingUp, Crown, Globe, Award, Zap } from 'lucide-react'
 
 const Hero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstrap }) => {
@@ -15,9 +15,9 @@ const Hero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstrap }) =
   // Get current leader from API data
   const currentLeader = standings.find(manager => manager.rank === 1)
   
-  // Get current gameweek deadline info from bootstrap
-  const currentGameweekData = bootstrap?.gameweeks?.find(gw => gw.id === gameweekInfo.current)
-  const nextDeadline = currentGameweekData?.deadline_time ? new Date(currentGameweekData.deadline_time) : null
+  // 🔥 FIXED: Get NEXT gameweek deadline info from bootstrap (not current)
+  const nextGameweekData = bootstrap?.gameweeks?.find(gw => gw.id === (gameweekInfo.current + 1))
+  const nextDeadline = nextGameweekData?.deadline_time ? new Date(nextGameweekData.deadline_time) : null
   
   // Get top performers this gameweek
   const topPerformers = standings
@@ -86,7 +86,7 @@ const Hero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstrap }) =
             </div>
           )}
           
-          {/* Compact Next Deadline */}
+          {/* 🔥 FIXED: Now shows NEXT deadline instead of current */}
           {nextDeadline && authStatus?.authenticated && (
             <div className="bg-red-500/20 backdrop-blur-md border border-red-300/30 rounded-xl p-3 max-w-xs mx-auto mb-4">
               <div className="flex items-center gap-2 text-white">
@@ -94,7 +94,7 @@ const Hero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstrap }) =
                 <div className="text-left">
                   <p className="text-red-200 text-xs font-semibold">Next Deadline</p>
                   <p className="font-bold text-sm">
-                    {nextDeadline.toLocaleDateString('en-GB', { 
+                    GW{gameweekInfo.current + 1}: {nextDeadline.toLocaleDateString('en-GB', { 
                       weekday: 'short', 
                       day: 'numeric', 
                       month: 'short',
@@ -109,96 +109,98 @@ const Hero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstrap }) =
         </div>
 
         {/* Compact Stats Grid - Reduced padding */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-6">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 text-center hover:bg-white/15 transition-all duration-300">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Users className="text-white" size={20} />
-            </div>
-            <div className="text-2xl font-bold text-white mb-1">
-              {totalManagers}
-            </div>
-            <div className="text-blue-100 text-sm font-medium">Managers</div>
-            {leagueStats.veteranManagers > 0 && (
-              <div className="text-xs text-blue-200 mt-1">
-                {leagueStats.veteranManagers} veterans
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {/* Total Prize Pool */}
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 text-center">
+            <div className="flex justify-center mb-2">
+              <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                <Trophy className="text-yellow-400" size={16} />
               </div>
-            )}
+            </div>
+            <div className="text-yellow-400 text-lg font-bold">৳{totalPrizePool.toLocaleString()}</div>
+            <div className="text-white text-xs">Total Prize</div>
           </div>
-          
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 text-center hover:bg-white/15 transition-all duration-300">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Target className="text-white" size={20} />
-            </div>
-            <div className="text-2xl font-bold text-white mb-1">
-              ৳{totalPrizePool.toLocaleString()}
-            </div>
-            <div className="text-blue-100 text-sm font-medium">Prize Pool</div>
-            <div className="text-xs text-blue-200 mt-1">Winner: ৳{entryFee}</div>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 text-center hover:bg-white/15 transition-all duration-300">
-            <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Calendar className="text-white" size={20} />
-            </div>
-            <div className="text-2xl font-bold text-white mb-1">
-              {gameweekInfo?.current || '--'}
-            </div>
-            <div className="text-blue-100 text-sm font-medium">Current GW</div>
-            {currentGameweekData?.average_entry_score && (
-              <div className="text-xs text-blue-200 mt-1">
-                Avg: {currentGameweekData.average_entry_score}
+
+          {/* Active Managers */}
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 text-center">
+            <div className="flex justify-center mb-2">
+              <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <Users className="text-green-400" size={16} />
               </div>
-            )}
+            </div>
+            <div className="text-green-400 text-lg font-bold">{totalManagers}</div>
+            <div className="text-white text-xs">Active Bros</div>
           </div>
-          
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 text-center hover:bg-white/15 transition-all duration-300">
-            <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-red-500 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <TrendingUp className="text-white" size={20} />
+
+          {/* Current Gameweek */}
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 text-center">
+            <div className="flex justify-center mb-2">
+              <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <Calendar className="text-blue-400" size={16} />
+              </div>
             </div>
-            <div className="text-2xl font-bold text-white mb-1">
-              {gameweeksLeft}
+            <div className="text-blue-400 text-lg font-bold">GW {gameweekInfo?.current || 3}</div>
+            <div className="text-white text-xs">Current Week</div>
+          </div>
+
+          {/* Gameweeks Left */}
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 text-center">
+            <div className="flex justify-center mb-2">
+              <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                <Target className="text-purple-400" size={16} />
+              </div>
             </div>
-            <div className="text-blue-100 text-sm font-medium">GWs Left</div>
-            <div className="text-xs text-blue-200 mt-1">
-              Season ends May 2026
-            </div>
+            <div className="text-purple-400 text-lg font-bold">{gameweeksLeft}</div>
+            <div className="text-white text-xs">Weeks Left</div>
           </div>
         </div>
 
-        {/* Enhanced League Info - Now uses environment variables */}
-        <div className="text-center">
-          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 max-w-2xl mx-auto">
-            <h3 className="text-white font-semibold text-lg mb-3">League Information</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+        {/* Quick Stats Bar */}
+        {authStatus?.authenticated && leagueStats && (
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
               <div>
-                <p className="text-blue-200">Entry Fee</p>
-                <p className="text-white font-semibold">৳{entryFee}</p>
+                <div className="text-white text-lg font-bold">{leagueStats.averageScore || '--'}</div>
+                <div className="text-gray-300 text-xs">Avg Score</div>
               </div>
               <div>
-                <p className="text-blue-200">Winner Prize</p>
-                <p className="text-white font-semibold">৳{entryFee}</p>
+                <div className="text-white text-lg font-bold">{leagueStats.highestTotal || '--'}</div>
+                <div className="text-gray-300 text-xs">Highest Total</div>
               </div>
               <div>
-                <p className="text-blue-200">League ID</p>
-                <p className="text-white font-semibold">{leagueId}</p>
+                <div className="text-white text-lg font-bold">{leagueStats.averageGameweek || '--'}</div>
+                <div className="text-gray-300 text-xs">Avg GW Score</div>
               </div>
               <div>
-                <p className="text-blue-200">League Type</p>
-                <p className="text-white font-semibold">Classic</p>
-              </div>
-            </div>
-            
-            {/* API Status Indicator */}
-            <div className="mt-3 pt-3 border-t border-white/10">
-              <div className="flex items-center justify-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${authStatus?.authenticated ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`}></div>
-                <span className="text-blue-200 text-sm">
-                  {authStatus?.authenticated ? 'Live FPL Data' : 'Demo Mode'}
-                </span>
+                <div className="text-white text-lg font-bold">{leagueStats.highestGameweek || '--'}</div>
+                <div className="text-gray-300 text-xs">Highest GW</div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Top Performers This Week */}
+        {topPerformers.length > 0 && authStatus?.authenticated && (
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4">
+            <h3 className="text-white font-bold text-center mb-3 flex items-center justify-center gap-2">
+              <Zap className="text-yellow-400" size={18} />
+              This Gameweek's Heroes
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {topPerformers.map((manager, index) => (
+                <div key={manager.id} className="bg-white/10 rounded-lg p-3 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    {index === 0 && <Crown className="text-yellow-400" size={12} />}
+                    {index === 1 && <Award className="text-gray-400" size={12} />}
+                    {index === 2 && <Award className="text-orange-400" size={12} />}
+                    <span className="text-white font-medium text-sm">{manager.managerName}</span>
+                  </div>
+                  <div className="text-yellow-400 font-bold">{manager.gameweekPoints} pts</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
