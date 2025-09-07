@@ -1,4 +1,4 @@
-// src/App.jsx - Enhanced Version
+// src/App.jsx - Complete Optimized Version
 import { useState, useEffect } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
@@ -27,13 +27,17 @@ function App() {
 
   const loadEnhancedData = async () => {
     setLoading(true)
+    const startTime = performance.now(); // Performance monitoring
+    
     try {
-      console.log('🚀 Loading enhanced FPL data for BRO League 4.0...')
+      console.log('🚀 Loading OPTIMIZED FPL data for BRO League 4.0...')
       
       const result = await fplApi.initializeWithAuth()
       
+      const endTime = performance.now();
+      console.log(`⚡ OPTIMIZED data loaded in ${Math.round(endTime - startTime)}ms`)
       console.log('📊 Enhanced API Result:', result)
-      
+
       // Update authentication status
       setAuthStatus({
         authenticated: result.authenticated,
@@ -59,10 +63,11 @@ function App() {
         setStandings([])
       }
 
-      // Set gameweek table and league stats
+      // Set OPTIMIZED gameweek table (only loaded gameweeks)
       if (result.gameweekTable) {
         setGameweekTable(result.gameweekTable)
-        console.log(`📈 Loaded gameweek history for ${result.gameweekTable.length} gameweeks`)
+        console.log(`📈 OPTIMIZED: Loaded gameweek history for ${result.gameweekTable.length} gameweeks (instead of 38)`)
+        console.log(`🔥 Performance improvement: ${Math.round(((38 - result.gameweekTable.length) / 38) * 100)}% fewer gameweeks processed`)
       }
 
       if (result.leagueStats) {
@@ -73,7 +78,7 @@ function App() {
       setLastUpdated(new Date())
       
     } catch (error) {
-      console.error('❌ Error loading enhanced FPL data:', error)
+      console.error('❌ Error loading optimized FPL data:', error)
       setAuthStatus({
         authenticated: false,
         message: 'Failed to connect to FPL API'
@@ -163,44 +168,14 @@ function App() {
               `}
               onClick={() => setCurrentTab('weekly')}
             >
-              ⚡ Weekly
+              📈 Weekly Winners
             </button>
           </div>
         </div>
 
-        {/* Enhanced Stats Bar */}
-        {authStatus.authenticated && leagueStats.totalManagers && (
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold text-purple-600">{leagueStats.totalManagers}</div>
-                <div className="text-sm text-gray-600">Total Managers</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-green-600">{Math.round(leagueStats.averageScore)}</div>
-                <div className="text-sm text-gray-600">Average Total</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-600">{Math.round(leagueStats.averageGameweek)}</div>
-                <div className="text-sm text-gray-600">Average GW</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-orange-600">{leagueStats.highestTotal}</div>
-                <div className="text-sm text-gray-600">Highest Total</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-red-600">{leagueStats.veteranManagers}</div>
-                <div className="text-sm text-gray-600">Veterans</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-indigo-600">{leagueStats.newManagers}</div>
-                <div className="text-sm text-gray-600">New Managers</div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Content based on active tab */}
+
+        {/* Content based on current tab */}
         {currentTab === 'standings' && (
           <LeagueTable 
             standings={standings} 
@@ -216,6 +191,7 @@ function App() {
             gameweekTable={gameweekTable}
             currentGameweek={gameweekInfo.current}
             loading={loading}
+            bootstrap={bootstrap}
           />
         )}
 
@@ -237,6 +213,23 @@ function App() {
             gameweekInfo={gameweekInfo}
             gameweekTable={gameweekTable}
           />
+        )}
+
+        {/* Performance Stats */}
+        {lastUpdated && (
+          <div className="mt-8 text-center">
+            <div className="inline-block bg-white rounded-lg shadow-sm border border-gray-200 px-6 py-3">
+              <div className="text-sm text-gray-600">
+                <div className="flex items-center justify-center gap-4">
+                  <span>📡 Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                  <span>•</span>
+                  <span>⚡ Optimized loading enabled</span>
+                  <span>•</span>
+                  <span>📊 {gameweekTable.length}/{gameweekInfo.total} gameweeks loaded</span>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </main>
 
