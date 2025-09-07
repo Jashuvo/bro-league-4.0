@@ -1,7 +1,26 @@
-// src/components/Footer.jsx
+// src/components/Footer.jsx - Updated with dynamic data
 import { Heart, Trophy, Users } from 'lucide-react'
 
-const Footer = () => {
+const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
+  // Get environment variables
+  const totalParticipants = import.meta.env.VITE_TOTAL_PARTICIPANTS || 15
+  const entryFee = import.meta.env.VITE_ENTRY_FEE || 800
+  const totalPrizePool = import.meta.env.VITE_TOTAL_PRIZE_POOL || 12000
+  const leagueName = import.meta.env.VITE_LEAGUE_NAME || "BRO League 4.0"
+
+  // Calculate actual participants from API data
+  const actualParticipants = standings?.length || totalParticipants
+
+  // Get current gameweek from API or fallback to environment/default
+  const currentGameweek = gameweekInfo?.current || 3
+  const totalGameweeks = gameweekInfo?.total || 38
+
+  // Get current season year from bootstrap data or calculate from current date
+  const currentYear = new Date().getFullYear()
+  const seasonYear = bootstrap?.gameweeks?.[0]?.deadline_time 
+    ? new Date(bootstrap.gameweeks[0].deadline_time).getFullYear()
+    : currentYear
+
   return (
     <footer className="bg-purple-900/80 backdrop-blur text-white mt-16">
       <div className="container mx-auto px-4 py-12">
@@ -13,15 +32,15 @@ const Footer = () => {
           <div className="text-center md:text-left">
             <h3 className="text-2xl font-bold mb-4 flex items-center justify-center md:justify-start gap-2">
               <Trophy className="text-yellow-400" size={24} />
-              BRO League 4.0
+              {leagueName}
             </h3>
             <p className="text-gray-300 mb-4">
               The ultimate Fantasy Premier League competition among friends. 
-              15 bros, one champion, endless memories.
+              {actualParticipants} bros, one champion, endless memories.
             </p>
             <div className="flex items-center justify-center md:justify-start gap-2 text-sm">
               <Users size={16} />
-              <span>15 Participants • Season 2024/25</span>
+              <span>{actualParticipants} Participants • Season {seasonYear}/{seasonYear + 1}</span>
             </div>
           </div>
 
@@ -31,16 +50,22 @@ const Footer = () => {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Total Prize Pool:</span>
-                <span className="font-bold text-yellow-400">৳12,000</span>
+                <span className="font-bold text-yellow-400">৳{totalPrizePool.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span>Entry Fee:</span>
-                <span className="font-bold">৳800</span>
+                <span className="font-bold">৳{entryFee}</span>
               </div>
               <div className="flex justify-between">
                 <span>Current Gameweek:</span>
-                <span className="font-bold text-blue-400">15/38</span>
+                <span className="font-bold text-blue-400">{currentGameweek}/{totalGameweeks}</span>
               </div>
+              {authStatus?.authenticated && (
+                <div className="flex justify-between">
+                  <span>API Status:</span>
+                  <span className="font-bold text-green-400">Live</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -54,6 +79,11 @@ const Footer = () => {
               <div className="text-sm text-gray-400">
                 Made with ❤️ for the bros
               </div>
+              {authStatus?.message && (
+                <div className="text-xs text-gray-500">
+                  {authStatus.message}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -89,7 +119,7 @@ const Footer = () => {
             
             {/* Copyright */}
             <div className="text-sm text-gray-400">
-              © 2024 BRO League 4.0. Built with React + Vite
+              © {currentYear} {leagueName}. Built with React + Vite
             </div>
 
             {/* Islamic greeting */}

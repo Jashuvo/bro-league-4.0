@@ -1,4 +1,4 @@
-// src/App.jsx - Complete Optimized Version
+// src/App.jsx - Updated to pass props to Footer
 import { useState, useEffect } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
@@ -120,7 +120,7 @@ function App() {
               `}
               onClick={() => setCurrentTab('standings')}
             >
-              🏆 Current Standings
+              🏆 League Table
             </button>
             
             <button 
@@ -132,7 +132,7 @@ function App() {
               `}
               onClick={() => setCurrentTab('gameweeks')}
             >
-              📊 Gameweek History
+              📊 Gameweeks
             </button>
             
             <button 
@@ -144,7 +144,7 @@ function App() {
               `}
               onClick={() => setCurrentTab('prizes')}
             >
-              💰 Prizes
+              🎁 Prizes
             </button>
             
             <button 
@@ -172,8 +172,6 @@ function App() {
             </button>
           </div>
         </div>
-
-
 
         {/* Content based on current tab */}
         {currentTab === 'standings' && (
@@ -233,7 +231,13 @@ function App() {
         )}
       </main>
 
-      <Footer />
+      {/* ✅ UPDATED: Footer now receives props */}
+      <Footer 
+        gameweekInfo={gameweekInfo}
+        standings={standings}
+        authStatus={authStatus}
+        bootstrap={bootstrap}
+      />
     </div>
   )
 }
