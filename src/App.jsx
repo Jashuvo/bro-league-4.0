@@ -1,4 +1,4 @@
-// src/App.jsx - Updated to pass props to Footer
+// src/App.jsx - Updated to pass props to PrizeDistribution
 import { useState, useEffect } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
@@ -115,8 +115,8 @@ function App() {
               className={`
                 px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
                 ${currentTab === 'standings' 
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
+                  ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
               `}
               onClick={() => setCurrentTab('standings')}
             >
@@ -127,121 +127,106 @@ function App() {
               className={`
                 px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
                 ${currentTab === 'gameweeks' 
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
               `}
               onClick={() => setCurrentTab('gameweeks')}
             >
-              📊 Gameweeks
+              📅 Gameweek History
             </button>
             
-            
+            <button 
+              className={`
+                px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
+                ${currentTab === 'prizes' 
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
+              `}
+              onClick={() => setCurrentTab('prizes')}
+            >
+              💰 Prize Distribution
+            </button>
             
             <button 
               className={`
                 px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
                 ${currentTab === 'monthly' 
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
+                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
               `}
               onClick={() => setCurrentTab('monthly')}
             >
-              📅 Monthly
+              📆 Monthly Prizes
             </button>
             
             <button 
               className={`
                 px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
                 ${currentTab === 'weekly' 
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
+                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
               `}
               onClick={() => setCurrentTab('weekly')}
             >
-              📈 Weekly Winners
-            </button>
-
-
-            <button 
-              className={`
-                px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
-                ${currentTab === 'prizes' 
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
-              `}
-              onClick={() => setCurrentTab('prizes')}
-            >
-              🎁 Prizes
+              ⚡ Weekly Prizes
             </button>
           </div>
         </div>
 
-        {/* Content based on current tab */}
-        {currentTab === 'standings' && (
-          <LeagueTable 
-            standings={standings} 
-            loading={loading}
-            authStatus={authStatus}
-            gameweekInfo={gameweekInfo}
-            leagueStats={leagueStats}
-          />
-        )}
-
-        {currentTab === 'gameweeks' && (
-          <GameweekTable 
-            gameweekTable={gameweekTable}
-            currentGameweek={gameweekInfo.current}
-            loading={loading}
-            bootstrap={bootstrap}
-          />
-        )}
-
-        
-
-        {currentTab === 'monthly' && (
-          <MonthlyPrizes 
-            standings={standings}
-            gameweekInfo={gameweekInfo}
-            gameweekTable={gameweekTable}
-          />
-        )}
-
-        {currentTab === 'weekly' && (
-          <WeeklyPrizes 
-            standings={standings}
-            gameweekInfo={gameweekInfo}
-            gameweekTable={gameweekTable}
-          />
-        )}
-
-        {currentTab === 'prizes' && (
-          <PrizeDistribution />
-        )}
-
-        {/* Performance Stats */}
-        {lastUpdated && (
-          <div className="mt-8 text-center">
-            <div className="inline-block bg-white rounded-lg shadow-sm border border-gray-200 px-6 py-3">
-              <div className="text-sm text-gray-600">
-                <div className="flex items-center justify-center gap-4">
-                  <span>📡 Last updated: {lastUpdated.toLocaleTimeString()}</span>
-                  <span>•</span>
-                  <span>⚡ Optimized loading enabled</span>
-                  <span>•</span>
-                  <span>📊 {gameweekTable.length}/{gameweekInfo.total} gameweeks loaded</span>
-                </div>
-              </div>
+        {/* Tab Content */}
+        {loading ? (
+          <div className="text-center py-16">
+            <div className="inline-flex items-center gap-3 text-gray-600">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <span className="text-lg font-medium">Loading BRO League 4.0 data...</span>
             </div>
           </div>
+        ) : (
+          <>
+            {currentTab === 'standings' && (
+              <LeagueTable standings={standings} authStatus={authStatus} />
+            )}
+            
+            {currentTab === 'gameweeks' && (
+              <GameweekTable 
+                gameweekTable={gameweekTable}
+                currentGameweek={gameweekInfo.current}
+                authStatus={authStatus}
+              />
+            )}
+            
+            {currentTab === 'prizes' && (
+              <PrizeDistribution 
+                standings={standings}
+                gameweekInfo={gameweekInfo}
+                authStatus={authStatus}
+                leagueStats={leagueStats}
+              />
+            )}
+            
+            {currentTab === 'monthly' && (
+              <MonthlyPrizes 
+                standings={standings}
+                gameweekInfo={gameweekInfo}
+                authStatus={authStatus}
+              />
+            )}
+            
+            {currentTab === 'weekly' && (
+              <WeeklyPrizes 
+                standings={standings}
+                gameweekInfo={gameweekInfo}
+                authStatus={authStatus}
+              />
+            )}
+          </>
         )}
       </main>
-
-      {/* ✅ UPDATED: Footer now receives props */}
+      
       <Footer 
-        gameweekInfo={gameweekInfo}
         standings={standings}
         authStatus={authStatus}
-        bootstrap={bootstrap}
+        lastUpdated={lastUpdated}
       />
     </div>
   )

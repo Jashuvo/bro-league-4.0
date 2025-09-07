@@ -83,7 +83,11 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
             const gameweekData = gameweekTable.find(gwData => gwData.gameweek === gw)
             
             if (gameweekData && gameweekData.managers) {
-              const managerGWData = gameweekData.managers.find(m => m.id === manager.id)
+              // Check both possible ID fields
+              const managerGWData = gameweekData.managers.find(m => 
+                m.id === manager.id || m.entry === manager.id ||
+                m.id === manager.entry || m.entry === manager.entry
+              )
               
               if (managerGWData) {
                 const points = managerGWData.points || 0
@@ -130,6 +134,8 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
           monthlyWins++
           console.log(`🏆 Manager ${managerId} finished ${managerMonthlyRank.rank} in ${month.name} with ${managerMonthlyRank.monthlyPoints} points → +৳${prizeAmount}`)
         }
+      } else {
+        console.log(`📅 ${month.name} is ${month.status} (not completed yet)`)
       }
     })
 
