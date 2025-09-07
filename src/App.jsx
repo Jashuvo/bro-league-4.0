@@ -1,4 +1,4 @@
-// src/App.jsx - Updated to pass props to PrizeDistribution
+// src/App.jsx - Complete Fixed Version with gameweekTable Props
 import { useState, useEffect } from 'react'
 import Header from './components/Header'
 import Hero from './components/Hero'
@@ -27,14 +27,14 @@ function App() {
 
   const loadEnhancedData = async () => {
     setLoading(true)
-    const startTime = performance.now(); // Performance monitoring
+    const startTime = performance.now()
     
     try {
       console.log('🚀 Loading OPTIMIZED FPL data for BRO League 4.0...')
       
       const result = await fplApi.initializeWithAuth()
       
-      const endTime = performance.now();
+      const endTime = performance.now()
       console.log(`⚡ OPTIMIZED data loaded in ${Math.round(endTime - startTime)}ms`)
       console.log('📊 Enhanced API Result:', result)
 
@@ -108,15 +108,14 @@ function App() {
       />
       
       <main className="container mx-auto px-4 py-8">
-        {/* Enhanced Tab Navigation */}
         <div className="flex justify-center mb-8">
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-1 flex gap-1 overflow-x-auto">
             <button 
               className={`
                 px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
                 ${currentTab === 'standings' 
-                  ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
               `}
               onClick={() => setCurrentTab('standings')}
             >
@@ -127,106 +126,112 @@ function App() {
               className={`
                 px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
                 ${currentTab === 'gameweeks' 
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
               `}
               onClick={() => setCurrentTab('gameweeks')}
             >
-              📅 Gameweek History
+              📊 Gameweeks
             </button>
             
             <button 
               className={`
                 px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
                 ${currentTab === 'prizes' 
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
               `}
               onClick={() => setCurrentTab('prizes')}
             >
-              💰 Prize Distribution
+              🎁 Prizes
             </button>
             
             <button 
               className={`
                 px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
                 ${currentTab === 'monthly' 
-                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
               `}
               onClick={() => setCurrentTab('monthly')}
             >
-              📆 Monthly Prizes
+              📅 Monthly
             </button>
             
             <button 
               className={`
                 px-4 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap
                 ${currentTab === 'weekly' 
-                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}
               `}
               onClick={() => setCurrentTab('weekly')}
             >
-              ⚡ Weekly Prizes
+              📈 Weekly Winners
             </button>
           </div>
         </div>
 
-        {/* Tab Content */}
-        {loading ? (
-          <div className="text-center py-16">
-            <div className="inline-flex items-center gap-3 text-gray-600">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <span className="text-lg font-medium">Loading BRO League 4.0 data...</span>
+        {currentTab === 'standings' && (
+          <LeagueTable 
+            standings={standings}
+            loading={loading}
+            authStatus={authStatus}
+            gameweekInfo={gameweekInfo}
+            leagueStats={leagueStats}
+            gameweekTable={gameweekTable}
+          />
+        )}
+        
+        {currentTab === 'gameweeks' && (
+          <GameweekTable 
+            gameweekTable={gameweekTable}
+            currentGameweek={gameweekInfo.current}
+            loading={loading}
+            bootstrap={bootstrap}
+          />
+        )}
+        
+        {currentTab === 'prizes' && <PrizeDistribution />}
+        
+        {currentTab === 'monthly' && (
+          <MonthlyPrizes 
+            standings={standings}
+            gameweekInfo={gameweekInfo}
+            gameweekTable={gameweekTable}
+          />
+        )}
+        
+        {currentTab === 'weekly' && (
+          <WeeklyPrizes 
+            standings={standings}
+            gameweekInfo={gameweekInfo}
+            gameweekTable={gameweekTable}
+          />
+        )}
+
+        {lastUpdated && (
+          <div className="mt-8 text-center">
+            <div className="inline-block bg-white rounded-lg shadow-sm border border-gray-200 px-6 py-3">
+              <div className="text-sm text-gray-600">
+                <div className="flex items-center justify-center gap-4">
+                  <span>📡 Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                  <span>•</span>
+                  <span>⚡ Optimized loading enabled</span>
+                  <span>•</span>
+                  <span>📊 {gameweekTable.length}/{gameweekInfo.total} gameweeks loaded</span>
+                </div>
+              </div>
             </div>
           </div>
-        ) : (
-          <>
-            {currentTab === 'standings' && (
-              <LeagueTable standings={standings} authStatus={authStatus} />
-            )}
-            
-            {currentTab === 'gameweeks' && (
-              <GameweekTable 
-                gameweekTable={gameweekTable}
-                currentGameweek={gameweekInfo.current}
-                authStatus={authStatus}
-              />
-            )}
-            
-            {currentTab === 'prizes' && (
-              <PrizeDistribution 
-                standings={standings}
-                gameweekInfo={gameweekInfo}
-                authStatus={authStatus}
-                leagueStats={leagueStats}
-              />
-            )}
-            
-            {currentTab === 'monthly' && (
-              <MonthlyPrizes 
-                standings={standings}
-                gameweekInfo={gameweekInfo}
-                authStatus={authStatus}
-              />
-            )}
-            
-            {currentTab === 'weekly' && (
-              <WeeklyPrizes 
-                standings={standings}
-                gameweekInfo={gameweekInfo}
-                authStatus={authStatus}
-              />
-            )}
-          </>
         )}
       </main>
-      
+
       <Footer 
+        gameweekInfo={gameweekInfo}
         standings={standings}
         authStatus={authStatus}
-        lastUpdated={lastUpdated}
+        bootstrap={bootstrap}
       />
     </div>
   )

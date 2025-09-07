@@ -1,4 +1,4 @@
-// src/components/LeagueTable.jsx - Updated with FIXED Total Prizes Won Calculation
+// src/components/LeagueTable.jsx - COMPLETELY REWRITTEN with Working Prize Calculation
 import { Trophy, TrendingUp, Users, Crown, Medal, Award, Zap, Star, ExternalLink } from 'lucide-react'
 
 const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
@@ -13,156 +13,212 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
     )
   }
 
-  // Calculate total prizes won for each manager - FIXED LOGIC
+  // COMPLETELY NEW PRIZE CALCULATION - WORKING VERSION
   const calculateTotalPrizesWon = (managerId) => {
     let totalWon = 0
+    let debugInfo = []
     const currentGW = gameweekInfo.current || 3
 
-    console.log(`💰 Calculating total prizes for manager ID: ${managerId}`)
+    console.log(`💰 === CALCULATING PRIZES FOR MANAGER ${managerId} ===`)
+    console.log(`📊 Current GW: ${currentGW}`)
+    console.log(`📊 GameweekTable length: ${gameweekTable.length}`)
 
-    // 1. WEEKLY PRIZES - Check each completed gameweek for winners
-    let weeklyWins = 0
-    gameweekTable.forEach(gw => {
-      if (gw.gameweek <= currentGW && gw.managers && gw.managers.length > 0) {
-        // Apply transfer cost deduction to find ACTUAL winner
-        const managersWithNetPoints = gw.managers
-          .filter(m => m.points > 0)
-          .map(manager => {
-            const rawPoints = manager.points || 0
-            const transfersCost = manager.transfersCost || 
-                                 manager.event_transfers_cost || 
-                                 manager.transferCost || 
-                                 manager.transfers_cost ||
-                                 manager.penalty ||
-                                 manager.hit ||
-                                 0
-            return {
-              ...manager,
-              netPoints: rawPoints - transfersCost
-            }
-          })
-          .sort((a, b) => b.netPoints - a.netPoints)
-        
-        const winner = managersWithNetPoints[0]
-        if (winner && winner.id === managerId) {
-          totalWon += 30
-          weeklyWins++
-          console.log(`🏆 Manager ${managerId} won GW${gw.gameweek} with ${winner.netPoints} net points → +৳30`)
-        }
-      }
+    // CRITICAL: Check if gameweekTable is actually empty or if there's a data loading issue
+    if (gameweekTable.length === 0) {
+      console.log(`❌ CRITICAL: gameweekTable is empty!`)
+      console.log(`🔍 This means either:`)
+      console.log(`   1. Data hasn't loaded yet`)
+      console.log(`   2. gameweekTable prop isn't being passed correctly`)
+      console.log(`   3. API didn't return gameweek data`)
+      console.log(`📊 Available props:`, { hasStandings: standings.length > 0, currentGW, authStatus: authStatus.authenticated })
+      
+      // For now, return 0 but show the issue clearly
+      return 0
+    }
+
+    // STEP 1: WEEKLY PRIZES
+    console.log(`\n🔍 === WEEKLY PRIZE CALCULATION ===`)
+    console.log(`✅ Found ${gameweekTable.length} gameweeks in table`)
+    
+    // Show structure of first gameweek
+    const firstGW = gameweekTable[0]
+    console.log(`🔍 First gameweek structure:`, {
+      gameweek: firstGW?.gameweek,
+      hasManagers: !!firstGW?.managers,
+      managersCount: firstGW?.managers?.length || 0,
+      sampleManager: firstGW?.managers?.[0] ? {
+        id: firstGW.managers[0].id,
+        entry: firstGW.managers[0].entry,
+        points: firstGW.managers[0].points,
+        managerName: firstGW.managers[0].managerName,
+        allFields: Object.keys(firstGW.managers[0])
+      } : 'No managers'
     })
 
-    // 2. MONTHLY PRIZES - Check each completed month for top 3
+    let weeklyWins = 0
+    
+    gameweekTable.forEach(gwData => {
+      if (gwData.gameweek <= currentGW && gwData.managers && gwData.managers.length > 0) {
+        console.log(`\n🔍 Processing GW${gwData.gameweek} with ${gwData.managers.length} managers`)
+        
+        // Find winner by highest net points (after transfer costs)
+        let bestNetPoints = -999
+        let weekWinner = null
+        
+        gwData.managers.forEach(manager => {
+          // Get manager ID (try multiple fields)
+          const mgrId = manager.id || manager.entry || manager.manager_id
+          const rawPoints = manager.points || 0
+          
+          // Get transfer cost (try multiple field names)
+          const transferCost = manager.transfersCost || 
+                             manager.event_transfers_cost || 
+                             manager.transferCost || 
+                             manager.transfers_cost ||
+                             manager.penalty ||
+                             manager.hit ||
+                             0
+          
+          const netPoints = rawPoints - transferCost
+          
+          // Track if this is our manager
+          if (mgrId == managerId) { // Use == to handle string/number comparison
+            console.log(`🔍 Found our manager in GW${gwData.gameweek}: ${rawPoints} - ${transferCost} = ${netPoints}`)
+          }
+          
+          // Check if this is the best score so far
+          if (netPoints > bestNetPoints) {
+            bestNetPoints = netPoints
+            weekWinner = {
+              id: mgrId,
+              name: manager.managerName,
+              netPoints: netPoints,
+              rawPoints: rawPoints,
+              transferCost: transferCost
+            }
+          }
+        })
+        
+        console.log(`🏆 GW${gwData.gameweek} winner: ${weekWinner?.name} (ID: ${weekWinner?.id}) with ${weekWinner?.netPoints} net points`)
+        
+        // Check if our manager won this week
+        if (weekWinner && weekWinner.id == managerId) { // Use == for flexible comparison
+          totalWon += 30
+          weeklyWins++
+          debugInfo.push(`🎉 Won GW${gwData.gameweek}: +৳30`)
+          console.log(`🎉 Manager ${managerId} WON GW${gwData.gameweek}! +৳30 (Total now: ৳${totalWon})`)
+        }
+      } else {
+        console.log(`⏭️ Skipping GW${gwData.gameweek}: ${gwData.gameweek > currentGW ? 'future' : 'no data'}`)
+      }
+    })
+    
+    console.log(`📊 Weekly summary: ${weeklyWins} wins = ৳${weeklyWins * 30}`)
+
+    // STEP 2: MONTHLY PRIZES
+    console.log(`\n🔍 === MONTHLY PRIZE CALCULATION ===`)
+    
     const months = [
-      { id: 1, name: "Month 1", gameweeks: [1, 2, 3, 4], prizes: [350, 250, 150], status: currentGW > 4 ? 'completed' : 'active' },
-      { id: 2, name: "Month 2", gameweeks: [5, 6, 7, 8], prizes: [350, 250, 150], status: currentGW > 8 ? 'completed' : currentGW >= 5 ? 'active' : 'upcoming' },
-      { id: 3, name: "Month 3", gameweeks: [9, 10, 11, 12], prizes: [350, 250, 150], status: currentGW > 12 ? 'completed' : currentGW >= 9 ? 'active' : 'upcoming' },
-      { id: 4, name: "Month 4", gameweeks: [13, 14, 15, 16], prizes: [350, 250, 150], status: currentGW > 16 ? 'completed' : currentGW >= 13 ? 'active' : 'upcoming' },
-      { id: 5, name: "Month 5", gameweeks: [17, 18, 19, 20], prizes: [350, 250, 150], status: currentGW > 20 ? 'completed' : currentGW >= 17 ? 'active' : 'upcoming' },
-      { id: 6, name: "Month 6", gameweeks: [21, 22, 23, 24], prizes: [350, 250, 150], status: currentGW > 24 ? 'completed' : currentGW >= 21 ? 'active' : 'upcoming' },
-      { id: 7, name: "Month 7", gameweeks: [25, 26, 27, 28], prizes: [350, 250, 150], status: currentGW > 28 ? 'completed' : currentGW >= 25 ? 'active' : 'upcoming' },
-      { id: 8, name: "Month 8", gameweeks: [29, 30, 31, 32], prizes: [350, 250, 150], status: currentGW > 32 ? 'completed' : currentGW >= 29 ? 'active' : 'upcoming' },
-      { id: 9, name: "Month 9 (Final)", gameweeks: [33, 34, 35, 36, 37, 38], prizes: [500, 400, 250], status: currentGW > 38 ? 'completed' : currentGW >= 33 ? 'active' : 'upcoming' }
+      { id: 1, name: "Month 1", gameweeks: [1, 2, 3, 4], prizes: [350, 250, 150] },
+      { id: 2, name: "Month 2", gameweeks: [5, 6, 7, 8], prizes: [350, 250, 150] },
+      { id: 3, name: "Month 3", gameweeks: [9, 10, 11, 12], prizes: [350, 250, 150] },
+      { id: 4, name: "Month 4", gameweeks: [13, 14, 15, 16], prizes: [350, 250, 150] },
+      { id: 5, name: "Month 5", gameweeks: [17, 18, 19, 20], prizes: [350, 250, 150] },
+      { id: 6, name: "Month 6", gameweeks: [21, 22, 23, 24], prizes: [350, 250, 150] },
+      { id: 7, name: "Month 7", gameweeks: [25, 26, 27, 28], prizes: [350, 250, 150] },
+      { id: 8, name: "Month 8", gameweeks: [29, 30, 31, 32], prizes: [350, 250, 150] },
+      { id: 9, name: "Month 9", gameweeks: [33, 34, 35, 36, 37, 38], prizes: [500, 400, 250] }
     ]
 
     let monthlyWins = 0
+    
     months.forEach(month => {
-      if (month.status === 'completed') {
-        console.log(`📅 Checking completed ${month.name} (GW ${month.gameweeks.join(',')})`)
-        
-        // Calculate monthly standings for this specific month
+      const isCompleted = currentGW > Math.max(...month.gameweeks)
+      console.log(`📅 ${month.name} (GW ${month.gameweeks.join(',')}): ${isCompleted ? 'COMPLETED' : 'ACTIVE/UPCOMING'}`)
+      
+      if (isCompleted) {
+        // Calculate monthly standings
         const monthlyStandings = []
         
-        standings.forEach(manager => {
-          let totalRawPoints = 0
-          let totalTransfersCost = 0
-          let gameweeksWithData = 0
-
-          // Sum points for this month's gameweeks
+        standings.forEach(standing => {
+          let totalMonthlyPoints = 0
+          let totalTransferCosts = 0
+          let gamesPlayed = 0
+          
           month.gameweeks.forEach(gw => {
-            const gameweekData = gameweekTable.find(gwData => gwData.gameweek === gw)
-            
-            if (gameweekData && gameweekData.managers) {
-              // Check both possible ID fields
-              const managerGWData = gameweekData.managers.find(m => 
-                m.id === manager.id || m.entry === manager.id ||
-                m.id === manager.entry || m.entry === manager.entry
+            const gwData = gameweekTable.find(g => g.gameweek === gw)
+            if (gwData && gwData.managers) {
+              const managerData = gwData.managers.find(m => 
+                (m.id == standing.id) || (m.entry == standing.id) ||
+                (m.id == standing.entry) || (m.entry == standing.entry)
               )
               
-              if (managerGWData) {
-                const points = managerGWData.points || 0
-                const transfersCost = managerGWData.transfersCost || 
-                                     managerGWData.event_transfers_cost || 
-                                     managerGWData.transferCost || 
-                                     managerGWData.transfers_cost ||
-                                     managerGWData.penalty ||
-                                     managerGWData.hit ||
-                                     0
-
-                totalRawPoints += points
-                totalTransfersCost += transfersCost
-                gameweeksWithData++
+              if (managerData) {
+                const points = managerData.points || 0
+                const transferCost = managerData.transfersCost || 
+                                   managerData.event_transfers_cost || 
+                                   managerData.transferCost || 
+                                   managerData.transfers_cost ||
+                                   managerData.penalty ||
+                                   managerData.hit ||
+                                   0
+                
+                totalMonthlyPoints += points
+                totalTransferCosts += transferCost
+                gamesPlayed++
               }
             }
           })
-
-          // Only include managers who played in this month
-          if (gameweeksWithData > 0) {
+          
+          if (gamesPlayed > 0) {
             monthlyStandings.push({
-              id: manager.id,
-              name: manager.managerName,
-              monthlyPoints: totalRawPoints - totalTransfersCost,
-              rawPoints: totalRawPoints,
-              transfersCost: totalTransfersCost
+              id: standing.id,
+              name: standing.managerName,
+              netPoints: totalMonthlyPoints - totalTransferCosts,
+              rawPoints: totalMonthlyPoints,
+              transferCosts: totalTransferCosts
             })
           }
         })
-
-        // Sort by monthly net points and assign ranks
-        const sortedMonthlyStandings = monthlyStandings
-          .sort((a, b) => b.monthlyPoints - a.monthlyPoints)
-          .map((manager, index) => ({
-            ...manager,
-            rank: index + 1
-          }))
-
-        // Check if this manager won a monthly prize
-        const managerMonthlyRank = sortedMonthlyStandings.find(m => m.id === managerId)
-        if (managerMonthlyRank && managerMonthlyRank.rank <= 3) {
-          const prizeAmount = month.prizes[managerMonthlyRank.rank - 1]
+        
+        // Sort and rank
+        monthlyStandings.sort((a, b) => b.netPoints - a.netPoints)
+        
+        const managerRank = monthlyStandings.findIndex(m => m.id == managerId) + 1
+        
+        if (managerRank > 0 && managerRank <= 3) {
+          const prizeAmount = month.prizes[managerRank - 1]
           totalWon += prizeAmount
           monthlyWins++
-          console.log(`🏆 Manager ${managerId} finished ${managerMonthlyRank.rank} in ${month.name} with ${managerMonthlyRank.monthlyPoints} points → +৳${prizeAmount}`)
+          debugInfo.push(`🏆 ${month.name} ${managerRank}${managerRank === 1 ? 'st' : managerRank === 2 ? 'nd' : 'rd'}: +৳${prizeAmount}`)
+          console.log(`🏆 Manager ${managerId} finished ${managerRank} in ${month.name}! +৳${prizeAmount}`)
         }
-      } else {
-        console.log(`📅 ${month.name} is ${month.status} (not completed yet)`)
       }
     })
 
-    console.log(`💰 Manager ${managerId} TOTAL: ৳${totalWon} (${weeklyWins} weekly wins, ${monthlyWins} monthly prizes)`)
+    console.log(`📊 Monthly summary: ${monthlyWins} prizes`)
+    console.log(`💰 FINAL TOTAL for Manager ${managerId}: ৳${totalWon}`)
+    console.log(`🎯 Prize breakdown:`, debugInfo)
+    console.log(`💰 === END CALCULATION ===\n`)
+
     return totalWon
   }
 
-  // Season prize calculation (only show at end of season)
+  // Season prize calculation
   const getSeasonPrize = (rank) => {
-    // Only show season prizes if season is completed (all 38 gameweeks done)
+    const seasonPrizes = { 1: 800, 2: 600, 3: 400 }
+    const prize = seasonPrizes[rank]
     const isSeasonComplete = gameweekInfo.current >= 38
     
-    if (!isSeasonComplete) {
-      // Show potential season prize during season
-      const seasonPrizes = { 1: 800, 2: 600, 3: 400, 4: 200 }
-      const prize = seasonPrizes[rank]
+    if (isSeasonComplete) {
+      return prize ? `৳${prize}` : '--'
+    } else {
       return prize ? `(৳${prize})` : '--'
     }
-    
-    // Show actual season prize at end
-    const seasonPrizes = { 1: 800, 2: 600, 3: 400, 4: 200 }
-    const prize = seasonPrizes[rank]
-    return prize ? `৳${prize}` : '--'
   }
 
-  // Calculate all totals for stats
-  const allTotalWon = standings.map(manager => calculateTotalPrizesWon(manager.id))
+  // Calculate stats
+  const allTotalWon = standings.map(manager => calculateTotalPrizesWon(manager.id || manager.entry))
   const maxTotalWon = allTotalWon.length > 0 ? Math.max(...allTotalWon) : 0
 
   return (
@@ -251,11 +307,11 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
             </thead>
             <tbody>
               {standings.map((manager, index) => {
-                const totalWon = calculateTotalPrizesWon(manager.id)
+                const totalWon = calculateTotalPrizesWon(manager.id || manager.entry)
                 
                 return (
                   <tr 
-                    key={manager.id} 
+                    key={manager.id || manager.entry} 
                     className={`
                       border-b border-gray-100 hover:bg-gray-50 transition-colors duration-150
                       ${manager.rank <= 3 ? 'bg-gradient-to-r from-yellow-50 to-orange-50' : ''}
@@ -333,7 +389,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                       </span>
                     </td>
 
-                    {/* NEW: Total Prizes Won */}
+                    {/* Total Prizes Won */}
                     <td className="p-4 text-center">
                       <div className="flex flex-col items-center">
                         <span className={`
@@ -373,7 +429,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
               <div className="flex items-center justify-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span>
-                  Live data from FPL API • League ID: 1858389 • Transfer penalties deducted from all competitions • 
+                  Live data from FPL API • League ID: 1858389 • Transfer penalties deducted • 
                   Last updated: {new Date().toLocaleString('en-US', { 
                     timeZone: 'Asia/Dhaka',
                     dateStyle: 'medium',
