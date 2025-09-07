@@ -1,0 +1,256 @@
+// src/components/EnhancedStandingsTable.jsx - Enhanced Standings with Visual Polish
+import { Trophy, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, Crown, Medal, Award, ExternalLink, Star, Zap } from 'lucide-react'
+import ManagerBadges from './ManagerBadges'
+
+const EnhancedStandingsTable = ({ standings = [], loading = false, authStatus = {}, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+        <div className="text-center">
+          <div className="inline-flex items-center gap-3 px-6 py-3 bg-purple-100 text-purple-700 rounded-full">
+            <div className="w-5 h-5 border-2 border-purple-700 border-t-transparent rounded-full animate-spin"></div>
+            Loading league standings...
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const getRankChangeIcon = (manager) => {
+    if (!manager.lastRank || manager.lastRank === manager.rank) {
+      return <Minus className="text-gray-400" size={16} />
+    }
+    
+    if (manager.lastRank > manager.rank) {
+      return <ArrowUp className="text-green-500" size={16} />
+    } else {
+      return <ArrowDown className="text-red-500" size={16} />
+    }
+  }
+
+  const getRankBadgeColor = (rank) => {
+    if (rank === 1) return 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white'
+    if (rank === 2) return 'bg-gradient-to-r from-gray-400 to-gray-600 text-white'
+    if (rank === 3) return 'bg-gradient-to-r from-orange-400 to-orange-600 text-white'
+    if (rank <= 5) return 'bg-gradient-to-r from-green-400 to-green-600 text-white'
+    if (rank <= 10) return 'bg-gradient-to-r from-blue-400 to-blue-600 text-white'
+    return 'bg-gradient-to-r from-gray-500 to-gray-700 text-white'
+  }
+
+  const getPositionIcon = (rank) => {
+    if (rank === 1) return <Crown size={18} />
+    if (rank === 2) return <Medal size={18} />
+    if (rank === 3) return <Award size={18} />
+    return null
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <Trophy size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">League Standings</h2>
+                <p className="text-purple-100">Gameweek {gameweekInfo?.current || 3} • {standings.length} Managers</p>
+              </div>
+            </div>
+            
+            {authStatus?.authenticated && (
+              <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-full">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-sm">Live Data</span>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Stats */}
+          {leagueStats && Object.keys(leagueStats).length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold">{leagueStats.averageScore || '--'}</div>
+                <div className="text-sm opacity-80">Avg Total</div>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold">{leagueStats.highestTotal || '--'}</div>
+                <div className="text-sm opacity-80">Highest Total</div>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold">{leagueStats.averageGameweek || '--'}</div>
+                <div className="text-sm opacity-80">Avg GW</div>
+              </div>
+              <div className="bg-white/10 rounded-lg p-3 text-center">
+                <div className="text-xl font-bold">{leagueStats.highestGameweek || '--'}</div>
+                <div className="text-sm opacity-80">Highest GW</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          {standings.length === 0 ? (
+            <div className="p-8 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trophy className="text-gray-400" size={32} />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-600 mb-2">No Data Available</h3>
+              <p className="text-gray-500">
+                {authStatus?.authenticated 
+                  ? "Standings will appear here once data loads." 
+                  : "Connect to FPL API to see live standings."}
+              </p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left p-4 font-semibold text-gray-700">Position</th>
+                  <th className="text-left p-4 font-semibold text-gray-700">Manager</th>
+                  <th className="text-left p-4 font-semibold text-gray-700 hidden sm:table-cell">Achievements</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">GW Pts</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Total</th>
+                  <th className="text-center p-4 font-semibold text-gray-700 hidden md:table-cell">Trend</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {standings.map((manager, index) => (
+                  <tr 
+                    key={manager.id} 
+                    className={`
+                      hover:bg-gray-50 transition-colors duration-200
+                      ${manager.rank <= 3 ? 'bg-gradient-to-r from-yellow-50 to-transparent' : ''}
+                    `}
+                  >
+                    {/* Position */}
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`
+                          w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+                          ${getRankBadgeColor(manager.rank)}
+                        `}>
+                          {getPositionIcon(manager.rank) || manager.rank}
+                        </div>
+                        
+                        {/* Rank change indicator */}
+                        <div className="hidden md:flex items-center">
+                          {getRankChangeIcon(manager)}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Manager Info */}
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        {/* Avatar */}
+                        <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                          {manager.avatar || manager.managerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </div>
+                        
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-gray-900 truncate">
+                            {manager.managerName}
+                          </div>
+                          <div className="text-sm text-gray-600 truncate">
+                            {manager.teamName}
+                          </div>
+                          {manager.region && (
+                            <div className="text-xs text-gray-500 truncate">
+                              {manager.region}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Achievements/Badges */}
+                    <td className="p-4 hidden sm:table-cell">
+                      <ManagerBadges 
+                        manager={manager} 
+                        gameweekTable={gameweekTable} 
+                        gameweekInfo={gameweekInfo}
+                        allManagers={standings}
+                      />
+                    </td>
+
+                    {/* Gameweek Points */}
+                    <td className="p-4 text-center">
+                      <div className={`
+                        inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold
+                        ${manager.gameweekPoints >= (leagueStats?.averageGameweek || 50) 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-gray-100 text-gray-700'}
+                      `}>
+                        {manager.gameweekPoints >= (leagueStats?.highestGameweek || 0) && (
+                          <Zap className="text-yellow-500" size={14} />
+                        )}
+                        {manager.gameweekPoints}
+                      </div>
+                    </td>
+
+                    {/* Total Points */}
+                    <td className="p-4 text-center">
+                      <div className="font-bold text-lg text-gray-900">
+                        {manager.totalPoints?.toLocaleString()}
+                      </div>
+                      {manager.overallRank && manager.overallRank > 0 && (
+                        <div className="text-xs text-gray-500">
+                          #{manager.overallRank?.toLocaleString()} overall
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Trend */}
+                    <td className="p-4 text-center hidden md:table-cell">
+                      <div className="flex items-center justify-center gap-1">
+                        {manager.lastRank && manager.lastRank !== manager.rank && (
+                          <>
+                            {manager.lastRank > manager.rank ? (
+                              <div className="flex items-center gap-1 text-green-600 text-sm">
+                                <TrendingUp size={14} />
+                                <span>+{manager.lastRank - manager.rank}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 text-red-600 text-sm">
+                                <TrendingDown size={14} />
+                                <span>-{manager.rank - manager.lastRank}</span>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="flex items-center gap-4">
+              <span>🏆 BRO League 4.0</span>
+              <span>•</span>
+              <span>15 Participants</span>
+              <span>•</span>
+              <span>৳12,000 Prize Pool</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <ExternalLink size={14} />
+              <span>FPL League ID: {import.meta.env.VITE_FPL_LEAGUE_ID || '1858389'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default EnhancedStandingsTable
