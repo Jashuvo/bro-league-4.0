@@ -1,484 +1,281 @@
-// src/services/fplApi.js - Complete Optimized Version
-
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
-const FPL_BASE_URL = 'https://fantasy.premierleague.com/api';
+// src/services/fplApi.js - Updated to use Vercel API Routes
 
 class FPLApiService {
   constructor() {
-    this.cookies = '';
     this.isAuthenticated = false;
-    this.leagueId = '1858389';
-    this.managerCache = new Map();
-    this.historyCache = new Map();
+    this.leagueId = import.meta.env.VITE_FPL_LEAGUE_ID || '1858389';
+    this.apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+    this.cache = new Map();
+    this.cacheExpiry = new Map();
   }
 
-  // Get current gameweek and general data
+  // Cache management
+  isCacheValid(key) {
+    const expiry = this.cacheExpiry.get(key);
+    return expiry && Date.now() < expiry;
+  }
+
+  setCache(key, data, ttlMinutes = 5) {
+    this.cache.set(key, data);
+    this.cacheExpiry.set(key, Date.now() + (ttlMinutes * 60 * 1000));
+  }
+
+  getCache(key) {
+    if (this.isCacheValid(key)) {
+      return this.cache.get(key);
+    }
+    // Clean expired cache
+    this.cache.delete(key);
+    this.cacheExpiry.delete(key);
+    return null;
+  }
+
+  // Get bootstrap data from Vercel API
   async getBootstrapData() {
+    const cacheKey = 'bootstrap';
+    const cached = this.getCache(cacheKey);
+    if (cached) {
+      console.log('📋 Using cached bootstrap data');
+      return cached;
+    }
+
     try {
-      console.log('📊 Fetching FPL bootstrap data...');
-      const response = await fetch(`${CORS_PROXY}${FPL_BASE_URL}/bootstrap-static/`);
-      const data = await response.json();
+      console.log('📊 Fetching bootstrap data from API...');
+      const response = await fetch(`${this.apiBaseUrl}/bootstrap`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Bootstrap API error: ${response.status}`);
+      }
+
+      const result = await response.json();
       
+      if (!result.success) {
+        throw new Error(result.error || 'Bootstrap API returned error');
+      }
+
       console.log('✅ Bootstrap data loaded successfully');
-      return {
-        currentGameweek: data.events?.find(event => event.is_current)?.id || 3,
-        totalGameweeks: data.events?.length || 38,
-        gameweeks: data.events || [],
-        teams: data.teams || [],
-        players: data.elements || []
-      };
+      this.setCache(cacheKey, result.data, 5); // Cache for 5 minutes
+      return result.data;
+
     } catch (error) {
       console.error('❌ Error fetching bootstrap data:', error);
+      // Return fallback data
       return {
         currentGameweek: 3,
         totalGameweeks: 38,
         gameweeks: [],
         teams: [],
-        players: []
+        totalPlayers: 0,
+        lastUpdated: new Date().toISOString()
       };
     }
   }
 
-  // Authentication
-  async authenticate() {
-    console.log('🔐 Skipping complex authentication for browser compatibility...');
-    return { success: true, message: 'Browser compatibility mode' };
-  }
+  // Get league data from Vercel API
+  async getLeagueData() {
+    const cacheKey = `league_${this.leagueId}`;
+    const cached = this.getCache(cacheKey);
+    if (cached) {
+      console.log('🏆 Using cached league data');
+      return cached;
+    }
 
-  // Get individual manager data
-  async getManagerData(entryId) {
     try {
-      if (this.managerCache.has(entryId)) {
-        return this.managerCache.get(entryId);
-      }
-
-      const url = `${FPL_BASE_URL}/entry/${entryId}/`;
-      const response = await fetch(`${CORS_PROXY}${url}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      const managerData = {
-        firstName: data.player_first_name || '',
-        lastName: data.player_last_name || '',
-        fullName: `${data.player_first_name || ''} ${data.player_last_name || ''}`.trim(),
-        teamName: data.name || 'Unknown Team',
-        region: data.player_region_name || '',
-        startedEvent: data.started_event || 1,
-        overallRank: data.summary_overall_rank || 0
-      };
-
-      this.managerCache.set(entryId, managerData);
-      return managerData;
-    } catch (error) {
-      console.warn(`⚠️ Could not fetch manager data for entry ${entryId}:`, error);
-      return {
-        firstName: '',
-        lastName: '',
-        fullName: `Manager ${entryId}`,
-        teamName: 'Unknown Team',
-        region: '',
-        startedEvent: 1,
-        overallRank: 0
-      };
-    }
-  }
-
-  // Get manager history
-  async getManagerHistory(entryId) {
-    try {
-      if (this.historyCache.has(entryId)) {
-        return this.historyCache.get(entryId);
-      }
-
-      console.log(`📈 Fetching complete history for manager ${entryId}...`);
-      const url = `${FPL_BASE_URL}/entry/${entryId}/history/`;
-      const response = await fetch(`${CORS_PROXY}${url}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      const historyData = {
-        gameweeks: data.current?.map(gw => ({
-          gameweek: gw.event,
-          points: gw.points,
-          totalPoints: gw.total_points,
-          rank: gw.overall_rank,
-          gameweekRank: gw.rank,
-          transfers: gw.event_transfers,
-          transferCost: gw.event_transfers_cost,
-          bench: gw.points_on_bench,
-          value: gw.value / 10,
-          bankBalance: gw.bank / 10
-        })) || [],
-        seasonHistory: data.past || [],
-        chips: data.chips || []
-      };
-
-      this.historyCache.set(entryId, historyData);
-      return historyData;
-    } catch (error) {
-      console.warn(`⚠️ Could not fetch history for entry ${entryId}:`, error);
-      return {
-        gameweeks: [],
-        seasonHistory: [],
-        chips: []
-      };
-    }
-  }
-
-  // Get league standings
-  async getLeagueStandings() {
-    try {
-      console.log(`📋 Fetching league standings for League ID: ${this.leagueId}...`);
-      const url = `${FPL_BASE_URL}/leagues-classic/${this.leagueId}/standings/`;
-      const response = await fetch(`${CORS_PROXY}${url}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('✅ League standings loaded successfully');
-      
-      // Fetch COMPLETE data for each manager
-      console.log('👥 Fetching complete manager details and history...');
-      const standingsWithFullData = await Promise.all(
-        data.standings.results.map(async (entry) => {
-          const [managerData, historyData] = await Promise.all([
-            this.getManagerData(entry.entry),
-            this.getManagerHistory(entry.entry)
-          ]);
-          
-          return {
-            ...entry,
-            managerData,
-            historyData
-          };
-        })
-      );
-
-      return {
-        league: data.league,
-        standings: standingsWithFullData,
-        hasNext: data.standings?.has_next || false
-      };
-    } catch (error) {
-      console.error('❌ Error fetching league standings:', error);
-      return this.getMockStandings();
-    }
-  }
-
-  // ORIGINAL: Generate COMPLETE gameweek table with REAL historical data (for backward compatibility)
-  generateCompleteGameweekTable(standings, currentGameweek = 3, totalGameweeks = 38) {
-    const gameweekTable = [];
-    
-    // Create table for ALL gameweeks (past, current, and future)
-    for (let gw = 1; gw <= totalGameweeks; gw++) {
-      const gameweekData = {
-        gameweek: gw,
-        status: gw < currentGameweek ? 'completed' : gw === currentGameweek ? 'current' : 'upcoming',
-        managers: standings.map(manager => {
-          // Get REAL data from manager history
-          const gwData = manager.historyData?.gameweeks?.find(h => h.gameweek === gw);
-          
-          if (gwData) {
-            // REAL historical data
-            return {
-              id: manager.entry,
-              managerName: manager.managerData?.fullName || `Manager ${manager.entry}`,
-              teamName: manager.managerData?.teamName || manager.entry_name || 'Unknown',
-              points: gwData.points,
-              totalPoints: gwData.totalPoints,
-              rank: gwData.rank,
-              gameweekRank: 0, // Will be calculated below
-              transfers: gwData.transfers,
-              transferCost: gwData.transferCost,
-              bench: gwData.bench,
-              value: gwData.value,
-              bankBalance: gwData.bankBalance
-            };
-          } else if (gw <= currentGameweek) {
-            // Gameweek should have data but doesn't - manager might have joined late
-            return {
-              id: manager.entry,
-              managerName: manager.managerData?.fullName || `Manager ${manager.entry}`,
-              teamName: manager.managerData?.teamName || manager.entry_name || 'Unknown',
-              points: 0,
-              totalPoints: 0,
-              rank: 0,
-              gameweekRank: 0,
-              transfers: 0,
-              transferCost: 0,
-              bench: 0,
-              value: 100.0,
-              bankBalance: 0.0,
-              note: 'No data - joined late?'
-            };
-          } else {
-            // Future gameweek - no data yet
-            return {
-              id: manager.entry,
-              managerName: manager.managerData?.fullName || `Manager ${manager.entry}`,
-              teamName: manager.managerData?.teamName || manager.entry_name || 'Unknown',
-              points: null,
-              totalPoints: null,
-              rank: null,
-              gameweekRank: null,
-              transfers: null,
-              transferCost: null,
-              bench: null,
-              value: null,
-              bankBalance: null,
-              note: 'Future gameweek'
-            };
-          }
-        }).filter(manager => manager.points !== null || gw > currentGameweek) // Keep future gameweeks for navigation
-           .sort((a, b) => (b.points || 0) - (a.points || 0)) // Sort by gameweek points
-      };
-      
-      // Add gameweek ranks for completed/current gameweeks
-      if (gw <= currentGameweek) {
-        gameweekData.managers.forEach((manager, index) => {
-          manager.gameweekRank = index + 1;
-        });
-      }
-      
-      gameweekTable.push(gameweekData);
-    }
-    
-    return gameweekTable;
-  }
-
-  // OPTIMIZED: Generate gameweek table only up to current gameweek
-  generateOptimizedGameweekTable(standings, currentGameweek = 3, totalGameweeks = 38) {
-    const gameweekTable = [];
-    
-    console.log(`🔄 OPTIMIZATION: Generating gameweek table (GW 1-${currentGameweek} only instead of 1-${totalGameweeks})`);
-    const startTime = performance.now();
-    
-    // OPTIMIZATION: Only process gameweeks up to current (no point processing future gameweeks)
-    for (let gw = 1; gw <= currentGameweek; gw++) {
-      const gameweekData = {
-        gameweek: gw,
-        status: gw < currentGameweek ? 'completed' : 'current',
-        managers: standings.map(manager => {
-          // Get REAL data from manager history
-          const gwData = manager.historyData?.gameweeks?.find(h => h.gameweek === gw);
-          
-          if (gwData) {
-            // REAL historical data
-            return {
-              id: manager.entry,
-              managerName: manager.managerData?.fullName || `Manager ${manager.entry}`,
-              teamName: manager.managerData?.teamName || manager.entry_name || 'Unknown',
-              points: gwData.points,
-              totalPoints: gwData.totalPoints,
-              rank: gwData.rank,
-              gameweekRank: 0, // Will be calculated below
-              transfers: gwData.transfers,
-              transferCost: gwData.transferCost,
-              bench: gwData.bench,
-              value: gwData.value,
-              bankBalance: gwData.bankBalance
-            };
-          } else if (gw <= currentGameweek) {
-            // Gameweek should have data but doesn't - manager might have joined late
-            return {
-              id: manager.entry,
-              managerName: manager.managerData?.fullName || `Manager ${manager.entry}`,
-              teamName: manager.managerData?.teamName || manager.entry_name || 'Unknown',
-              points: 0,
-              totalPoints: 0,
-              rank: 0,
-              gameweekRank: 0,
-              transfers: 0,
-              transferCost: 0,
-              bench: 0,
-              value: 100.0,
-              bankBalance: 0.0,
-              note: 'No data - joined late?'
-            };
-          }
-          return null;
-        }).filter(Boolean) // Remove null entries
-           .sort((a, b) => b.points - a.points) // Sort by gameweek points
-      };
-      
-      // Add gameweek ranks for completed/current gameweeks
-      gameweekData.managers.forEach((manager, index) => {
-        manager.gameweekRank = index + 1;
+      console.log(`📋 Fetching league ${this.leagueId} data from API...`);
+      const response = await fetch(`${this.apiBaseUrl}/league?leagueId=${this.leagueId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+
+      if (!response.ok) {
+        throw new Error(`League API error: ${response.status}`);
+      }
+
+      const result = await response.json();
       
-      gameweekTable.push(gameweekData);
+      if (!result.success) {
+        throw new Error(result.error || 'League API returned error');
+      }
+
+      console.log(`✅ League data loaded successfully - ${result.data.standings.length} managers`);
+      this.setCache(cacheKey, result.data, 2); // Cache for 2 minutes
+      return result.data;
+
+    } catch (error) {
+      console.error('❌ Error fetching league data:', error);
+      // Return fallback data
+      return {
+        league: { name: 'BRO League 4.0' },
+        standings: [],
+        leagueStats: {},
+        hasNext: false
+      };
     }
-    
-    const endTime = performance.now();
-    const timeSaved = Math.round(endTime - startTime);
-    const gameweeksSaved = totalGameweeks - currentGameweek;
-    
-    console.log(`✅ OPTIMIZATION COMPLETE: Generated ${gameweekTable.length} gameweeks in ${timeSaved}ms`);
-    console.log(`🚀 PERFORMANCE GAIN: Skipped ${gameweeksSaved} future gameweeks (${Math.round((gameweeksSaved/totalGameweeks)*100)}% faster)`);
-    
-    return gameweekTable;
   }
 
-  // OPTIMIZATION: Generate future gameweek data on-demand
-  generateFutureGameweekData(standings, gameweek, totalGameweeks = 38) {
-    if (gameweek > totalGameweeks) return null;
-    
-    console.log(`📄 Generating on-demand data for future GW ${gameweek}`);
-    
-    return {
-      gameweek: gameweek,
-      status: 'upcoming',
-      managers: standings.map(manager => ({
-        id: manager.entry,
-        managerName: manager.managerData?.fullName || `Manager ${manager.entry}`,
-        teamName: manager.managerData?.teamName || manager.entry_name || 'Unknown',
-        points: null,
-        totalPoints: null,
-        rank: null,
-        gameweekRank: null,
-        transfers: null,
-        transferCost: null,
-        bench: null,
-        value: null,
-        bankBalance: null,
-        note: 'Future gameweek'
-      }))
-    };
-  }
+  // Get complete league data (optimized single call)
+  async getCompleteLeagueData() {
+    const cacheKey = `complete_league_${this.leagueId}`;
+    const cached = this.getCache(cacheKey);
+    if (cached) {
+      console.log('🚀 Using cached complete league data');
+      return cached;
+    }
 
-  // Calculate REAL weekly winners
-  calculateWeeklyWinners(gameweekTable, currentGameweek) {
-    return gameweekTable
-      .filter(gw => gw.gameweek <= currentGameweek && gw.managers.length > 0)
-      .map(gwData => {
-        const winner = gwData.managers[0]; // Already sorted by points
-        return {
-          gameweek: gwData.gameweek,
-          winner: {
-            id: winner.id,
-            managerName: winner.managerName,
-            teamName: winner.teamName,
-            points: winner.points,
-            transfers: winner.transfers,
-            transferCost: winner.transferCost,
-            prize: 30
-          },
-          topThree: gwData.managers.slice(0, 3),
-          averageScore: Math.round(gwData.managers.reduce((sum, m) => sum + m.points, 0) / gwData.managers.length),
-          highestScore: Math.max(...gwData.managers.map(m => m.points)),
-          lowestScore: Math.min(...gwData.managers.map(m => m.points))
-        };
+    try {
+      console.log(`🚀 Fetching complete league ${this.leagueId} data from API...`);
+      const startTime = performance.now();
+      
+      const response = await fetch(`${this.apiBaseUrl}/league-complete?leagueId=${this.leagueId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-  }
 
-  // Transform league data with correct ranking
-  transformLeagueData(apiData) {
-    if (!apiData.standings) return [];
+      if (!response.ok) {
+        throw new Error(`Complete League API error: ${response.status}`);
+      }
 
-    // Sort by total points for correct ranking
-    const sortedStandings = [...apiData.standings].sort((a, b) => b.total - a.total);
-
-    return sortedStandings.map((entry, index) => {
-      const managerName = entry.managerData 
-        ? entry.managerData.fullName || `Manager ${entry.entry}`
-        : `Manager ${entry.entry}`;
-
-      const teamName = entry.managerData?.teamName || entry.entry_name || 'Unknown Team';
-
-      return {
-        id: entry.entry,
-        managerName: managerName,
-        teamName: teamName,
-        totalPoints: entry.total,
-        gameweekPoints: entry.event_total || 0,
-        rank: index + 1, // Correct rank
-        lastRank: entry.last_rank,
-        avatar: entry.managerData 
-          ? `${entry.managerData.firstName?.charAt(0) || 'M'}${entry.managerData.lastName?.charAt(0) || ''}` 
-          : `M${entry.entry.toString().slice(-1)}`,
-        region: entry.managerData?.region || '',
-        startedEvent: entry.managerData?.startedEvent || 1,
-        overallRank: entry.managerData?.overallRank || 0,
-        historyData: entry.historyData || { gameweeks: [] }
-      };
-    });
-  }
-
-  // Main initialization with OPTIMIZED data
-  async initializeWithAuth() {
-    console.log('🔐 Initializing OPTIMIZED FPL API for BRO League 4.0...');
-    
-    const authResult = await this.authenticate();
-    const bootstrapData = await this.getBootstrapData();
-    
-    if (authResult.success) {
-      console.log('✅ Authentication successful, fetching OPTIMIZED league data...');
-      const leagueData = await this.getLeagueStandings();
-      const transformedStandings = this.transformLeagueData(leagueData);
+      const result = await response.json();
       
-      // OPTIMIZED: Generate gameweek table with optimized method
-      const gameweekTable = this.generateOptimizedGameweekTable(
-        leagueData.standings, 
-        bootstrapData.currentGameweek, 
-        bootstrapData.totalGameweeks
-      );
+      if (!result.success) {
+        throw new Error(result.error || 'Complete League API returned error');
+      }
+
+      const endTime = performance.now();
+      console.log(`✅ Complete league data loaded in ${Math.round(endTime - startTime)}ms`);
+      console.log(`📊 Performance: ${result.performance?.processingTime} server + ${Math.round(endTime - startTime)}ms client`);
       
-      // Calculate REAL weekly winners
-      const weeklyWinners = this.calculateWeeklyWinners(gameweekTable, bootstrapData.currentGameweek);
-      
-      // Calculate league stats
-      const leagueStats = {
-        totalManagers: transformedStandings.length,
-        averageScore: Math.round(transformedStandings.reduce((sum, m) => sum + m.totalPoints, 0) / transformedStandings.length),
-        highestTotal: Math.max(...transformedStandings.map(m => m.totalPoints)),
-        averageGameweek: Math.round(transformedStandings.reduce((sum, m) => sum + m.gameweekPoints, 0) / transformedStandings.length),
-        highestGameweek: Math.max(...transformedStandings.map(m => m.gameweekPoints)),
-        veteranManagers: transformedStandings.filter(m => m.startedEvent === 1).length,
-        newManagers: transformedStandings.filter(m => m.startedEvent > 1).length
-      };
-      
-      return {
-        authenticated: true,
-        bootstrap: bootstrapData,
-        league: leagueData,
-        standings: transformedStandings,
-        gameweekTable: gameweekTable,
-        weeklyWinners: weeklyWinners,
-        leagueStats: leagueStats
-      };
-    } else {
-      console.log('❌ Authentication failed, using mock data');
-      const mockLeagueData = this.getMockStandings();
-      
+      this.setCache(cacheKey, result.data, 2); // Cache for 2 minutes
+      return result.data;
+
+    } catch (error) {
+      console.error('❌ Error fetching complete league data:', error);
+      // Return fallback data
       return {
         authenticated: false,
-        bootstrap: bootstrapData,
-        league: mockLeagueData,
-        standings: this.transformLeagueData(mockLeagueData),
+        bootstrap: {
+          currentGameweek: 3,
+          totalGameweeks: 38,
+          gameweeks: []
+        },
+        league: { name: 'BRO League 4.0' },
+        standings: [],
         gameweekTable: [],
-        weeklyWinners: [],
         leagueStats: {}
       };
     }
   }
 
-  // Mock data fallback
-  getMockStandings() {
-    return {
-      league: { name: 'BRO League 4.0', created: '2024-08-01T00:00:00Z' },
-      standings: [],
-      hasNext: false
-    };
+  // Get manager history
+  async getManagerHistory(managerId) {
+    const cacheKey = `history_${managerId}`;
+    const cached = this.getCache(cacheKey);
+    if (cached) {
+      console.log(`📈 Using cached history for manager ${managerId}`);
+      return cached;
+    }
+
+    try {
+      console.log(`📈 Fetching history for manager ${managerId} from API...`);
+      const response = await fetch(`${this.apiBaseUrl}/manager-history?managerId=${managerId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Manager History API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Manager History API returned error');
+      }
+
+      console.log(`✅ Manager history loaded - ${result.data.gameweeks.length} gameweeks`);
+      this.setCache(cacheKey, result.data, 5); // Cache for 5 minutes
+      return result.data;
+
+    } catch (error) {
+      console.error(`❌ Error fetching manager history for ${managerId}:`, error);
+      // Return fallback data
+      return {
+        managerId: parseInt(managerId),
+        gameweeks: [],
+        chips: [],
+        seasonHistory: []
+      };
+    }
+  }
+
+  // Main initialization method (updated to use complete API)
+  async initializeWithAuth() {
+    console.log('🔐 Initializing FPL API with server-side data...');
+    
+    try {
+      const completeData = await this.getCompleteLeagueData();
+      
+      if (completeData.authenticated) {
+        console.log('✅ Server-side authentication successful');
+        this.isAuthenticated = true;
+      } else {
+        console.log('⚠️ Using fallback data');
+        this.isAuthenticated = false;
+      }
+
+      return {
+        ...completeData,
+        authenticated: this.isAuthenticated
+      };
+
+    } catch (error) {
+      console.error('❌ Error initializing FPL API:', error);
+      this.isAuthenticated = false;
+      
+      return {
+        authenticated: false,
+        bootstrap: {
+          currentGameweek: 3,
+          totalGameweeks: 38,
+          gameweeks: []
+        },
+        league: { name: 'BRO League 4.0' },
+        standings: [],
+        gameweekTable: [],
+        leagueStats: {}
+      };
+    }
+  }
+
+  // Legacy method for backwards compatibility
+  async authenticate() {
+    console.log('🔐 Authentication handled by server-side API');
+    return { success: true, message: 'Server-side authentication' };
+  }
+
+  // Clear cache (useful for refresh functionality)
+  clearCache() {
+    console.log('🗑️ Clearing API cache');
+    this.cache.clear();
+    this.cacheExpiry.clear();
+  }
+
+  // Force refresh (clears cache and fetches new data)
+  async forceRefresh() {
+    console.log('🔄 Force refreshing FPL data...');
+    this.clearCache();
+    return await this.initializeWithAuth();
   }
 }
 

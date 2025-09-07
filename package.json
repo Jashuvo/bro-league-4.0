@@ -2,14 +2,17 @@
   "name": "bro-league-4.0",
   "private": true,
   "version": "1.0.0",
-  "description": "BRO League 4.0 - Fantasy Premier League Website",
+  "description": "BRO League 4.0 - Fantasy Premier League Website with Serverless API",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "deploy": "npm run build && gh-pages -d dist"
+    "vercel-dev": "vercel dev",
+    "test-api": "node scripts/test-api.js",
+    "optimize": "npm run build && npm run analyze",
+    "analyze": "npx vite-bundle-analyzer dist"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -26,11 +29,11 @@
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",
-    "gh-pages": "^6.0.0",
     "postcss": "^8.4.27",
     "tailwindcss": "^3.3.3",
     "terser": "^5.19.2",
-    "vite": "^4.4.5"
+    "vite": "^4.4.5",
+    "vite-bundle-analyzer": "^0.7.0"
   },
   "keywords": [
     "fantasy-premier-league",
@@ -38,8 +41,13 @@
     "react",
     "vite",
     "tailwind",
-    "bro-league"
+    "bro-league",
+    "vercel",
+    "serverless"
   ],
   "author": "BRO League Team",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
