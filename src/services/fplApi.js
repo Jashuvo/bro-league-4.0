@@ -1,4 +1,4 @@
-// src/services/fplApi.js - Updated to use Vercel API Routes
+// src/services/fplApi.js - Optimized FPL API Service with Enhanced Error Handling
 
 class FPLApiService {
   constructor() {
@@ -7,171 +7,241 @@ class FPLApiService {
     this.apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
     this.cache = new Map();
     this.cacheExpiry = new Map();
+    this.requestQueue = [];
+    this.activeRequests = 0;
+    this.maxConcurrentRequests = 3;
+    this.performanceMetrics = [];
   }
 
-  // Cache management
+  // Performance tracking
+  trackPerformance(operation, duration, success = true) {
+    this.performanceMetrics.push({
+      operation,
+      duration,
+      success,
+      timestamp: Date.now()
+    });
+    
+    // Keep only last 50 metrics
+    if (this.performanceMetrics.length > 50) {
+      this.performanceMetrics.shift();
+    }
+  }
+
+  getAveragePerformance() {
+    if (this.performanceMetrics.length === 0) return null;
+    
+    const recentMetrics = this.performanceMetrics.slice(-10);
+    const avgDuration = recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length;
+    const successRate = recentMetrics.filter(m => m.success).length / recentMetrics.length;
+    
+    return {
+      averageDuration: Math.round(avgDuration),
+      successRate: Math.round(successRate * 100),
+      totalRequests: this.performanceMetrics.length
+    };
+  }
+
+  // Enhanced cache management
   isCacheValid(key) {
     const expiry = this.cacheExpiry.get(key);
     return expiry && Date.now() < expiry;
   }
 
-  setCache(key, data, ttlMinutes = 5) {
+  setCache(key, data, ttlMinutes = 2) {
     this.cache.set(key, data);
     this.cacheExpiry.set(key, Date.now() + (ttlMinutes * 60 * 1000));
+    
+    // Log cache status
+    console.log(`💾 Cached ${key} for ${ttlMinutes} minutes`);
   }
 
   getCache(key) {
     if (this.isCacheValid(key)) {
+      console.log(`✅ Cache hit for ${key}`);
       return this.cache.get(key);
     }
+    
     // Clean expired cache
     this.cache.delete(key);
     this.cacheExpiry.delete(key);
     return null;
   }
 
-  // Get bootstrap data from Vercel API
+  // Request queue management for rate limiting
+  async queueRequest(fn) {
+    return new Promise((resolve, reject) => {
+      const execute = async () => {
+        if (this.activeRequests >= this.maxConcurrentRequests) {
+          this.requestQueue.push(execute);
+          return;
+        }
+        
+        this.activeRequests++;
+        try {
+          const result = await fn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        } finally {
+          this.activeRequests--;
+          const next = this.requestQueue.shift();
+          if (next) next();
+        }
+      };
+      
+      execute();
+    });
+  }
+
+  // Fetch with timeout and retry
+  async fetchWithRetry(url, options = {}, retries = 2) {
+    const timeout = options.timeout || 30000;
+    const startTime = performance.now();
+    
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        const duration = performance.now() - startTime;
+        
+        if (!response.ok) {
+          if (i < retries) {
+            console.log(`⚠️ Retry ${i + 1}/${retries} for ${url}`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+            continue;
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        this.trackPerformance(url, duration, true);
+        return response;
+        
+      } catch (error) {
+        const duration = performance.now() - startTime;
+        
+        if (error.name === 'AbortError') {
+          console.error(`⏱️ Request timeout after ${timeout}ms`);
+        }
+        
+        if (i === retries) {
+          this.trackPerformance(url, duration, false);
+          throw error;
+        }
+        
+        console.log(`⚠️ Retry ${i + 1}/${retries} after error: ${error.message}`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+      }
+    }
+  }
+
+  // Get complete league data (primary method)
+  async getCompleteLeagueData(forceRefresh = false) {
+    const cacheKey = `complete_league_${this.leagueId}`;
+    
+    // Check cache first
+    if (!forceRefresh) {
+      const cached = this.getCache(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    return this.queueRequest(async () => {
+      try {
+        console.log(`🚀 Fetching complete league ${this.leagueId} data...`);
+        const startTime = performance.now();
+        
+        const url = `${this.apiBaseUrl}/league-complete?leagueId=${this.leagueId}${forceRefresh ? '&force=true' : ''}`;
+        const response = await this.fetchWithRetry(url, {
+          method: 'GET',
+          timeout: 30000
+        });
+
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.error || 'API returned error');
+        }
+
+        const endTime = performance.now();
+        const loadTime = Math.round(endTime - startTime);
+        
+        console.log(`✅ Complete data loaded in ${loadTime}ms`);
+        
+        // Log cache status
+        if (result.data.fromCache) {
+          console.log(`📦 Data served from server cache (age: ${Math.round(result.data.cacheAge / 1000)}s)`);
+        } else {
+          console.log(`🌐 Fresh data fetched from FPL API`);
+        }
+        
+        // Add client-side performance metrics
+        result.data.clientMetrics = {
+          loadTime,
+          performanceStats: this.getAveragePerformance()
+        };
+        
+        // Cache for 2 minutes (matching server cache)
+        this.setCache(cacheKey, result.data, 2);
+        
+        return result.data;
+
+      } catch (error) {
+        console.error('❌ Error fetching complete league data:', error);
+        
+        // Try to return stale cache if available
+        const staleCache = this.cache.get(cacheKey);
+        if (staleCache) {
+          console.log('⚠️ Returning stale cache due to error');
+          staleCache.isStale = true;
+          staleCache.error = error.message;
+          return staleCache;
+        }
+        
+        // Return fallback data
+        return this.getFallbackData();
+      }
+    });
+  }
+
+  // Get bootstrap data
   async getBootstrapData() {
     const cacheKey = 'bootstrap';
     const cached = this.getCache(cacheKey);
-    if (cached) {
-      console.log('📋 Using cached bootstrap data');
-      return cached;
-    }
+    if (cached) return cached;
 
     try {
-      console.log('📊 Fetching bootstrap data from API...');
-      const response = await fetch(`${this.apiBaseUrl}/bootstrap`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      console.log('📊 Fetching bootstrap data...');
+      const response = await this.fetchWithRetry(`${this.apiBaseUrl}/bootstrap`, {
+        timeout: 15000
       });
-
-      if (!response.ok) {
-        throw new Error(`Bootstrap API error: ${response.status}`);
-      }
 
       const result = await response.json();
       
       if (!result.success) {
-        throw new Error(result.error || 'Bootstrap API returned error');
+        throw new Error(result.error || 'Bootstrap API error');
       }
 
-      console.log('✅ Bootstrap data loaded successfully');
-      this.setCache(cacheKey, result.data, 5); // Cache for 5 minutes
+      console.log('✅ Bootstrap data loaded');
+      this.setCache(cacheKey, result.data, 5);
       return result.data;
 
     } catch (error) {
-      console.error('❌ Error fetching bootstrap data:', error);
-      // Return fallback data
-      return {
-        currentGameweek: 3,
-        totalGameweeks: 38,
-        gameweeks: [],
-        teams: [],
-        totalPlayers: 0,
-        lastUpdated: new Date().toISOString()
-      };
-    }
-  }
-
-  // Get league data from Vercel API
-  async getLeagueData() {
-    const cacheKey = `league_${this.leagueId}`;
-    const cached = this.getCache(cacheKey);
-    if (cached) {
-      console.log('🏆 Using cached league data');
-      return cached;
-    }
-
-    try {
-      console.log(`📋 Fetching league ${this.leagueId} data from API...`);
-      const response = await fetch(`${this.apiBaseUrl}/league?leagueId=${this.leagueId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`League API error: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'League API returned error');
-      }
-
-      console.log(`✅ League data loaded successfully - ${result.data.standings.length} managers`);
-      this.setCache(cacheKey, result.data, 2); // Cache for 2 minutes
-      return result.data;
-
-    } catch (error) {
-      console.error('❌ Error fetching league data:', error);
-      // Return fallback data
-      return {
-        league: { name: 'BRO League 4.0' },
-        standings: [],
-        leagueStats: {},
-        hasNext: false
-      };
-    }
-  }
-
-  // Get complete league data (optimized single call)
-  async getCompleteLeagueData() {
-    const cacheKey = `complete_league_${this.leagueId}`;
-    const cached = this.getCache(cacheKey);
-    if (cached) {
-      console.log('🚀 Using cached complete league data');
-      return cached;
-    }
-
-    try {
-      console.log(`🚀 Fetching complete league ${this.leagueId} data from API...`);
-      const startTime = performance.now();
-      
-      const response = await fetch(`${this.apiBaseUrl}/league-complete?leagueId=${this.leagueId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Complete League API error: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Complete League API returned error');
-      }
-
-      const endTime = performance.now();
-      console.log(`✅ Complete league data loaded in ${Math.round(endTime - startTime)}ms`);
-      console.log(`📊 Performance: ${result.performance?.processingTime} server + ${Math.round(endTime - startTime)}ms client`);
-      
-      this.setCache(cacheKey, result.data, 2); // Cache for 2 minutes
-      return result.data;
-
-    } catch (error) {
-      console.error('❌ Error fetching complete league data:', error);
-      // Return fallback data
-      return {
-        authenticated: false,
-        bootstrap: {
-          currentGameweek: 3,
-          totalGameweeks: 38,
-          gameweeks: []
-        },
-        league: { name: 'BRO League 4.0' },
-        standings: [],
-        gameweekTable: [],
-        leagueStats: {}
-      };
+      console.error('❌ Error fetching bootstrap:', error);
+      return this.getFallbackBootstrap();
     }
   }
 
@@ -179,58 +249,50 @@ class FPLApiService {
   async getManagerHistory(managerId) {
     const cacheKey = `history_${managerId}`;
     const cached = this.getCache(cacheKey);
-    if (cached) {
-      console.log(`📈 Using cached history for manager ${managerId}`);
-      return cached;
-    }
+    if (cached) return cached;
 
-    try {
-      console.log(`📈 Fetching history for manager ${managerId} from API...`);
-      const response = await fetch(`${this.apiBaseUrl}/manager-history?managerId=${managerId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+    return this.queueRequest(async () => {
+      try {
+        console.log(`📈 Fetching history for manager ${managerId}...`);
+        const response = await this.fetchWithRetry(
+          `${this.apiBaseUrl}/manager-history?managerId=${managerId}`,
+          { timeout: 10000 }
+        );
 
-      if (!response.ok) {
-        throw new Error(`Manager History API error: ${response.status}`);
+        const result = await response.json();
+        
+        if (!result.success) {
+          throw new Error(result.error || 'History API error');
+        }
+
+        console.log(`✅ Manager history loaded`);
+        this.setCache(cacheKey, result.data, 5);
+        return result.data;
+
+      } catch (error) {
+        console.error(`❌ Error fetching manager history:`, error);
+        return {
+          managerId: parseInt(managerId),
+          gameweeks: [],
+          chips: [],
+          seasonHistory: []
+        };
       }
-
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Manager History API returned error');
-      }
-
-      console.log(`✅ Manager history loaded - ${result.data.gameweeks.length} gameweeks`);
-      this.setCache(cacheKey, result.data, 5); // Cache for 5 minutes
-      return result.data;
-
-    } catch (error) {
-      console.error(`❌ Error fetching manager history for ${managerId}:`, error);
-      // Return fallback data
-      return {
-        managerId: parseInt(managerId),
-        gameweeks: [],
-        chips: [],
-        seasonHistory: []
-      };
-    }
+    });
   }
 
-  // Main initialization method (updated to use complete API)
+  // Main initialization method
   async initializeWithAuth() {
-    console.log('🔐 Initializing FPL API with server-side data...');
+    console.log('🔐 Initializing FPL API...');
     
     try {
       const completeData = await this.getCompleteLeagueData();
       
       if (completeData.authenticated) {
-        console.log('✅ Server-side authentication successful');
+        console.log('✅ Authentication successful');
         this.isAuthenticated = true;
       } else {
-        console.log('⚠️ Using fallback data');
+        console.log('⚠️ Using unauthenticated data');
         this.isAuthenticated = false;
       }
 
@@ -240,43 +302,83 @@ class FPLApiService {
       };
 
     } catch (error) {
-      console.error('❌ Error initializing FPL API:', error);
+      console.error('❌ Initialization error:', error);
       this.isAuthenticated = false;
-      
-      return {
-        authenticated: false,
-        bootstrap: {
-          currentGameweek: 3,
-          totalGameweeks: 38,
-          gameweeks: []
-        },
-        league: { name: 'BRO League 4.0' },
-        standings: [],
-        gameweekTable: [],
-        leagueStats: {}
-      };
+      return this.getFallbackData();
     }
   }
 
-  // Legacy method for backwards compatibility
-  async authenticate() {
-    console.log('🔐 Authentication handled by server-side API');
-    return { success: true, message: 'Server-side authentication' };
+  // Force refresh
+  async forceRefresh() {
+    console.log('🔄 Force refreshing all data...');
+    this.clearCache();
+    return await this.getCompleteLeagueData(true);
   }
 
-  // Clear cache (useful for refresh functionality)
+  // Clear cache
   clearCache() {
-    console.log('🗑️ Clearing API cache');
+    console.log('🗑️ Clearing local cache');
     this.cache.clear();
     this.cacheExpiry.clear();
+    this.performanceMetrics = [];
   }
 
-  // Force refresh (clears cache and fetches new data)
-  async forceRefresh() {
-    console.log('🔄 Force refreshing FPL data...');
-    this.clearCache();
-    return await this.initializeWithAuth();
+  // Get cache status
+  getCacheStatus() {
+    const validCaches = [];
+    const expiredCaches = [];
+    
+    this.cacheExpiry.forEach((expiry, key) => {
+      if (Date.now() < expiry) {
+        validCaches.push({
+          key,
+          expiresIn: Math.round((expiry - Date.now()) / 1000)
+        });
+      } else {
+        expiredCaches.push(key);
+      }
+    });
+    
+    return {
+      validCaches,
+      expiredCaches,
+      totalSize: this.cache.size,
+      performance: this.getAveragePerformance()
+    };
+  }
+
+  // Fallback data
+  getFallbackData() {
+    return {
+      authenticated: false,
+      bootstrap: this.getFallbackBootstrap(),
+      league: { name: 'BRO League 4.0' },
+      standings: [],
+      gameweekTable: [],
+      leagueStats: {},
+      error: 'Using fallback data due to connection issues'
+    };
+  }
+
+  getFallbackBootstrap() {
+    return {
+      currentGameweek: 3,
+      totalGameweeks: 38,
+      gameweeks: [],
+      teams: [],
+      totalPlayers: 0
+    };
   }
 }
 
-export default new FPLApiService();
+// Export singleton instance
+const fplApi = new FPLApiService();
+
+// Add performance monitoring to window for debugging
+if (import.meta.env.VITE_DEV_MODE === 'true') {
+  window.fplApi = fplApi;
+  window.fplCacheStatus = () => fplApi.getCacheStatus();
+  window.fplPerformance = () => fplApi.getAveragePerformance();
+}
+
+export default fplApi;

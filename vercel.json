@@ -1,7 +1,8 @@
 {
   "functions": {
     "api/**/*.js": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "runtime": "edge"
     }
   },
   "headers": [
@@ -14,19 +15,26 @@
         },
         {
           "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
+          "value": "GET, POST, OPTIONS"
         },
         {
-          "key": "Access-Control-Allow-Headers",
-          "value": "X-Requested-With, Content-Type, Authorization"
+          "key": "Cache-Control",
+          "value": "public, s-maxage=60, stale-while-revalidate=300"
         }
       ]
     }
   ],
-  "redirects": [
+  "crons": [
     {
-      "source": "/",
-      "destination": "/index.html"
+      "path": "/api/warm-cache",
+      "schedule": "*/5 * * * *"
     }
-  ]
+  ],
+  "env": {
+    "VITE_FPL_LEAGUE_ID": "1858389",
+    "VITE_LEAGUE_NAME": "BRO League 4.0",
+    "VITE_TOTAL_PARTICIPANTS": "15",
+    "VITE_ENTRY_FEE": "800",
+    "VITE_TOTAL_PRIZE_POOL": "12000"
+  }
 }
