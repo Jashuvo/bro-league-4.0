@@ -173,7 +173,7 @@ export default async function handler(req, res) {
     };
 
     // Limit to 15 managers for your league
-    const managers = standingsData.standings.results.slice(0, 15);
+    const managers = standingsData.standings.results.slice(0, 20);
     
     // Use concurrency limiter for manager data fetching
     const limiter = new ConcurrencyLimiter(3); // Max 3 concurrent requests
