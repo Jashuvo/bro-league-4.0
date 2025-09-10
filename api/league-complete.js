@@ -1,5 +1,5 @@
-// api/league-complete.js - Optimized with Vercel KV Caching and Performance Improvements
-import { kv } from '@vercel/kv';
+// api/league-complete.js - Optimized with Vercel KV (Redis) Caching and Performance Improvements
+import { kv } from '@vercel/kv'; // This automatically uses your REDIS_URL
 
 // Helper function for fetch with timeout and retry
 async function fetchWithRetry(url, options = {}, retries = 2) {
