@@ -1,8 +1,7 @@
 {
   "functions": {
     "api/**/*.js": {
-      "maxDuration": 30,
-      "runtime": "edge"
+      "maxDuration": 30
     }
   },
   "headers": [
@@ -23,18 +22,5 @@
         }
       ]
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/warm-cache",
-      "schedule": "*/5 * * * *"
-    }
-  ],
-  "env": {
-    "VITE_FPL_LEAGUE_ID": "1858389",
-    "VITE_LEAGUE_NAME": "BRO League 4.0",
-    "VITE_TOTAL_PARTICIPANTS": "15",
-    "VITE_ENTRY_FEE": "800",
-    "VITE_TOTAL_PRIZE_POOL": "12000"
-  }
+  ]
 }
