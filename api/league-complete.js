@@ -1,5 +1,14 @@
-// api/league-complete.js - Optimized with Vercel KV (Redis) Caching and Performance Improvements
-import { kv } from '@vercel/kv'; // This automatically uses your REDIS_URL
+// api/league-complete.js - Fixed version that works with or without Redis/KV
+
+// Try to import KV, but don't fail if it's not available
+let kv = null;
+try {
+  const kvModule = await import('@vercel/kv');
+  kv = kvModule.kv;
+  console.log('✅ Redis/KV available for caching');
+} catch (error) {
+  console.log('⚠️ Redis/KV not available, running without cache');
+}
 
 // Helper function for fetch with timeout and retry
 async function fetchWithRetry(url, options = {}, retries = 2) {
@@ -61,17 +70,13 @@ class ConcurrencyLimiter {
   }
 }
 
-export const config = {
-  runtime: 'edge', // Use edge runtime for better performance
-};
-
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   
-  // Enable stale-while-revalidate
+  // Enable caching headers
   res.setHeader(
     'Cache-Control',
     'public, s-maxage=60, stale-while-revalidate=300'
@@ -99,8 +104,8 @@ export default async function handler(req, res) {
   const startTime = Date.now();
 
   try {
-    // Check cache first (unless force refresh)
-    if (!force) {
+    // Check cache first if KV is available (unless force refresh)
+    if (kv && !force) {
       try {
         const cached = await kv.get(cacheKey);
         if (cached) {
@@ -288,7 +293,8 @@ export default async function handler(req, res) {
     const maxGameweek = Math.max(
       ...managersWithData
         .filter(m => m.historyData?.currentSeason?.length > 0)
-        .map(m => m.historyData.currentSeason.length)
+        .map(m => m.historyData.currentSeason.length),
+      0
     );
 
     for (let gw = 1; gw <= maxGameweek; gw++) {
@@ -302,7 +308,9 @@ export default async function handler(req, res) {
         if (gwHistory) {
           gwData.managers.push({
             id: manager.entry,
-            name: manager.entry_name,
+            name: manager.entry_name || manager.player_name,
+            managerName: manager.player_name || manager.entry_name,
+            teamName: manager.entry_name,
             points: gwHistory.points,
             totalPoints: gwHistory.total_points,
             rank: gwHistory.overall_rank,
@@ -355,11 +363,11 @@ export default async function handler(req, res) {
           created: standingsData.league.created,
           closed: standingsData.league.closed,
           rank: standingsData.league.rank,
-          maxEntries: standingsData.league.max_entries,
-          leagueType: standingsData.league.league_type,
+          max_entries: standingsData.league.max_entries,
+          league_type: standingsData.league.league_type,
           scoring: standingsData.league.scoring,
-          adminEntry: standingsData.league.admin_entry,
-          startEvent: standingsData.league.start_event
+          admin_entry: standingsData.league.admin_entry,
+          start_event: standingsData.league.start_event
         },
         standings: transformedStandings,
         gameweekTable: gameweekTable,
@@ -371,21 +379,24 @@ export default async function handler(req, res) {
         gameweeksAnalyzed: gameweekTable.length,
         dataCompleteness: Math.round(
           (transformedStandings.filter(m => m.hasData).length / transformedStandings.length) * 100
-        )
+        ),
+        cacheEnabled: !!kv
       },
       timestamp: new Date().toISOString(),
       fromCache: false
     };
 
-    // Store in cache with 2-minute TTL
-    try {
-      await kv.set(cacheKey, responseData, {
-        ex: 120 // 2 minutes expiry
-      });
-      console.log(`✅ Data cached for league ${leagueId}`);
-    } catch (cacheError) {
-      console.error('Cache write error:', cacheError);
-      // Continue without caching
+    // Try to store in cache if KV is available
+    if (kv) {
+      try {
+        await kv.set(cacheKey, responseData, {
+          ex: 120 // 2 minutes expiry
+        });
+        console.log(`✅ Data cached for league ${leagueId}`);
+      } catch (cacheError) {
+        console.error('Cache write error:', cacheError);
+        // Continue without caching
+      }
     }
 
     console.log(`✅ Complete league data processed in ${processingTime}ms`);
@@ -396,17 +407,19 @@ export default async function handler(req, res) {
     
     const processingTime = Date.now() - startTime;
     
-    // Try to return cached data even if stale
-    try {
-      const staleCache = await kv.get(cacheKey);
-      if (staleCache) {
-        console.log('⚠️ Returning stale cache due to error');
-        staleCache.stale = true;
-        staleCache.error = error.message;
-        return res.status(200).json(staleCache);
+    // Try to return cached data even if stale (if KV available)
+    if (kv) {
+      try {
+        const staleCache = await kv.get(cacheKey);
+        if (staleCache) {
+          console.log('⚠️ Returning stale cache due to error');
+          staleCache.stale = true;
+          staleCache.error = error.message;
+          return res.status(200).json(staleCache);
+        }
+      } catch (cacheError) {
+        console.error('Failed to retrieve stale cache:', cacheError);
       }
-    } catch (cacheError) {
-      console.error('Failed to retrieve stale cache:', cacheError);
     }
     
     return res.status(500).json({
