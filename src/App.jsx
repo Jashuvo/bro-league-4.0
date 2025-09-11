@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import fplApi from './services/fplApi';
 
-// Import all your existing components
 import StickyHeader from './components/StickyHeader';
 import CompactHero from './components/CompactHero';
 import TabNavigation from './components/TabNavigation';
@@ -9,6 +8,7 @@ import LeagueTable from './components/LeagueTable';
 import GameweekTable from './components/GameweekTable';
 import MonthlyPrizes from './components/MonthlyPrizes';
 import WeeklyPrizes from './components/WeeklyPrizes';
+import PrizeDistribution from './components/PrizeDistribution';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
 import Footer from './components/Footer';
@@ -29,9 +29,10 @@ function App() {
 
   const tabs = [
     { id: 'standings', name: 'League Table', icon: '🏆', shortName: 'Table' },
-    { id: 'gameweek', name: 'Gameweek', icon: '📊', shortName: 'GW' },
-    { id: 'monthly', name: 'Monthly Prizes', icon: '💰', shortName: 'Monthly' },
-    { id: 'weekly', name: 'Weekly Prizes', icon: '🎯', shortName: 'Weekly' }
+    { id: 'gameweek', name: 'Gameweek History', icon: '📊', shortName: 'History' },
+    { id: 'monthly', name: 'Monthly Prizes', icon: '📅', shortName: 'Monthly' },
+    { id: 'weekly', name: 'Weekly Prizes', icon: '⚡', shortName: 'Weekly' },
+    { id: 'prizes', name: 'Prize Distribution', icon: '💰', shortName: 'Prizes' }
   ];
 
   const loadData = useCallback(async (forceRefresh = false) => {
@@ -140,6 +141,14 @@ function App() {
             loading={loading}
           />
         );
+      case 'prizes':
+        return (
+          <PrizeDistribution
+            gameweekInfo={gameweekInfo}
+            standings={standings}
+            gameweekTable={gameweekTable}
+          />
+        );
       default:
         return null;
     }
@@ -181,7 +190,9 @@ function App() {
               onRetry={() => loadData(true)} 
             />
           )}
-          {renderTabContent()}
+          <div className="animate-fade-in-up">
+            {renderTabContent()}
+          </div>
         </div>
       </div>
 
