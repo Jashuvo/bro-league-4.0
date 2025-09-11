@@ -1,119 +1,146 @@
-import React, { useState, useEffect } from 'react';
-import { RefreshCw, Wifi, WifiOff, Zap, Clock } from 'lucide-react';
+import React from 'react';
+import { Trophy, Users, Calendar, Target, Crown, TrendingUp, Zap } from 'lucide-react';
 
-const StickyHeader = ({ 
-  authStatus, 
-  isRefreshing, 
-  onRefresh, 
-  performanceInfo, 
-  lastUpdated 
-}) => {
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [isCompact, setIsCompact] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY < 50) {
-        setIsVisible(true);
-        setIsCompact(false);
-      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        setIsVisible(false);
-      } else if (currentScrollY < lastScrollY) {
-        setIsVisible(true);
-        setIsCompact(true);
-      }
-      
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
-
-  const getStatusColor = () => {
-    if (!authStatus.authenticated) return 'bg-amber-500';
-    return 'bg-green-500';
-  };
-
-  const getStatusIcon = () => {
-    if (!authStatus.authenticated) return <WifiOff size={12} />;
-    return <Wifi size={12} />;
-  };
+const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstrap }) => {
+  const totalPrizePool = import.meta.env.VITE_TOTAL_PRIZE_POOL || 12000;
+  const leagueName = import.meta.env.VITE_LEAGUE_NAME || "BRO League 4.0";
+  
+  const totalManagers = standings?.length || 0;
+  const gameweeksLeft = gameweekInfo?.total ? gameweekInfo.total - (gameweekInfo.current || 0) : 0;
+  const currentLeader = standings?.find(manager => manager.rank === 1);
+  
+  const nextGameweekData = bootstrap?.gameweeks?.find(gw => gw.id === (gameweekInfo.current + 1));
+  const nextDeadline = nextGameweekData?.deadline_time ? new Date(nextGameweekData.deadline_time) : null;
+  
+  const topPerformers = standings
+    ?.filter(m => m.gameweekPoints > 0)
+    ?.sort((a, b) => b.gameweekPoints - a.gameweekPoints)
+    ?.slice(0, 3) || [];
 
   return (
-    <div 
-      className={`
-        fixed top-0 left-0 right-0 z-50 
-        bg-white/95 backdrop-blur-md border-b border-gray-200
-        transition-all duration-300 ease-out
-        ${isVisible ? 'translate-y-0' : '-translate-y-full'}
-        ${isCompact ? 'py-3' : 'py-4'}
-      `}
-    >
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">BR</span>
+    <div className="relative bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 overflow-hidden pt-20 pb-8">
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }}></div>
+      </div>
+      
+      <div className="absolute top-20 left-4 w-12 h-12 bg-yellow-400/10 rounded-full blur-xl"></div>
+      <div className="absolute bottom-4 right-4 w-16 h-16 bg-blue-400/10 rounded-full blur-xl"></div>
+      
+      <div className="relative container mx-auto px-4">
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-3">
+            <div className="relative">
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-xl">
+                <Crown className="text-white" size={24} />
               </div>
-              {!isCompact && (
-                <div>
-                  <h1 className="font-bold text-gray-900 text-lg">BRO League 4.0</h1>
-                  <p className="text-xs text-gray-500">Fantasy Premier League</p>
-                </div>
-              )}
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                <Trophy size={8} className="text-white" />
+              </div>
             </div>
           </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-xs">
-              <div className={`w-2 h-2 rounded-full ${getStatusColor()} animate-pulse`}></div>
-              <span className="text-gray-600 hidden sm:inline">
-                {authStatus.authenticated ? 'Live' : 'Offline'}
-              </span>
-            </div>
-
-            {performanceInfo && (
-              <div className="hidden md:flex items-center gap-1 text-xs text-gray-500">
-                <Zap size={12} />
-                <span>{performanceInfo.loadTime}ms</span>
+          
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+            {leagueName.split(' ').slice(0, 2).join(' ')}{' '}
+            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+              {leagueName.split(' ').slice(2).join(' ')}
+            </span>
+          </h1>
+          
+          <p className="text-blue-100 text-sm mb-4">Fantasy Premier League Championship</p>
+          
+          {currentLeader && authStatus?.authenticated && (
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-3 mb-4 mx-auto max-w-sm">
+              <div className="flex items-center justify-center gap-2 text-white">
+                <Crown className="text-yellow-400" size={16} />
+                <span className="font-medium text-sm">Current Leader</span>
               </div>
-            )}
+              <div className="text-yellow-400 font-bold text-lg">{currentLeader.managerName}</div>
+              <div className="text-blue-200 text-sm">{currentLeader.totalPoints} pts</div>
+            </div>
+          )}
+        </div>
 
-            <button
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className={`
-                flex items-center gap-2 px-3 py-2 rounded-lg
-                bg-gradient-to-r from-purple-600 to-blue-600 text-white
-                hover:from-purple-700 hover:to-blue-700
-                disabled:opacity-50 disabled:cursor-not-allowed
-                transition-all duration-200 text-sm font-medium
-                shadow-lg hover:shadow-xl
-              `}
-            >
-              <RefreshCw 
-                size={14} 
-                className={isRefreshing ? 'animate-spin' : ''} 
-              />
-              <span className="hidden sm:inline">
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </span>
-            </button>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-3 text-center hover:bg-white/15 transition-all duration-300">
+            <div className="flex justify-center mb-2">
+              <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <Users className="text-green-400" size={16} />
+              </div>
+            </div>
+            <div className="text-green-400 text-lg font-bold">{totalManagers}</div>
+            <div className="text-white text-xs">Managers</div>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-3 text-center hover:bg-white/15 transition-all duration-300">
+            <div className="flex justify-center mb-2">
+              <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <Calendar className="text-blue-400" size={16} />
+              </div>
+            </div>
+            <div className="text-blue-400 text-lg font-bold">GW {gameweekInfo?.current || 3}</div>
+            <div className="text-white text-xs">Current</div>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-3 text-center hover:bg-white/15 transition-all duration-300">
+            <div className="flex justify-center mb-2">
+              <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                <Target className="text-purple-400" size={16} />
+              </div>
+            </div>
+            <div className="text-purple-400 text-lg font-bold">{gameweeksLeft}</div>
+            <div className="text-white text-xs">Left</div>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-3 text-center hover:bg-white/15 transition-all duration-300">
+            <div className="flex justify-center mb-2">
+              <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                <Trophy className="text-yellow-400" size={16} />
+              </div>
+            </div>
+            <div className="text-yellow-400 text-lg font-bold">৳{(totalPrizePool / 1000).toFixed(0)}K</div>
+            <div className="text-white text-xs">Prize Pool</div>
           </div>
         </div>
 
-        {lastUpdated && !isCompact && (
-          <div className="flex items-center justify-center mt-2 text-xs text-gray-500">
-            <Clock size={10} className="mr-1" />
-            Last updated: {lastUpdated.toLocaleTimeString('en-US', {
-              timeZone: 'Asia/Dhaka',
-              timeStyle: 'short'
-            })} BD
+        {nextDeadline && (
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 mb-4">
+            <div className="text-center">
+              <div className="text-white font-medium text-sm mb-1">Next Deadline</div>
+              <div className="text-yellow-400 font-bold">
+                {nextDeadline.toLocaleDateString('en-US', { 
+                  weekday: 'short', 
+                  month: 'short', 
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {topPerformers.length > 0 && authStatus?.authenticated && (
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4">
+            <h3 className="text-white font-bold text-center mb-3 flex items-center justify-center gap-2 text-sm">
+              <Zap className="text-yellow-400" size={16} />
+              This Gameweek's Heroes
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {topPerformers.map((manager, index) => (
+                <div key={manager.id} className="bg-white/10 rounded-lg p-2 text-center">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    {index === 0 && <Crown className="text-yellow-400" size={10} />}
+                    {index === 1 && <div className="w-2 h-2 bg-gray-400 rounded-full" />}
+                    {index === 2 && <div className="w-2 h-2 bg-orange-400 rounded-full" />}
+                    <span className="text-white font-medium text-xs truncate">{manager.managerName}</span>
+                  </div>
+                  <div className="text-yellow-400 font-bold text-sm">{manager.gameweekPoints} pts</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -121,4 +148,4 @@ const StickyHeader = ({
   );
 };
 
-export default StickyHeader;
+export default CompactHero;

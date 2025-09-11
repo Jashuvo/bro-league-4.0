@@ -34,13 +34,8 @@ const StickyHeader = ({
   }, [lastScrollY]);
 
   const getStatusColor = () => {
-    if (!authStatus.authenticated) return 'bg-amber-500';
+    if (!authStatus?.authenticated) return 'bg-amber-500';
     return 'bg-green-500';
-  };
-
-  const getStatusIcon = () => {
-    if (!authStatus.authenticated) return <WifiOff size={12} />;
-    return <Wifi size={12} />;
   };
 
   return (
@@ -50,7 +45,7 @@ const StickyHeader = ({
         bg-white/95 backdrop-blur-md border-b border-gray-200
         transition-all duration-300 ease-out
         ${isVisible ? 'translate-y-0' : '-translate-y-full'}
-        ${isCompact ? 'py-3' : 'py-4'}
+        ${isCompact ? 'py-2' : 'py-4'}
       `}
     >
       <div className="container mx-auto px-4">
@@ -58,7 +53,7 @@ const StickyHeader = ({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">BR</span>
+                <span className="text-white font-bold text-xs">BR</span>
               </div>
               {!isCompact && (
                 <div>
@@ -73,7 +68,7 @@ const StickyHeader = ({
             <div className="flex items-center gap-2 text-xs">
               <div className={`w-2 h-2 rounded-full ${getStatusColor()} animate-pulse`}></div>
               <span className="text-gray-600 hidden sm:inline">
-                {authStatus.authenticated ? 'Live' : 'Offline'}
+                {authStatus?.authenticated ? 'Live' : 'Offline'}
               </span>
             </div>
 
