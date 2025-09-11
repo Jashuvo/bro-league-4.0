@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { DollarSign, Trophy, Calendar, Zap, Target, Gift, Award, Crown, Medal, TrendingUp, Users, Clock, PieChart } from 'lucide-react';
 
-const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = [] }) => {
+const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = [], bootstrap = {} }) => {
   const currentGW = gameweekInfo.current || 3;
   const totalGWs = gameweekInfo.total || 38;
 
@@ -33,17 +33,80 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
 
   const grandTotal = 12000;
 
+  // Enhanced gameweek status determination using bootstrap data
+  const getGameweekStatus = (gameweekId) => {
+    const gameweekData = bootstrap?.gameweeks?.find(gw => gw.id === gameweekId);
+    
+    if (gameweekData) {
+      // Use actual FPL API status if available
+      if (gameweekData.finished) return 'completed';
+      if (gameweekData.is_current && !gameweekData.finished) return 'current';
+      if (gameweekData.is_next) return 'upcoming';
+      
+      // Check deadline to determine if gameweek should be considered finished
+      if (gameweekData.deadline_time) {
+        const deadline = new Date(gameweekData.deadline_time);
+        const now = new Date();
+        const hoursSinceDeadline = (now - deadline) / (1000 * 60 * 60);
+        
+        // If it's been more than 72 hours since deadline, consider it completed
+        if (hoursSinceDeadline > 72) return 'completed';
+        if (hoursSinceDeadline > 0) return 'current'; // In progress
+      }
+    }
+    
+    // Fallback to simple logic if bootstrap data unavailable
+    if (gameweekId < currentGW) return 'completed';
+    if (gameweekId === currentGW) return 'current';
+    return 'upcoming';
+  };
+
   const distributionStats = useMemo(() => {
-    const weeklyDistributed = Math.max(0, currentGW - 1) * prizeStructure.weekly.perWeek;
-    const monthsCompleted = Math.floor(Math.max(0, currentGW - 1) / 4);
-    const monthlyDistributed = monthsCompleted * 750;
+    // Enhanced calculation using actual gameweek statuses
+    const completedGameweeks = [];
+    for (let gw = 1; gw <= totalGWs; gw++) {
+      if (getGameweekStatus(gw) === 'completed') {
+        completedGameweeks.push(gw);
+      }
+    }
+
+    const weeklyDistributed = completedGameweeks.length * prizeStructure.weekly.perWeek;
+    
+    // Enhanced monthly calculation
+    const monthlyDistributed = (() => {
+      const months = [
+        { gameweeks: [1, 2, 3, 4], prize: 750 },
+        { gameweeks: [5, 6, 7, 8], prize: 750 },
+        { gameweeks: [9, 10, 11, 12], prize: 750 },
+        { gameweeks: [13, 14, 15, 16], prize: 750 },
+        { gameweeks: [17, 18, 19, 20], prize: 750 },
+        { gameweeks: [21, 22, 23, 24], prize: 750 },
+        { gameweeks: [25, 26, 27, 28], prize: 750 },
+        { gameweeks: [29, 30, 31, 32], prize: 750 },
+        { gameweeks: [33, 34, 35, 36, 37, 38], prize: 1150 }
+      ];
+
+      let monthlyTotal = 0;
+      months.forEach(month => {
+        // Check if ALL gameweeks in month are completed
+        const allCompleted = month.gameweeks.every(gw => getGameweekStatus(gw) === 'completed');
+        if (allCompleted) {
+          monthlyTotal += month.prize;
+        }
+      });
+
+      return monthlyTotal;
+    })();
     
     const totalDistributed = weeklyDistributed + monthlyDistributed;
     const remainingPrizes = grandTotal - prizeStructure.season.total - prizeStructure.souvenirs.total - totalDistributed;
     
-    const seasonProgress = Math.min(100, (currentGW / totalGWs) * 100);
-    const weeklyProgress = Math.min(100, ((currentGW - 1) / totalGWs) * 100);
-    const monthlyProgress = Math.min(100, (monthsCompleted / 9) * 100);
+    const seasonProgress = Math.min(100, (completedGameweeks.length / totalGWs) * 100);
+    const weeklyProgress = Math.min(100, (completedGameweeks.length / totalGWs) * 100);
+    
+    // Enhanced monthly progress calculation
+    const completedMonths = Math.floor(completedGameweeks.length / 4);
+    const monthlyProgress = Math.min(100, (completedMonths / 9) * 100);
 
     // Calculate transfer penalty stats from gameweek data
     let totalPenalties = 0;
@@ -51,7 +114,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
     const managerPenaltyTotals = {};
 
     gameweekTable.forEach(gw => {
-      if (gw.gameweek < currentGW && gw.managers) {
+      if (getGameweekStatus(gw.gameweek) === 'completed' && gw.managers) {
         gw.managers.forEach(manager => {
           const managerId = manager.id || manager.entry;
           const transfersCost = manager.transfersCost || 
@@ -86,9 +149,11 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
       monthlyRemaining: prizeStructure.monthly.total - monthlyDistributed,
       totalPenalties,
       managersWithPenalties,
-      avgPenaltyPerManager: managersWithPenalties > 0 ? Math.round(totalPenalties / managersWithPenalties) : 0
+      avgPenaltyPerManager: managersWithPenalties > 0 ? Math.round(totalPenalties / managersWithPenalties) : 0,
+      completedGameweeks: completedGameweeks.length,
+      completedMonths: completedMonths
     };
-  }, [currentGW, totalGWs, prizeStructure, gameweekTable]);
+  }, [currentGW, totalGWs, prizeStructure, gameweekTable, bootstrap]);
 
   const pieChartData = [
     { name: 'Season Prizes', value: prizeStructure.season.total, color: '#fbbf24', distributed: false },
@@ -135,9 +200,9 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
             <div className="text-xs text-red-600">{distributionStats.managersWithPenalties} managers affected</div>
           </div>
           <div className="text-center">
-            <div className="font-bold text-2xl text-orange-600">{Math.floor((currentGW - 1) / 4)}</div>
-            <div className="text-xs text-gray-600">Months Done</div>
-            <div className="text-xs text-orange-600">{Math.round((Math.floor((currentGW - 1) / 4) / 9) * 100)}%</div>
+            <div className="font-bold text-2xl text-orange-600">{distributionStats.completedGameweeks}</div>
+            <div className="text-xs text-gray-600">GWs Complete</div>
+            <div className="text-xs text-orange-600">{Math.round(distributionStats.seasonProgress)}% done</div>
           </div>
         </div>
 
@@ -217,14 +282,14 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
               <div className="text-center">
                 <div className="font-bold text-xl text-green-600">৳{distributionStats.weeklyDistributed}</div>
                 <div className="text-sm text-gray-600">Distributed</div>
-                <div className="text-xs text-gray-500">{currentGW - 1} gameweeks</div>
+                <div className="text-xs text-gray-500">{distributionStats.completedGameweeks} gameweeks</div>
               </div>
             </div>
             <div className="bg-white/70 rounded-lg p-4">
               <div className="text-center">
                 <div className="font-bold text-xl text-blue-600">৳{distributionStats.weeklyRemaining}</div>
                 <div className="text-sm text-gray-600">Remaining</div>
-                <div className="text-xs text-gray-500">{totalGWs - (currentGW - 1)} gameweeks</div>
+                <div className="text-xs text-gray-500">{totalGWs - distributionStats.completedGameweeks} gameweeks</div>
               </div>
             </div>
           </div>
@@ -241,7 +306,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
               ></div>
             </div>
             <div className="text-xs text-gray-600 mt-1">
-              Winners determined by highest net score (after transfer penalties)
+              Winners determined by highest net score (after transfer penalties) • Enhanced status detection
             </div>
           </div>
         </div>
@@ -314,7 +379,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
               ></div>
             </div>
             <div className="text-xs text-gray-600 mt-1">
-              {Math.floor((currentGW - 1) / 4)} of 9 months completed • Rankings by net monthly points
+              {distributionStats.completedMonths} of 9 months completed • Rankings by net monthly points • Enhanced status detection
             </div>
           </div>
         </div>
@@ -369,7 +434,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
           </div>
           
           <div className="mt-4 text-xs text-gray-500">
-            Prize distribution updated live • All competitions use net points (after transfer penalties) • All amounts in Bangladeshi Taka (৳)
+            Prize distribution updated live • All competitions use net points (after transfer penalties) • Enhanced status detection • All amounts in Bangladeshi Taka (৳)
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar, Trophy, Crown, Medal, Award, Zap, Target, TrendingUp, Clock, DollarSign } from 'lucide-react';
 
-const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }) => {
+const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, loading = false }) => {
   const currentGW = gameweekInfo.current || 3;
   
   const months = [
@@ -20,10 +20,50 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
     return months.find(m => currentGW >= m.gameweeks[0] && currentGW <= m.gameweeks[m.gameweeks.length - 1])?.id || 1;
   });
 
+  // Enhanced gameweek status determination using bootstrap data
+  const getGameweekStatus = (gameweekId) => {
+    const gameweekData = bootstrap?.gameweeks?.find(gw => gw.id === gameweekId);
+    
+    if (gameweekData) {
+      // Use actual FPL API status if available
+      if (gameweekData.finished) return 'completed';
+      if (gameweekData.is_current && !gameweekData.finished) return 'current';
+      if (gameweekData.is_next) return 'upcoming';
+      
+      // Check deadline to determine if gameweek should be considered finished
+      if (gameweekData.deadline_time) {
+        const deadline = new Date(gameweekData.deadline_time);
+        const now = new Date();
+        const hoursSinceDeadline = (now - deadline) / (1000 * 60 * 60);
+        
+        // If it's been more than 72 hours since deadline, consider it completed
+        if (hoursSinceDeadline > 72) return 'completed';
+        if (hoursSinceDeadline > 0) return 'current'; // In progress
+      }
+    }
+    
+    // Fallback to simple logic if bootstrap data unavailable
+    if (gameweekId < currentGW) return 'completed';
+    if (gameweekId === currentGW) return 'current';
+    return 'upcoming';
+  };
+
+  // Enhanced month status determination
   const getMonthStatus = (month) => {
-    const lastGW = month.gameweeks[month.gameweeks.length - 1];
-    if (currentGW > lastGW) return 'completed';
-    if (currentGW >= month.gameweeks[0]) return 'active';
+    // Check status of all gameweeks in this month
+    const gameweekStatuses = month.gameweeks.map(gw => getGameweekStatus(gw));
+    
+    // If all gameweeks are completed, month is completed
+    if (gameweekStatuses.every(status => status === 'completed')) {
+      return 'completed';
+    }
+    
+    // If any gameweek is current or some are completed, month is active
+    if (gameweekStatuses.some(status => status === 'current' || status === 'completed')) {
+      return 'active';
+    }
+    
+    // Otherwise month is upcoming
     return 'upcoming';
   };
 
@@ -118,7 +158,9 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
 
   const selectedMonthData = months.find(m => m.id === selectedMonth);
   const monthStatus = getMonthStatus(selectedMonthData);
-  const completedGWs = selectedMonthData?.gameweeks.filter(gw => gw < currentGW).length || 0;
+  
+  // Enhanced progress calculation using actual gameweek statuses
+  const completedGWs = selectedMonthData?.gameweeks.filter(gw => getGameweekStatus(gw) === 'completed').length || 0;
   const totalGWs = selectedMonthData?.gameweeks.length || 0;
   const progress = Math.round((completedGWs / totalGWs) * 100);
 
@@ -340,7 +382,7 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             <span>
-              Monthly net points competition • Transfer penalties deducted • 
+              Monthly net points competition • Transfer penalties deducted • Enhanced status detection •
               Updated: {new Date().toLocaleString('en-US', { 
                 timeZone: 'Asia/Dhaka',
                 dateStyle: 'medium',
