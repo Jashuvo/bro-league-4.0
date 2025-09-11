@@ -10,40 +10,72 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
   const weeklyWinners = useMemo(() => {
     if (!gameweekTable.length) return [];
 
+    console.log(`🔍 === WEEKLY PRIZE CALCULATION ===`);
+    console.log(`✅ Found ${gameweekTable.length} gameweeks in table`);
+
     return gameweekTable
       .map(gw => {
         if (!gw.managers || gw.managers.length === 0) return null;
 
-        // Find winner (highest net score)
-        let winner = null;
-        let highestNet = -999;
+        console.log(`🔍 Processing GW${gw.gameweek} with ${gw.managers.length} managers`);
 
-        gw.managers.forEach(manager => {
-          const gwPoints = manager.gameweekPoints || manager.points || 0;
-          const penalties = manager.transfersCost || 0;
-          const netScore = gwPoints - penalties;
+        // Apply transfer cost deduction BEFORE sorting (same logic as MonthlyPrizes)
+        const managersWithNetPoints = gw.managers
+          .filter(m => m.points > 0)
+          .map(manager => {
+            const rawPoints = manager.gameweekPoints || manager.points || 0;
+            
+            // Check ALL possible transfer cost field names (same as MonthlyPrizes)
+            const transfersCost = manager.transfersCost || 
+                                 manager.event_transfers_cost || 
+                                 manager.transferCost || 
+                                 manager.transfers_cost ||
+                                 manager.penalty ||
+                                 manager.hit ||
+                                 0;
 
-          if (netScore > highestNet) {
-            highestNet = netScore;
-            winner = {
-              id: manager.id || manager.entry,
-              name: manager.managerName || `Manager ${manager.id || manager.entry}`,
-              teamName: manager.teamName || 'Unknown Team',
-              points: netScore,
-              rawPoints: gwPoints,
-              penalties: penalties
+            const netPoints = rawPoints - transfersCost;
+
+            // Enhanced debugging for transfer costs
+            if (transfersCost > 0) {
+              console.log(`💰 Weekly GW${gw.gameweek} ${manager.managerName}: ${rawPoints} pts - ${transfersCost} cost = ${netPoints}`);
+            }
+
+            return {
+              ...manager,
+              rawPoints: rawPoints,
+              transfersCost: transfersCost,
+              netPoints: netPoints, // This is what we sort by
+              points: netPoints // Update points to be net points for consistency
             };
-          }
-        });
+          })
+          .sort((a, b) => b.netPoints - a.netPoints); // Sort by NET points after transfer costs
+
+        // Find winner (highest net score)
+        const winner = managersWithNetPoints[0];
 
         if (!winner) return null;
 
+        console.log(`🏆 GW${gw.gameweek} winner: ${winner.managerName} (ID: ${winner.id}) with ${winner.netPoints} net points`);
+
         return {
           gameweek: gw.gameweek,
-          winner,
+          winner: {
+            id: winner.id || winner.entry,
+            name: winner.managerName || `Manager ${winner.id || winner.entry}`,
+            teamName: winner.teamName || 'Unknown Team',
+            points: winner.netPoints, // Show net points
+            rawPoints: winner.rawPoints,
+            transfers: winner.transfers || 0,
+            transfersCost: winner.transfersCost,
+            totalPoints: winner.totalPoints
+          },
           status: gw.gameweek < currentGW ? 'completed' : 
                  gw.gameweek === currentGW ? 'current' : 'upcoming',
-          prize: 30
+          prize: 30,
+          managersCount: managersWithNetPoints.length,
+          avgScore: Math.round(managersWithNetPoints.reduce((sum, m) => sum + m.netPoints, 0) / managersWithNetPoints.length),
+          totalPenalties: managersWithNetPoints.reduce((sum, m) => sum + m.transfersCost, 0)
         };
       })
       .filter(Boolean)
@@ -73,15 +105,21 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
     const mostWins = Object.entries(winnerCounts)
       .sort(([,a], [,b]) => b - a)[0];
 
+    // Transfer penalty stats
+    const totalPenalties = completed.reduce((sum, gw) => sum + (gw.totalPenalties || 0), 0);
+    const avgWinningScore = completed.length > 0 
+      ? Math.round(completed.reduce((sum, gw) => sum + gw.winner.points, 0) / completed.length)
+      : 0;
+
     return {
       totalDistributed,
       remaining,
       gamesCompleted: completed.length,
       gamesRemaining: 38 - completed.length,
       mostSuccessful: mostWins ? { name: mostWins[0], wins: mostWins[1] } : null,
-      averageWinningScore: completed.length > 0 
-        ? Math.round(completed.reduce((sum, gw) => sum + gw.winner.points, 0) / completed.length)
-        : 0
+      averageWinningScore: avgWinningScore,
+      totalPenalties: totalPenalties,
+      avgPenaltiesPerGW: completed.length > 0 ? Math.round(totalPenalties / completed.length) : 0
     };
   }, [weeklyWinners]);
 
@@ -128,8 +166,8 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
             <div className="text-xs text-gray-600">Avg Win Score</div>
           </div>
           <div className="text-center">
-            <div className="font-bold text-xl text-green-600">{weeklyStats.gamesCompleted}</div>
-            <div className="text-xs text-gray-600">GWs Complete</div>
+            <div className="font-bold text-xl text-red-600">-{weeklyStats.totalPenalties}</div>
+            <div className="text-xs text-gray-600">Total Penalties</div>
           </div>
         </div>
 
@@ -137,7 +175,7 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
           <div className="mt-4 bg-white/60 rounded-lg p-3 text-center">
             <div className="text-sm font-medium text-gray-700">Most Successful</div>
             <div className="font-bold text-purple-600">{weeklyStats.mostSuccessful.name}</div>
-            <div className="text-xs text-gray-600">{weeklyStats.mostSuccessful.wins} wins</div>
+            <div className="text-xs text-gray-600">{weeklyStats.mostSuccessful.wins} wins • Avg {weeklyStats.avgPenaltiesPerGW} penalties/GW</div>
           </div>
         )}
       </div>
@@ -190,8 +228,9 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
                   <th className="text-left p-4 font-semibold text-gray-700">GW</th>
                   <th className="text-center p-4 font-semibold text-gray-700 hidden sm:table-cell">🏆</th>
                   <th className="text-left p-4 font-semibold text-gray-700">Champion</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Raw Points</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Penalties</th>
                   <th className="text-center p-4 font-semibold text-gray-700">Net Score</th>
-                  <th className="text-center p-4 font-semibold text-gray-700 hidden md:table-cell">Penalties</th>
                   <th className="text-center p-4 font-semibold text-gray-700">Prize</th>
                   <th className="text-center p-4 font-semibold text-gray-700 hidden lg:table-cell">Status</th>
                 </tr>
@@ -230,6 +269,16 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
                       </td>
 
                       <td className="p-4 text-center">
+                        <span className="font-semibold text-blue-600">{gw.winner.rawPoints}</span>
+                      </td>
+
+                      <td className="p-4 text-center">
+                        <span className={`font-semibold ${gw.winner.transfersCost > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                          {gw.winner.transfersCost > 0 ? `-${gw.winner.transfersCost}` : '0'}
+                        </span>
+                      </td>
+
+                      <td className="p-4 text-center">
                         <div className={`
                           inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-bold
                           ${isCompleted ? 'bg-green-100 text-green-800' : 
@@ -238,17 +287,11 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
                           <Zap size={12} />
                           {gw.winner.points}
                         </div>
-                        {gw.winner.penalties > 0 && (
+                        {gw.winner.transfersCost > 0 && (
                           <div className="text-xs text-gray-500 mt-1">
-                            {gw.winner.rawPoints} - {gw.winner.penalties} = {gw.winner.points}
+                            {gw.winner.rawPoints} - {gw.winner.transfersCost} = {gw.winner.points}
                           </div>
                         )}
-                      </td>
-
-                      <td className="p-4 text-center hidden md:table-cell">
-                        <span className={`font-semibold ${gw.winner.penalties > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                          {gw.winner.penalties > 0 ? `-${gw.winner.penalties}` : '0'}
-                        </span>
                       </td>
 
                       <td className="p-4 text-center">

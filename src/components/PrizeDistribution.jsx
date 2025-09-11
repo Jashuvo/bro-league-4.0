@@ -45,6 +45,35 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
     const weeklyProgress = Math.min(100, ((currentGW - 1) / totalGWs) * 100);
     const monthlyProgress = Math.min(100, (monthsCompleted / 9) * 100);
 
+    // Calculate transfer penalty stats from gameweek data
+    let totalPenalties = 0;
+    let managersWithPenalties = 0;
+    const managerPenaltyTotals = {};
+
+    gameweekTable.forEach(gw => {
+      if (gw.gameweek < currentGW && gw.managers) {
+        gw.managers.forEach(manager => {
+          const managerId = manager.id || manager.entry;
+          const transfersCost = manager.transfersCost || 
+                               manager.event_transfers_cost || 
+                               manager.transferCost || 
+                               manager.transfers_cost ||
+                               manager.penalty ||
+                               manager.hit ||
+                               0;
+          
+          if (transfersCost > 0) {
+            totalPenalties += transfersCost;
+            if (!managerPenaltyTotals[managerId]) {
+              managerPenaltyTotals[managerId] = 0;
+              managersWithPenalties++;
+            }
+            managerPenaltyTotals[managerId] += transfersCost;
+          }
+        });
+      }
+    });
+
     return {
       weeklyDistributed,
       monthlyDistributed,
@@ -54,9 +83,12 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
       weeklyProgress,
       monthlyProgress,
       weeklyRemaining: prizeStructure.weekly.total - weeklyDistributed,
-      monthlyRemaining: prizeStructure.monthly.total - monthlyDistributed
+      monthlyRemaining: prizeStructure.monthly.total - monthlyDistributed,
+      totalPenalties,
+      managersWithPenalties,
+      avgPenaltyPerManager: managersWithPenalties > 0 ? Math.round(totalPenalties / managersWithPenalties) : 0
     };
-  }, [currentGW, totalGWs, prizeStructure]);
+  }, [currentGW, totalGWs, prizeStructure, gameweekTable]);
 
   const pieChartData = [
     { name: 'Season Prizes', value: prizeStructure.season.total, color: '#fbbf24', distributed: false },
@@ -98,9 +130,9 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
             <div className="text-xs text-blue-600">{Math.round((distributionStats.remainingPrizes / grandTotal) * 100)}%</div>
           </div>
           <div className="text-center">
-            <div className="font-bold text-2xl text-purple-600">{currentGW}</div>
-            <div className="text-xs text-gray-600">Current GW</div>
-            <div className="text-xs text-purple-600">{Math.round((currentGW / totalGWs) * 100)}% Season</div>
+            <div className="font-bold text-2xl text-red-600">-{distributionStats.totalPenalties}</div>
+            <div className="text-xs text-gray-600">Total Penalties</div>
+            <div className="text-xs text-red-600">{distributionStats.managersWithPenalties} managers affected</div>
           </div>
           <div className="text-center">
             <div className="font-bold text-2xl text-orange-600">{Math.floor((currentGW - 1) / 4)}</div>
@@ -108,6 +140,19 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
             <div className="text-xs text-orange-600">{Math.round((Math.floor((currentGW - 1) / 4) / 9) * 100)}%</div>
           </div>
         </div>
+
+        {/* Transfer Penalty Summary */}
+        {distributionStats.totalPenalties > 0 && (
+          <div className="mt-4 bg-red-50 rounded-lg p-3 border border-red-200">
+            <div className="text-center">
+              <div className="text-sm font-medium text-red-800 mb-1">Transfer Penalty Impact</div>
+              <div className="text-xs text-red-600">
+                {distributionStats.totalPenalties} penalty points deducted from competitions • 
+                Avg {distributionStats.avgPenaltyPerManager} penalties per affected manager
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Prize Categories */}
@@ -141,6 +186,12 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
                 </div>
               );
             })}
+          </div>
+
+          <div className="mt-4 text-center text-xs text-gray-600">
+            <div className="bg-white/50 rounded-lg p-2">
+              Season rankings based on total points after transfer penalties deducted
+            </div>
           </div>
         </div>
 
@@ -188,6 +239,9 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
                 className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
                 style={{ width: `${distributionStats.weeklyProgress}%` }}
               ></div>
+            </div>
+            <div className="text-xs text-gray-600 mt-1">
+              Winners determined by highest net score (after transfer penalties)
             </div>
           </div>
         </div>
@@ -260,7 +314,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
               ></div>
             </div>
             <div className="text-xs text-gray-600 mt-1">
-              {Math.floor((currentGW - 1) / 4)} of 9 months completed
+              {Math.floor((currentGW - 1) / 4)} of 9 months completed • Rankings by net monthly points
             </div>
           </div>
         </div>
@@ -315,7 +369,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
           </div>
           
           <div className="mt-4 text-xs text-gray-500">
-            Prize distribution updated live • All amounts in Bangladeshi Taka (৳)
+            Prize distribution updated live • All competitions use net points (after transfer penalties) • All amounts in Bangladeshi Taka (৳)
           </div>
         </div>
       </div>

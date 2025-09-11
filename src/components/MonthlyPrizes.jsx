@@ -31,6 +31,8 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
     const selectedMonthData = months.find(m => m.id === selectedMonth);
     if (!selectedMonthData || !gameweekTable.length) return [];
 
+    console.log(`🔍 Calculating Month ${selectedMonth} (${selectedMonthData.name}):`, selectedMonthData.gameweeks);
+
     const managerTotals = {};
 
     selectedMonthData.gameweeks.forEach(gw => {
@@ -39,9 +41,23 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
 
       gameweekData.managers.forEach(manager => {
         const managerId = manager.id || manager.entry;
-        const gwPoints = manager.gameweekPoints || manager.points || 0;
-        const penalties = manager.transfersCost || 0;
-        const netPoints = gwPoints - penalties;
+        const rawPoints = manager.gameweekPoints || manager.points || 0;
+        
+        // Check ALL possible transfer cost field names
+        const transfersCost = manager.transfersCost || 
+                             manager.event_transfers_cost || 
+                             manager.transferCost || 
+                             manager.transfers_cost ||
+                             manager.penalty ||
+                             manager.hit ||
+                             0;
+
+        const netPoints = rawPoints - transfersCost;
+
+        // Enhanced debugging for transfer costs
+        if (transfersCost > 0) {
+          console.log(`💰 Monthly ${selectedMonthData.name} GW${gw} ${manager.managerName}: ${rawPoints} pts - ${transfersCost} cost = ${netPoints}`);
+        }
 
         if (!managerTotals[managerId]) {
           managerTotals[managerId] = {
@@ -51,24 +67,53 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
             totalPoints: 0,
             rawPoints: 0,
             totalPenalties: 0,
-            gameweeksPlayed: 0
+            gameweeksPlayed: 0,
+            gameweekBreakdown: []
           };
         }
 
-        managerTotals[managerId].totalPoints += netPoints;
-        managerTotals[managerId].rawPoints += gwPoints;
-        managerTotals[managerId].totalPenalties += penalties;
+        managerTotals[managerId].totalPoints += netPoints; // This is what matters for ranking
+        managerTotals[managerId].rawPoints += rawPoints;
+        managerTotals[managerId].totalPenalties += transfersCost;
         managerTotals[managerId].gameweeksPlayed += 1;
+        managerTotals[managerId].gameweekBreakdown.push({
+          gameweek: gw,
+          rawPoints: rawPoints,
+          transfersCost: transfersCost,
+          netPoints: netPoints
+        });
+
+        // Log first few managers data structure for debugging
+        if (managerId === Object.keys(managerTotals)[0] && gw === selectedMonthData.gameweeks[0]) {
+          console.log('🔍 Sample manager data fields:', Object.keys(manager));
+          console.log('🔍 Full data:', manager);
+        }
       });
     });
 
-    return Object.values(managerTotals)
-      .sort((a, b) => b.totalPoints - a.totalPoints)
+    const sortedManagers = Object.values(managerTotals)
+      .filter(manager => manager.gameweeksPlayed > 0)
+      .sort((a, b) => b.totalPoints - a.totalPoints) // Sort by NET points after transfer costs
       .map((manager, index) => ({
         ...manager,
         rank: index + 1,
-        prize: selectedMonthData.prizes[index] || 0
+        prize: selectedMonthData.prizes[index] || 0,
+        averageGW: manager.gameweeksPlayed > 0 ? Math.round(manager.totalPoints / manager.gameweeksPlayed) : 0
       }));
+
+    // Enhanced logging
+    if (sortedManagers.length > 0) {
+      console.log(`📊 ${selectedMonthData.name} summary:`, 
+        sortedManagers.slice(0, 3).map(m => ({
+          name: m.name, 
+          raw: m.rawPoints, 
+          penalties: m.totalPenalties, 
+          final: m.totalPoints
+        }))
+      );
+    }
+
+    return sortedManagers;
   }, [selectedMonth, gameweekTable, months]);
 
   const selectedMonthData = months.find(m => m.id === selectedMonth);
@@ -210,9 +255,9 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
                 <tr>
                   <th className="text-left p-4 font-semibold text-gray-700">Rank</th>
                   <th className="text-left p-4 font-semibold text-gray-700">Manager</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Raw Points</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Penalties</th>
                   <th className="text-center p-4 font-semibold text-gray-700">Net Points</th>
-                  <th className="text-center p-4 font-semibold text-gray-700 hidden sm:table-cell">Raw Points</th>
-                  <th className="text-center p-4 font-semibold text-gray-700 hidden md:table-cell">Penalties</th>
                   <th className="text-center p-4 font-semibold text-gray-700">Prize</th>
                 </tr>
               </thead>
@@ -240,6 +285,16 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
                       </td>
 
                       <td className="p-4 text-center">
+                        <span className="font-semibold text-blue-600">{manager.rawPoints}</span>
+                      </td>
+
+                      <td className="p-4 text-center">
+                        <span className={`font-semibold ${manager.totalPenalties > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                          {manager.totalPenalties > 0 ? `-${manager.totalPenalties}` : '0'}
+                        </span>
+                      </td>
+
+                      <td className="p-4 text-center">
                         <div className={`
                           inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-bold
                           ${isWinner ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
@@ -247,16 +302,11 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
                           <Zap size={12} />
                           {manager.totalPoints}
                         </div>
-                      </td>
-
-                      <td className="p-4 text-center hidden sm:table-cell">
-                        <span className="font-semibold text-blue-600">{manager.rawPoints}</span>
-                      </td>
-
-                      <td className="p-4 text-center hidden md:table-cell">
-                        <span className={`font-semibold ${manager.totalPenalties > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                          {manager.totalPenalties > 0 ? `-${manager.totalPenalties}` : '0'}
-                        </span>
+                        {manager.totalPenalties > 0 && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {manager.rawPoints} - {manager.totalPenalties} = {manager.totalPoints}
+                          </div>
+                        )}
                       </td>
 
                       <td className="p-4 text-center">

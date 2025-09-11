@@ -17,25 +17,52 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
   const sortedManagers = useMemo(() => {
     if (!currentGameweekData?.managers) return [];
     return [...currentGameweekData.managers]
-      .sort((a, b) => {
-        const aNet = (a.gameweekPoints || a.points || 0) - (a.transfersCost || 0);
-        const bNet = (b.gameweekPoints || b.points || 0) - (b.transfersCost || 0);
-        return bNet - aNet;
-      });
-  }, [currentGameweekData]);
+      .map(manager => {
+        const rawPoints = manager.gameweekPoints || manager.points || 0;
+        
+        // Check ALL possible transfer cost field names
+        const transfersCost = manager.transfersCost || 
+                             manager.event_transfers_cost || 
+                             manager.transferCost || 
+                             manager.transfers_cost ||
+                             manager.penalty ||
+                             manager.hit ||
+                             0;
+
+        const netPoints = rawPoints - transfersCost;
+
+        // Enhanced debugging for transfer costs
+        if (transfersCost > 0) {
+          console.log(`💰 Gameweek ${selectedGameweek} ${manager.managerName || manager.manager_name}: ${rawPoints} pts - ${transfersCost} cost = ${netPoints}`);
+        }
+
+        return {
+          ...manager,
+          rawPoints: rawPoints,
+          transfersCost: transfersCost,
+          netPoints: netPoints,
+          gameweekPoints: rawPoints, // Keep original for display
+          finalScore: netPoints // What we sort by
+        };
+      })
+      .sort((a, b) => b.finalScore - a.finalScore);
+  }, [currentGameweekData, selectedGameweek]);
 
   const gameweekStats = useMemo(() => {
     if (!sortedManagers.length) return {};
     
-    const netPoints = sortedManagers.map(m => 
-      (m.gameweekPoints || m.points || 0) - (m.transfersCost || 0)
-    );
+    const netPoints = sortedManagers.map(m => m.finalScore);
+    const rawPoints = sortedManagers.map(m => m.rawPoints);
+    const totalPenalties = sortedManagers.reduce((sum, m) => sum + m.transfersCost, 0);
     
     return {
       highest: Math.max(...netPoints),
       lowest: Math.min(...netPoints),
       average: Math.round(netPoints.reduce((sum, p) => sum + p, 0) / netPoints.length),
-      totalManagers: sortedManagers.length
+      totalManagers: sortedManagers.length,
+      highestRaw: Math.max(...rawPoints),
+      totalPenalties: totalPenalties,
+      managersWithPenalties: sortedManagers.filter(m => m.transfersCost > 0).length
     };
   }, [sortedManagers]);
 
@@ -126,15 +153,19 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="font-bold text-xl text-green-600">{gameweekStats.highest}</div>
-              <div className="text-xs text-gray-500">Highest Score</div>
+              <div className="text-xs text-gray-500">Highest Net</div>
+              {gameweekStats.highestRaw !== gameweekStats.highest && (
+                <div className="text-xs text-gray-400">({gameweekStats.highestRaw} raw)</div>
+              )}
             </div>
             <div className="text-center">
               <div className="font-bold text-xl text-blue-600">{gameweekStats.average}</div>
-              <div className="text-xs text-gray-500">Average Score</div>
+              <div className="text-xs text-gray-500">Average Net</div>
             </div>
             <div className="text-center">
-              <div className="font-bold text-xl text-red-600">{gameweekStats.lowest}</div>
-              <div className="text-xs text-gray-500">Lowest Score</div>
+              <div className="font-bold text-xl text-red-600">-{gameweekStats.totalPenalties}</div>
+              <div className="text-xs text-gray-500">Total Penalties</div>
+              <div className="text-xs text-gray-400">{gameweekStats.managersWithPenalties} managers</div>
             </div>
             <div className="text-center">
               <div className="font-bold text-xl text-purple-600">{gameweekStats.totalManagers}</div>
@@ -153,8 +184,8 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
                 <tr>
                   <th className="text-left p-4 font-semibold text-gray-700">Rank</th>
                   <th className="text-left p-4 font-semibold text-gray-700">Manager</th>
-                  <th className="text-center p-4 font-semibold text-gray-700">GW Points</th>
-                  <th className="text-center p-4 font-semibold text-gray-700 hidden sm:table-cell">Penalties</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Raw Points</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Penalties</th>
                   <th className="text-center p-4 font-semibold text-gray-700">Net Score</th>
                   <th className="text-center p-4 font-semibold text-gray-700 hidden md:table-cell">Prize</th>
                 </tr>
@@ -162,9 +193,6 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
               <tbody>
                 {sortedManagers.map((manager, index) => {
                   const rank = index + 1;
-                  const gwPoints = manager.gameweekPoints || manager.points || 0;
-                  const penalties = manager.transfersCost || 0;
-                  const netScore = gwPoints - penalties;
                   const prize = rank === 1 ? 30 : 0;
                   const isWinner = rank === 1;
 
@@ -192,12 +220,12 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
                       </td>
 
                       <td className="p-4 text-center">
-                        <span className="font-bold text-lg text-blue-600">{gwPoints}</span>
+                        <span className="font-bold text-lg text-blue-600">{manager.rawPoints}</span>
                       </td>
 
-                      <td className="p-4 text-center hidden sm:table-cell">
-                        <span className={`font-semibold ${penalties > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                          {penalties > 0 ? `-${penalties}` : '0'}
+                      <td className="p-4 text-center">
+                        <span className={`font-semibold ${manager.transfersCost > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                          {manager.transfersCost > 0 ? `-${manager.transfersCost}` : '0'}
                         </span>
                       </td>
 
@@ -207,8 +235,13 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
                           ${isWinner ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}
                         `}>
                           <Zap size={12} />
-                          {netScore}
+                          {manager.finalScore}
                         </div>
+                        {manager.transfersCost > 0 && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {manager.rawPoints} - {manager.transfersCost} = {manager.finalScore}
+                          </div>
+                        )}
                       </td>
 
                       <td className="p-4 text-center hidden md:table-cell">
@@ -239,7 +272,7 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             <span>
-              Live gameweek data • Winner gets ৳30 • 
+              Live gameweek data • Winner gets ৳30 • Transfer penalties deducted • 
               Last updated: {new Date().toLocaleString('en-US', { 
                 timeZone: 'Asia/Dhaka',
                 dateStyle: 'medium',
