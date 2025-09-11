@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="240" fill="#8b5cf6" stroke="#6d28d9" stroke-width="8"/>
+  
+  <!-- Inner Circle -->
+  <circle cx="256" cy="256" r="180" fill="#a855f7" opacity="0.8"/>
+  
+  <!-- BRO Text -->
+  <text x="256" y="200" font-family="Arial, sans-serif" font-size="80" font-weight="bold" 
+        text-anchor="middle" fill="white">BRO</text>
+  
+  <!-- League Text -->
+  <text x="256" y="250" font-family="Arial, sans-serif" font-size="24" font-weight="normal" 
+        text-anchor="middle" fill="white" opacity="0.9">LEAGUE</text>
+  
+  <!-- 4.0 Text -->
+  <text x="256" y="320" font-family="Arial, sans-serif" font-size="48" font-weight="bold" 
+        text-anchor="middle" fill="#fbbf24">4.0</text>
+  
+  <!-- Football/Soccer Ball Icon -->
+  <g transform="translate(256, 380)">
+    <circle r="30" fill="white"/>
+    <path d="M-15,-25 L15,-25 L25,0 L10,20 L-10,20 L-25,0 Z" fill="#1f2937"/>
+    <path d="M-8,-15 L8,-15 L15,5 L5,15 L-5,15 L-15,5 Z" fill="white"/>
+  </g>
+</svg>
