@@ -128,28 +128,25 @@ function App() {
       case 'monthly':
         return (
           <MonthlyPrizes
-            standings={standings}
-            gameweekInfo={gameweekInfo}
             gameweekTable={gameweekTable}
+            gameweekInfo={gameweekInfo}
             loading={loading}
           />
         );
       case 'weekly':
         return (
           <WeeklyPrizes
-            standings={standings}
-            gameweekInfo={gameweekInfo}
             gameweekTable={gameweekTable}
+            gameweekInfo={gameweekInfo}
             loading={loading}
           />
         );
       case 'prizes':
         return (
           <PrizeDistribution
-            standings={standings}
             gameweekInfo={gameweekInfo}
+            standings={standings}
             gameweekTable={gameweekTable}
-            loading={loading}
           />
         );
       default:
@@ -193,7 +190,9 @@ function App() {
               onRetry={() => loadData(true)} 
             />
           )}
-          {renderTabContent()}
+          <div className="animate-fade-in-up">
+            {renderTabContent()}
+          </div>
         </div>
       </div>
 
