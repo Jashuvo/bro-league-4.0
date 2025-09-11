@@ -1,21 +1,10 @@
-/* src/App.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Modern CSS Variables */
-:root {
-  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  --shadow-soft: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-medium: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-large: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
-
-/* Global Styles */
 * {
   scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -23,9 +12,10 @@ body {
   line-height: 1.6;
   color: #374151;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  overscroll-behavior: none;
 }
 
-/* Custom Animations */
+/* Essential animations */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -59,6 +49,17 @@ body {
   }
 }
 
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @keyframes pulse {
   0%, 100% {
     transform: scale(1);
@@ -77,7 +78,42 @@ body {
   }
 }
 
-/* Animation Classes */
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40%, 43% {
+    transform: translateY(-15px);
+  }
+  70% {
+    transform: translateY(-7px);
+  }
+  90% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Animation classes */
 .animate-fade-in-up {
   animation: fadeInUp 0.6s ease-out forwards;
 }
@@ -90,6 +126,14 @@ body {
   animation: slideInLeft 0.6s ease-out forwards;
 }
 
+.animate-slide-in-right {
+  animation: slideInRight 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out forwards;
+}
+
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
@@ -98,198 +142,103 @@ body {
   animation: pulse 2s ease-in-out infinite;
 }
 
-/* Modern Button Styles */
+.animate-bounce {
+  animation: bounce 1s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Glassmorphism effect */
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Button effects */
 .btn-modern {
-  @apply px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform;
-  box-shadow: var(--shadow-soft);
+  transition: all 0.2s ease;
 }
 
 .btn-modern:hover {
-  @apply -translate-y-1;
-  box-shadow: var(--shadow-medium);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
 }
 
 .btn-modern:active {
-  @apply translate-y-0;
-  box-shadow: var(--shadow-soft);
+  transform: scale(0.98);
 }
 
-.btn-primary-modern {
-  @apply btn-modern text-white;
-  background: var(--gradient-primary);
-}
-
-.btn-secondary-modern {
-  @apply btn-modern text-white;
-  background: var(--gradient-secondary);
-}
-
-/* Modern Card Styles */
-.card-modern {
-  @apply bg-white rounded-2xl border border-gray-200 overflow-hidden;
-  box-shadow: var(--shadow-soft);
+/* Card hover effects */
+.card-hover {
   transition: all 0.3s ease;
 }
 
-.card-modern:hover {
-  box-shadow: var(--shadow-medium);
+.card-hover:hover {
   transform: translateY(-2px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-.card-glass {
-  @apply bg-white/80 backdrop-blur-md border border-white/20 rounded-2xl;
-  box-shadow: var(--shadow-soft);
-}
-
-/* Modern Table Styles */
-.table-modern {
-  @apply w-full bg-white rounded-xl overflow-hidden;
-  box-shadow: var(--shadow-soft);
-}
-
-.table-modern thead th {
-  @apply bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200;
-}
-
-.table-modern tbody td {
-  @apply px-6 py-4 whitespace-nowrap border-b border-gray-100;
-}
-
-.table-modern tbody tr:hover {
-  @apply bg-gradient-to-r from-blue-50 to-purple-50;
-}
-
-/* Modern Badge Styles */
-.badge-modern {
-  @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
-}
-
-.badge-success-modern {
-  @apply badge-modern bg-green-100 text-green-800;
-}
-
-.badge-warning-modern {
-  @apply badge-modern bg-yellow-100 text-yellow-800;
-}
-
-.badge-error-modern {
-  @apply badge-modern bg-red-100 text-red-800;
-}
-
-.badge-info-modern {
-  @apply badge-modern bg-blue-100 text-blue-800;
-}
-
-/* Modern Gradient Backgrounds */
-.bg-gradient-primary {
-  background: var(--gradient-primary);
-}
-
-.bg-gradient-secondary {
-  background: var(--gradient-secondary);
-}
-
-.bg-gradient-success {
-  background: var(--gradient-success);
-}
-
-/* Modern Tab Styles */
-.tab-modern {
-  @apply px-6 py-3 rounded-lg font-medium transition-all duration-200 cursor-pointer;
-}
-
-.tab-modern-active {
-  @apply tab-modern bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md;
-}
-
-.tab-modern-inactive {
-  @apply tab-modern text-gray-600 hover:text-gray-900 hover:bg-gray-100;
-}
-
-/* Modern Input Styles */
-.input-modern {
-  @apply w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200;
-  box-shadow: var(--shadow-soft);
-}
-
-.input-modern:focus {
-  box-shadow: var(--shadow-medium);
-}
-
-/* Mobile Responsiveness */
+/* Mobile optimizations */
 @media (max-width: 768px) {
-  .container {
-    @apply px-4;
+  .mobile-tap-target {
+    min-height: 44px;
+    min-width: 44px;
   }
   
-  .card-modern {
-    @apply mx-2;
-  }
-  
-  .table-modern {
-    @apply text-sm;
-  }
-  
-  .table-modern thead th,
-  .table-modern tbody td {
-    @apply px-3 py-2;
+  .mobile-spacing {
+    padding: 1rem;
+    margin: 0.5rem 0;
   }
 }
 
-/* Loading States */
-.loading-spinner {
-  @apply inline-block w-6 h-6 border-2 border-gray-300 border-t-purple-600 rounded-full animate-spin;
+/* Smooth scrolling */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
-.loading-skeleton {
-  @apply bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse;
-  background-size: 200% 100%;
+/* Hide scrollbar while maintaining functionality */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Modern Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-gray-100 rounded-full;
+/* Focus states for accessibility */
+.focus-visible:focus-visible {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 2px;
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-400 rounded-full;
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-500;
+/* iOS safe area support */
+@supports (-webkit-touch-callout: none) {
+  .ios-safe-area {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  }
 }
 
-/* Modern Focus States */
-.focus-visible:focus {
-  @apply outline-none ring-2 ring-purple-500 ring-offset-2;
-}
-
-/* Modern Transitions */
-.transition-modern {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Modern Glass Effect */
-.glass-effect {
-  backdrop-filter: blur(16px);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Modern Shadows */
-.shadow-modern {
-  box-shadow: var(--shadow-soft);
-}
-
-.shadow-modern-hover:hover {
-  box-shadow: var(--shadow-medium);
-}
-
-.shadow-modern-large {
-  box-shadow: var(--shadow-large);
+/* High DPI optimization */
+@media (min-resolution: 2dppx) {
+  .high-dpi-optimized {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
 }

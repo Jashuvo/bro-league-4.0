@@ -1,354 +1,339 @@
-// src/components/GameweekTable.jsx - Complete Optimized Version
-import { useState, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Trophy, TrendingUp, Users, Zap, Clock } from 'lucide-react'
-import fplApi from '../services/fplApi'
+import React, { useState, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, Calendar, Trophy, TrendingUp, Users, Zap, Clock, Target, Crown, Medal, Award } from 'lucide-react';
 
-const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) => {
-  const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek || 3)
-  const [futureGameweekCache, setFutureGameweekCache] = useState(new Map())
+const GameweekTable = ({ gameweekTable, currentGameweek, bootstrap, loading }) => {
+  const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek || 3);
 
-  // Optimized loading message
-  if (!gameweekTable || gameweekTable.length === 0) {
-    return (
-      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
-        <div className="p-8 text-center">
-          <Calendar className="mx-auto mb-4 text-gray-400" size={48} />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">Loading Optimized Gameweek History...</h3>
-          <p className="text-gray-500">Fetching data for current gameweeks only (optimized for performance).</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Memoized available gameweeks to prevent unnecessary recalculations
   const availableGameweeks = useMemo(() => {
     const weeks = new Set();
-    
-    // Add loaded gameweeks
-    gameweekTable.forEach(gw => weeks.add(gw.gameweek));
-    
-    // Add future gameweeks up to total if user navigates to them
-    const totalGameweeks = bootstrap?.totalGameweeks || 38;
-    if (selectedGameweek > currentGameweek) {
-      for (let i = currentGameweek + 1; i <= Math.min(selectedGameweek + 2, totalGameweeks); i++) {
-        weeks.add(i);
-      }
-    }
-    
+    gameweekTable?.forEach(gw => weeks.add(gw.gameweek));
     return Array.from(weeks).sort((a, b) => b - a);
-  }, [gameweekTable, currentGameweek, selectedGameweek, bootstrap?.totalGameweeks]);
+  }, [gameweekTable]);
 
-  // Get or generate gameweek data (optimized)
-  const getCurrentGameweekData = useMemo(() => {
-    // Try to find in loaded data first
-    let gameweekData = gameweekTable.find(gw => gw.gameweek === selectedGameweek);
+  // Enhanced gameweek status determination using bootstrap data
+  const getGameweekStatus = (gameweekId) => {
+    const gameweekData = bootstrap?.gameweeks?.find(gw => gw.id === gameweekId);
     
-    // If not found and it's a future gameweek, generate on-demand
-    if (!gameweekData && selectedGameweek > currentGameweek) {
-      // Check cache first
-      if (futureGameweekCache.has(selectedGameweek)) {
-        gameweekData = futureGameweekCache.get(selectedGameweek);
-      } else {
-        // Generate future gameweek data (empty state)
-        gameweekData = {
-          gameweek: selectedGameweek,
-          status: 'upcoming',
-          managers: []
-        };
+    if (gameweekData) {
+      // Use actual FPL API status if available
+      if (gameweekData.finished) return 'completed';
+      if (gameweekData.is_current && !gameweekData.finished) return 'current';
+      if (gameweekData.is_next) return 'upcoming';
+      
+      // Check deadline to determine if gameweek should be considered finished
+      if (gameweekData.deadline_time) {
+        const deadline = new Date(gameweekData.deadline_time);
+        const now = new Date();
+        const hoursSinceDeadline = (now - deadline) / (1000 * 60 * 60);
         
-        // Cache it
-        setFutureGameweekCache(prev => new Map(prev).set(selectedGameweek, gameweekData));
+        // If it's been more than 72 hours since deadline, consider it completed
+        if (hoursSinceDeadline > 72) return 'completed';
+        if (hoursSinceDeadline > 0) return 'current'; // In progress
       }
     }
     
-    return gameweekData;
-  }, [selectedGameweek, gameweekTable, currentGameweek, futureGameweekCache]);
+    // Fallback to simple logic if bootstrap data unavailable
+    if (gameweekId < currentGameweek) return 'completed';
+    if (gameweekId === currentGameweek) return 'current';
+    return 'upcoming';
+  };
 
-  const currentGameweekData = getCurrentGameweekData;
+  const currentGameweekData = useMemo(() => {
+    return gameweekTable?.find(gw => gw.gameweek === selectedGameweek);
+  }, [selectedGameweek, gameweekTable]);
 
-  const goToPreviousGameweek = () => {
-    const currentIndex = availableGameweeks.indexOf(selectedGameweek)
+  const sortedManagers = useMemo(() => {
+    if (!currentGameweekData?.managers) return [];
+    return [...currentGameweekData.managers]
+      .map(manager => {
+        const rawPoints = manager.gameweekPoints || manager.points || 0;
+        
+        // Check ALL possible transfer cost field names
+        const transfersCost = manager.transfersCost || 
+                             manager.event_transfers_cost || 
+                             manager.transferCost || 
+                             manager.transfers_cost ||
+                             manager.penalty ||
+                             manager.hit ||
+                             0;
+
+        const netPoints = rawPoints - transfersCost;
+
+        // Enhanced debugging for transfer costs
+        if (transfersCost > 0) {
+          console.log(`💰 Gameweek ${selectedGameweek} ${manager.managerName || manager.manager_name}: ${rawPoints} pts - ${transfersCost} cost = ${netPoints}`);
+        }
+
+        return {
+          ...manager,
+          rawPoints: rawPoints,
+          transfersCost: transfersCost,
+          netPoints: netPoints,
+          gameweekPoints: rawPoints, // Keep original for display
+          finalScore: netPoints // What we sort by
+        };
+      })
+      .sort((a, b) => b.finalScore - a.finalScore);
+  }, [currentGameweekData, selectedGameweek]);
+
+  const gameweekStats = useMemo(() => {
+    if (!sortedManagers.length) return {};
+    
+    const netPoints = sortedManagers.map(m => m.finalScore);
+    const rawPoints = sortedManagers.map(m => m.rawPoints);
+    const totalPenalties = sortedManagers.reduce((sum, m) => sum + m.transfersCost, 0);
+    
+    return {
+      highest: Math.max(...netPoints),
+      lowest: Math.min(...netPoints),
+      average: Math.round(netPoints.reduce((sum, p) => sum + p, 0) / netPoints.length),
+      totalManagers: sortedManagers.length,
+      highestRaw: Math.max(...rawPoints),
+      totalPenalties: totalPenalties,
+      managersWithPenalties: sortedManagers.filter(m => m.transfersCost > 0).length
+    };
+  }, [sortedManagers]);
+
+  const handlePrevious = () => {
+    const currentIndex = availableGameweeks.indexOf(selectedGameweek);
     if (currentIndex < availableGameweeks.length - 1) {
-      setSelectedGameweek(availableGameweeks[currentIndex + 1])
+      setSelectedGameweek(availableGameweeks[currentIndex + 1]);
     }
-  }
+  };
 
-  const goToNextGameweek = () => {
-    const currentIndex = availableGameweeks.indexOf(selectedGameweek)
+  const handleNext = () => {
+    const currentIndex = availableGameweeks.indexOf(selectedGameweek);
     if (currentIndex > 0) {
-      setSelectedGameweek(availableGameweeks[currentIndex - 1])
+      setSelectedGameweek(availableGameweeks[currentIndex - 1]);
     }
-  }
+  };
 
-  const getPointsBadgeClass = (points) => {
-    if (points >= 80) return 'bg-green-100 text-green-800'
-    if (points >= 60) return 'bg-yellow-100 text-yellow-800'
-    if (points >= 40) return 'bg-orange-100 text-orange-800'
-    return 'bg-red-100 text-red-800'
-  }
+  const getRankIcon = (rank) => {
+    if (rank === 1) return <Crown className="text-yellow-500" size={18} />;
+    if (rank === 2) return <Medal className="text-gray-400" size={18} />;
+    if (rank === 3) return <Award className="text-orange-400" size={18} />;
+    return <span className="text-gray-600 font-bold text-sm">{rank}</span>;
+  };
 
-  const getTransferDisplay = (transfers, transferCost) => {
-    if (transfers === 0) {
-      return { text: '0', style: 'text-blue-600', note: '(saved)' }
-    } else if (transfers === 1 && transferCost === 0) {
-      return { text: '1', style: 'text-green-600', note: '(free)' }
-    } else if (transferCost > 0) {
-      return { text: transfers.toString(), style: 'text-red-600', note: `(-${transferCost})` }
-    }
-    return { text: transfers.toString(), style: 'text-gray-600', note: '' }
-  }
+  // Get status for selected gameweek
+  const selectedGameweekStatus = getGameweekStatus(selectedGameweek);
 
-  // Get gameweek info from bootstrap data
-  const gameweekInfo = bootstrap?.gameweeks?.find(gw => gw.id === selectedGameweek)
-  const deadline = gameweekInfo?.deadline_time ? 
-    new Date(gameweekInfo.deadline_time).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }) : null
+  if (loading || !gameweekTable?.length) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="p-8 text-center">
+          <Calendar className="mx-auto mb-4 text-gray-400" size={48} />
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">Loading Gameweek Data...</h3>
+          <p className="text-gray-500">Fetching historical gameweek performance</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
-      {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-white/20 rounded-lg p-3">
-              <Calendar size={24} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold">Gameweek {selectedGameweek}</h2>
-              <div className="flex items-center gap-4 text-purple-100 text-sm mt-1">
-                <span className="flex items-center gap-1">
-                  <Clock size={14} />
-                  {deadline || 'TBD'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Users size={14} />
-                  {currentGameweekData?.managers?.length || 0} managers
-                </span>
-                {selectedGameweek <= currentGameweek && (
-                  <span className="bg-green-400/20 px-2 py-1 rounded-full text-xs font-medium">
-                    {selectedGameweek === currentGameweek ? 'CURRENT' : 'COMPLETED'}
-                  </span>
-                )}
-                {selectedGameweek > currentGameweek && (
-                  <span className="bg-yellow-400/20 px-2 py-1 rounded-full text-xs font-medium">
-                    UPCOMING
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={goToPreviousGameweek}
-              disabled={availableGameweeks.indexOf(selectedGameweek) >= availableGameweeks.length - 1}
-              className="p-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-            >
-              <ChevronLeft size={20} />
-            </button>
-
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <select 
-                value={selectedGameweek}
-                onChange={(e) => setSelectedGameweek(Number(e.target.value))}
-                className="bg-transparent text-white font-medium focus:outline-none cursor-pointer"
-              >
-                {Array.from({length: bootstrap?.totalGameweeks || 38}, (_, i) => i + 1).map(gw => (
-                  <option key={gw} value={gw} className="text-gray-900">
-                    GW {gw} {gw === currentGameweek ? '(Current)' : gw < currentGameweek ? '(Completed)' : '(Upcoming)'}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button 
-              onClick={goToNextGameweek}
-              disabled={availableGameweeks.indexOf(selectedGameweek) <= 0}
-              className="p-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
-            >
-              <ChevronRight size={20} />
-            </button>
+          <h2 className="text-white font-bold text-lg flex items-center gap-2">
+            <Calendar size={20} />
+            Gameweek Analysis
+          </h2>
+          <div className="text-blue-100 text-sm">
+            {availableGameweeks.length} gameweeks available
           </div>
         </div>
+      </div>
 
-        {/* Quick Stats */}
-        {currentGameweekData && currentGameweekData.managers && currentGameweekData.managers.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/20">
+      {/* Gameweek Navigator */}
+      <div className="bg-gray-50 border-b border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={handlePrevious}
+            disabled={availableGameweeks.indexOf(selectedGameweek) >= availableGameweeks.length - 1}
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft size={16} />
+            <span className="hidden sm:inline">Previous</span>
+          </button>
+
+          <div className="text-center">
+            <h3 className="text-2xl font-bold text-gray-900">
+              Gameweek {selectedGameweek}
+            </h3>
+            <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
+              {selectedGameweekStatus === 'completed' && (
+                <>
+                  <Crown size={14} className="text-green-500" />
+                  <span>Completed</span>
+                </>
+              )}
+              {selectedGameweekStatus === 'current' && (
+                <>
+                  <Clock size={14} className="text-blue-500" />
+                  <span>In Progress</span>
+                </>
+              )}
+              {selectedGameweekStatus === 'upcoming' && (
+                <>
+                  <Target size={14} className="text-gray-500" />
+                  <span>Upcoming</span>
+                </>
+              )}
+            </p>
+          </div>
+
+          <button
+            onClick={handleNext}
+            disabled={availableGameweeks.indexOf(selectedGameweek) <= 0}
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <span className="hidden sm:inline">Next</span>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Overview */}
+      {gameweekStats.highest && (
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 border-b border-gray-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold">{Math.max(...currentGameweekData.managers.map(m => m.points))}</div>
-              <div className="text-purple-200 text-sm">Highest Score</div>
+              <div className="font-bold text-xl text-green-600">{gameweekStats.highest}</div>
+              <div className="text-xs text-gray-500">Highest Net</div>
+              {gameweekStats.highestRaw !== gameweekStats.highest && (
+                <div className="text-xs text-gray-400">({gameweekStats.highestRaw} raw)</div>
+              )}
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold">
-                {Math.round(currentGameweekData.managers.reduce((sum, m) => sum + m.points, 0) / currentGameweekData.managers.length)}
-              </div>
-              <div className="text-purple-200 text-sm">Average Score</div>
+              <div className="font-bold text-xl text-blue-600">{gameweekStats.average}</div>
+              <div className="text-xs text-gray-500">Average Net</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold">{Math.min(...currentGameweekData.managers.map(m => m.points))}</div>
-              <div className="text-purple-200 text-sm">Lowest Score</div>
+              <div className="font-bold text-xl text-red-600">-{gameweekStats.totalPenalties}</div>
+              <div className="text-xs text-gray-500">Total Penalties</div>
+              <div className="text-xs text-gray-400">{gameweekStats.managersWithPenalties} managers</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold">{currentGameweekData.managers.length}</div>
-              <div className="text-purple-200 text-sm">Total Managers</div>
+              <div className="font-bold text-xl text-purple-600">{gameweekStats.totalManagers}</div>
+              <div className="text-xs text-gray-500">Total Managers</div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Results Table */}
+      <div className="overflow-hidden">
+        {sortedManagers.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-100 border-b border-gray-200">
+                <tr>
+                  <th className="text-left p-4 font-semibold text-gray-700">Rank</th>
+                  <th className="text-left p-4 font-semibold text-gray-700">Manager</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Raw Points</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Penalties</th>
+                  <th className="text-center p-4 font-semibold text-gray-700">Net Score</th>
+                  <th className="text-center p-4 font-semibold text-gray-700 hidden md:table-cell">Prize</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedManagers.map((manager, index) => {
+                  const rank = index + 1;
+                  const prize = rank === 1 && selectedGameweekStatus === 'completed' ? 30 : 0;
+                  const isWinner = rank === 1;
+
+                  return (
+                    <tr
+                      key={manager.id || manager.entry || index}
+                      className={`
+                        border-b border-gray-100 hover:bg-gray-50 transition-colors
+                        ${isWinner ? 'bg-gradient-to-r from-yellow-50 to-orange-50' : ''}
+                      `}
+                    >
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          {getRankIcon(rank)}
+                        </div>
+                      </td>
+                      
+                      <td className="p-4">
+                        <div className="font-semibold text-gray-900">
+                          {manager.managerName || manager.manager_name || `Manager ${manager.id || manager.entry}`}
+                        </div>
+                        {manager.teamName && (
+                          <div className="text-sm text-gray-500">{manager.teamName}</div>
+                        )}
+                      </td>
+
+                      <td className="p-4 text-center">
+                        <span className="font-bold text-lg text-blue-600">{manager.rawPoints}</span>
+                      </td>
+
+                      <td className="p-4 text-center">
+                        <span className={`font-semibold ${manager.transfersCost > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                          {manager.transfersCost > 0 ? `-${manager.transfersCost}` : '0'}
+                        </span>
+                      </td>
+
+                      <td className="p-4 text-center">
+                        <div className={`
+                          inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-bold
+                          ${isWinner ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}
+                        `}>
+                          <Zap size={12} />
+                          {manager.finalScore}
+                        </div>
+                        {manager.transfersCost > 0 && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {manager.rawPoints} - {manager.transfersCost} = {manager.finalScore}
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="p-4 text-center hidden md:table-cell">
+                        <span className={`font-bold text-lg ${prize > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                          {prize > 0 ? `৳${prize}` : '--'}
+                        </span>
+                        {prize > 0 && (
+                          <div className="text-xs text-green-600 mt-1">✅ Won</div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-600 mb-2">No Data Available</h3>
+            <p className="text-gray-500">
+              Gameweek {selectedGameweek} data not yet available
+            </p>
           </div>
         )}
       </div>
 
-      {/* Table Content */}
-      {currentGameweekData && currentGameweekData.managers && currentGameweekData.managers.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="p-4 text-left font-semibold text-gray-900">
-                  <div className="flex items-center gap-2">
-                    <Trophy size={16} />
-                    Rank
-                  </div>
-                </th>
-                <th className="p-4 text-left font-semibold text-gray-900">Manager</th>
-                <th className="p-4 text-left font-semibold text-gray-900 hidden md:table-cell">Team</th>
-                <th className="p-4 text-center font-semibold text-gray-900">
-                  <div className="flex items-center justify-center gap-2">
-                    <Zap size={16} />
-                    GW Points
-                  </div>
-                </th>
-                <th className="p-4 text-center font-semibold text-gray-900 hidden sm:table-cell">Transfers</th>
-                <th className="p-4 text-center font-semibold text-gray-900 hidden lg:table-cell">Bench</th>
-                <th className="p-4 text-center font-semibold text-gray-900">
-                  <div className="flex items-center justify-center gap-2">
-                    <TrendingUp size={16} />
-                    Total
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentGameweekData.managers.map((manager, index) => {
-                const transferInfo = getTransferDisplay(manager.transfers, manager.transferCost)
-                
-                return (
-                  <tr 
-                    key={manager.id}
-                    className={`
-                      border-b border-gray-100 hover:bg-gray-50/50 transition-colors
-                      ${index === 0 ? 'bg-gradient-to-r from-yellow-50 to-orange-50' : ''}
-                      ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
-                    `}
-                  >
-                    {/* Rank */}
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`
-                          font-bold text-lg
-                          ${index === 0 ? 'text-yellow-600' : index === 1 ? 'text-gray-600' : index === 2 ? 'text-orange-600' : 'text-gray-700'}
-                        `}>
-                          {manager.gameweekRank}
-                        </span>
-                        {index === 0 && <Trophy size={16} className="text-yellow-600" />}
-                      </div>
-                    </td>
-
-                    {/* Manager */}
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                          {manager.managerName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-900">{manager.managerName}</div>
-                          <div className="text-sm text-gray-500 md:hidden">{manager.teamName}</div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Team Name */}
-                    <td className="p-4 hidden md:table-cell">
-                      <span className="text-gray-700">{manager.teamName}</span>
-                    </td>
-
-                    {/* Points */}
-                    <td className="p-4 text-center">
-                      <div className={`
-                        inline-flex items-center gap-1 px-3 py-1 rounded-full font-semibold text-sm
-                        ${getPointsBadgeClass(manager.points)}
-                      `}>
-                        {manager.points >= 80 && <Zap size={12} />}
-                        {manager.points}
-                      </div>
-                    </td>
-
-                    {/* Transfers */}
-                    <td className="p-4 text-center hidden sm:table-cell">
-                      <div className="flex flex-col items-center">
-                        <span className={`font-medium ${transferInfo.style}`}>
-                          {transferInfo.text}
-                        </span>
-                        <span className="text-xs text-gray-500">{transferInfo.note}</span>
-                      </div>
-                    </td>
-
-                    {/* Bench */}
-                    <td className="p-4 text-center hidden lg:table-cell">
-                      <span className={`
-                        ${manager.bench > 10 ? 'text-red-600 font-semibold' : 'text-gray-600'}
-                      `}>
-                        {manager.bench}
-                      </span>
-                    </td>
-
-                    {/* Total Points */}
-                    <td className="p-4 text-center">
-                      <span className="font-bold text-lg text-gray-900">
-                        {manager.totalPoints?.toLocaleString()}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="p-8 text-center">
-          <Calendar className="mx-auto mb-4 text-gray-400" size={48} />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">
-            {selectedGameweek > currentGameweek ? 'Future Gameweek' : 'No Data Available'}
-          </h3>
-          <p className="text-gray-500">
-            {selectedGameweek > currentGameweek 
-              ? `Gameweek ${selectedGameweek} hasn't started yet.`
-              : `No data available for Gameweek ${selectedGameweek}.`
-            }
-          </p>
-        </div>
-      )}
-
-      {/* Optimized Footer */}
+      {/* Footer */}
       <div className="bg-gray-50 border-t border-gray-200 p-4">
         <div className="text-center text-sm text-gray-600">
           <div className="flex items-center justify-center gap-2">
-            <Users size={16} />
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             <span>
-              OPTIMIZED data from FPL API • 
-              {gameweekTable.length} gameweeks loaded (up to GW {currentGameweek}) • 
-              GW {selectedGameweek} {selectedGameweek <= currentGameweek ? 'completed' : 'upcoming'}
-              {selectedGameweek > currentGameweek && ' (generated on-demand)'}
+              Live gameweek data • Winner gets ৳30 • Transfer penalties deducted • Enhanced status detection •
+              Last updated: {new Date().toLocaleString('en-US', { 
+                timeZone: 'Asia/Dhaka',
+                dateStyle: 'medium',
+                timeStyle: 'short'
+              })} (BD)
             </span>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default GameweekTable
+export default GameweekTable;
