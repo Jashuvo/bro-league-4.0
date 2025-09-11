@@ -3,6 +3,12 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import './App.css';
 
+if (import.meta.env.DEV) {
+  console.log('🚀 BRO League 4.0 - Starting application...');
+  console.log('📱 Mobile-optimized PWA with 2025 UI/UX enhancements');
+}
+
+// Simple PWA registration (will be automatically handled by vite-plugin-pwa)
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
@@ -13,11 +19,6 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
         console.log('SW registration failed: ', registrationError);
       });
   });
-}
-
-if (import.meta.env.DEV) {
-  console.log('🚀 BRO League 4.0 - Starting application...');
-  console.log('📱 Mobile-optimized version with 2025 UI/UX enhancements');
 }
 
 const root = document.getElementById('root');

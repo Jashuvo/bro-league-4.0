@@ -2,188 +2,53 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.ico" />
     
-    <!-- Mobile-First Viewport -->
+    <!-- PWA Primary Meta Tags -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="title" content="BRO League 4.0 - Fantasy Premier League" />
+    <meta name="description" content="BRO League 4.0 - Fantasy Premier League competition with live standings, prizes, and stats. Mobile-optimized with 2025 UI/UX." />
     
-    <!-- Mobile Web App Meta Tags -->
+    <!-- PWA App Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="BRO League 4.0" />
+    <meta name="application-name" content="BRO League 4.0" />
     
-    <!-- Theme Colors -->
+    <!-- PWA Theme Colors -->
     <meta name="theme-color" content="#8b5cf6" />
     <meta name="msapplication-navbutton-color" content="#8b5cf6" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="msapplication-TileColor" content="#8b5cf6" />
+    
+    <!-- PWA Icons -->
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="mask-icon" href="./mask-icon.svg" color="#8b5cf6" />
+    
+    <!-- Open Graph / PWA Sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://your-project.vercel.app/" />
+    <meta property="og:title" content="BRO League 4.0 - Fantasy Premier League" />
+    <meta property="og:description" content="Fantasy Premier League competition with live standings, prizes, and stats. Mobile-optimized PWA." />
+    <meta property="og:image" content="./pwa-512x512.png" />
+    
+    <!-- Twitter/X Card -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://your-project.vercel.app/" />
+    <meta property="twitter:title" content="BRO League 4.0 - Fantasy Premier League" />
+    <meta property="twitter:description" content="Fantasy Premier League competition with live standings, prizes, and stats. Mobile-optimized PWA." />
+    <meta property="twitter:image" content="./pwa-512x512.png" />
     
     <!-- Performance & SEO -->
-    <meta name="description" content="BRO League 4.0 - Fantasy Premier League competition with live standings, prizes, and stats. Mobile-optimized with 2025 UI/UX." />
-    <meta name="keywords" content="fantasy premier league, fpl, competition, league, mobile app, 2025" />
-    <meta name="author" content="BRO League Team" />
-    
-    <!-- Preconnect for Performance -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    
-    <!-- Critical CSS Inlined -->
-    <style>
-      body {
-        margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        overflow-x: hidden;
-        /* 🔧 Essential touch improvements */
-        touch-action: manipulation; /* Prevents double-tap zoom, allows scrolling */
-        -webkit-text-size-adjust: 100%; /* Prevents text scaling on iOS */
-        -webkit-tap-highlight-color: transparent; /* Removes tap highlight */
-      }
-      
-      #root {
-        min-height: 100vh;
-        width: 100%;
-      }
-      
-      /* 🔧 Improved touch targets */
-      button, 
-      a, 
-      [role="button"], 
-      .clickable {
-        min-height: 44px; /* Apple's recommended minimum */
-        min-width: 44px;
-        touch-action: manipulation; /* Fast click response */
-        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1); /* Subtle tap feedback */
-        cursor: pointer;
-      }
-      
-      /* 🔧 Better scrolling on mobile */
-      * {
-        -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
-      }
-      
-      .loading-initial {
-        position: fixed;
-        inset: 0;
-        background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-      }
-      
-      .loading-spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid rgba(255, 255, 255, 0.3);
-        border-top: 4px solid white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      
-      /* Hide loading when React loads */
-      .app-loaded .loading-initial {
-        display: none;
-      }
-    </style>
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://jashuvo.github.io/bro-league-4.0/" />
-    <meta property="og:title" content="BRO League 4.0 - Fantasy Premier League" />
-    <meta property="og:description" content="Live FPL league standings, prizes, and competition. Mobile-optimized 2025 experience!" />
-    <meta property="og:image" content="https://jashuvo.github.io/bro-league-4.0/og-image.jpg" />
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="BRO League 4.0 - Fantasy Premier League" />
-    <meta property="twitter:description" content="Live FPL league standings, prizes, and competition. Mobile-optimized 2025 experience!" />
-    <meta property="twitter:image" content="https://jashuvo.github.io/bro-league-4.0/og-image.jpg" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
+    <link rel="preconnect" href="https://fantasy.premierleague.com" />
+    <link rel="dns-prefetch" href="https://fantasy.premierleague.com" />
     
     <title>BRO League 4.0 - Fantasy Premier League</title>
   </head>
   <body>
-    <!-- Initial Loading Screen -->
-    <div class="loading-initial">
-      <div class="loading-spinner"></div>
-    </div>
-    
     <div id="root"></div>
-    
-    <!-- 🔧 FIXED: Much safer mobile touch handling -->
-    <script>
-      window.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-          document.body.classList.add('app-loaded');
-        }, 100);
-      });
-      
-      // Performance monitoring
-      if ('performance' in window) {
-        window.addEventListener('load', () => {
-          setTimeout(() => {
-            const timing = performance.timing;
-            const loadTime = timing.loadEventEnd - timing.navigationStart;
-            console.log(`📊 Page load time: ${loadTime}ms`);
-          }, 0);
-        });
-      }
-      
-      // 🔧 MUCH SAFER: Only prevent zoom on double-tap, don't block other touches
-      let lastTouchEnd = 0;
-      let touchCount = 0;
-      
-      document.addEventListener('touchstart', function(e) {
-        touchCount = e.touches.length;
-      }, { passive: true });
-      
-      document.addEventListener('touchend', function(e) {
-        const now = Date.now();
-        
-        // Only prevent double-tap zoom when it's actually a double-tap
-        if (touchCount === 1 && now - lastTouchEnd <= 300) {
-          // Check if it's the same location (double-tap) vs different touches
-          const target = e.target;
-          if (target && !target.closest('button, a, [role="button"], .clickable, input, textarea, select')) {
-            e.preventDefault(); // Only prevent on non-interactive elements
-          }
-        }
-        
-        lastTouchEnd = now;
-        touchCount = 0;
-      }, { passive: false });
-      
-      // 🔧 SAFER: Only prevent bounce/zoom when user is actually trying to zoom
-      document.addEventListener('touchmove', function(e) {
-        // Only prevent if there are multiple touches (zoom gesture)
-        if (e.touches.length > 1) {
-          e.preventDefault();
-        }
-      }, { passive: false });
-      
-      // 🔧 ADD: Haptic feedback for supported devices
-      function addHapticFeedback() {
-        const clickableElements = document.querySelectorAll('button, a, [role="button"], .clickable');
-        
-        clickableElements.forEach(element => {
-          element.addEventListener('touchstart', function() {
-            // Light haptic feedback on supported devices
-            if (navigator.vibrate) {
-              navigator.vibrate(10);
-            }
-          }, { passive: true });
-        });
-      }
-      
-      // Add haptic feedback after React loads
-      setTimeout(addHapticFeedback, 1000);
-    </script>
-    
-    <script type="module" src="./src/main.jsx"></script>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

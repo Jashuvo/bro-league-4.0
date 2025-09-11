@@ -37,7 +37,8 @@
     "terser": "^5.19.2",
     "vercel": "^32.0.0",
     "vite": "^7.1.5",
-    "vite-bundle-analyzer": "^0.7.0"
+    "vite-bundle-analyzer": "^0.7.0",
+    "vite-plugin-pwa": "^1.0.3"
   },
   "keywords": [
     "fantasy-premier-league",
