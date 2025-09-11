@@ -1,6 +1,10 @@
 // src/App.jsx - Enhanced with Live Match Day Experience (Real Integration)
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import fplApi from './services/fplApi';
+import { 
+  Clock, Users, Trophy, Activity, Target, Flame, 
+  Eye, Bell, RefreshCw, Zap 
+} from 'lucide-react';
 
 // Import YOUR existing components
 import Header from './components/Header';

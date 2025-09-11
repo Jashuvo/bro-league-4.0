@@ -410,7 +410,7 @@ const LeagueTable = ({
 
                     {/* Expanded Row Details */}
                     {isExpanded && viewMode === 'detailed' && (
-                      <tr>
+                      <tr key={`expanded-${manager.id}`}>
                         <td colSpan="7" className="p-0">
                           <div className="bg-gray-50 p-4 border-b border-gray-200">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
