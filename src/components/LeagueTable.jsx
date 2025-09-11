@@ -1,290 +1,227 @@
-// src/components/LeagueTable.jsx - Enhanced but Error-Free Version
-import React, { useState } from 'react';
-import { 
-  Trophy, TrendingUp, Users, Crown, Medal, Award, 
-  Search, ArrowUp, ArrowDown, Heart
-} from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, ExternalLink, ChevronRight } from 'lucide-react';
 
-const LeagueTable = ({ 
-  standings = [], 
-  loading = false, 
-  authStatus = {}, 
-  gameweekInfo = {}, 
-  leagueStats = {}, 
-  gameweekTable = [] 
-}) => {
-  // Simple UI state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [favorites, setFavorites] = useState(new Set());
+const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
+  const [expandedRow, setExpandedRow] = useState(null);
 
-  // Simple loading state
-  if (loading && standings.length === 0) {
+  const calculateTotalPrizesWon = (managerId) => {
+    let totalWon = 0;
+    const currentGW = gameweekInfo.current || 3;
+
+    if (gameweekTable.length === 0) return 0;
+
+    for (let gw = 1; gw <= currentGW; gw++) {
+      const gameweekData = gameweekTable.find(g => g.gameweek === gw);
+      if (!gameweekData?.managers) continue;
+      
+      const sortedManagers = [...gameweekData.managers]
+        .sort((a, b) => (b.gameweekPoints - b.transfersCost || 0) - (a.gameweekPoints - a.transfersCost || 0));
+      
+      const managerRank = sortedManagers.findIndex(m => m.id === managerId) + 1;
+      
+      if (managerRank === 1) totalWon += 30;
+    }
+
+    const monthlyGameweeks = {
+      1: { start: 1, end: 5, prize: 750 },
+      2: { start: 6, end: 9, prize: 750 }
+    };
+
+    Object.values(monthlyGameweeks).forEach(month => {
+      if (currentGW >= month.end) {
+        const monthlyData = gameweekTable
+          .filter(gw => gw.gameweek >= month.start && gw.gameweek <= month.end)
+          .reduce((acc, gw) => {
+            const manager = gw.managers?.find(m => m.id === managerId);
+            if (manager) {
+              acc.totalPoints += (manager.gameweekPoints || 0) - (manager.transfersCost || 0);
+            }
+            return acc;
+          }, { totalPoints: 0 });
+
+        const allMonthlyScores = gameweekTable
+          .filter(gw => gw.gameweek >= month.start && gw.gameweek <= month.end)
+          .reduce((scores, gw) => {
+            gw.managers?.forEach(manager => {
+              if (!scores[manager.id]) scores[manager.id] = 0;
+              scores[manager.id] += (manager.gameweekPoints || 0) - (manager.transfersCost || 0);
+            });
+            return scores;
+          }, {});
+
+        const sortedScores = Object.entries(allMonthlyScores)
+          .sort(([,a], [,b]) => b - a)
+          .map(([id]) => parseInt(id));
+
+        const monthlyRank = sortedScores.indexOf(managerId) + 1;
+        if (monthlyRank === 1) totalWon += month.prize;
+      }
+    });
+
+    return totalWon;
+  };
+
+  const enrichedStandings = useMemo(() => {
+    return standings.map(manager => ({
+      ...manager,
+      totalPrizesWon: calculateTotalPrizesWon(manager.id)
+    }));
+  }, [standings, gameweekTable, gameweekInfo.current]);
+
+  const getRankIcon = (rank, change) => {
+    if (rank === 1) return <Crown className="text-yellow-500" size={18} />;
+    if (rank === 2) return <Medal className="text-gray-400" size={18} />;
+    if (rank === 3) return <Award className="text-orange-400" size={18} />;
+    return <span className="text-gray-600 font-bold text-sm">{rank}</span>;
+  };
+
+  const getRankChangeIcon = (change) => {
+    if (change > 0) return <TrendingUp className="text-green-500" size={14} />;
+    if (change < 0) return <TrendingDown className="text-red-500" size={14} />;
+    return <Minus className="text-gray-400" size={14} />;
+  };
+
+  const handleRowClick = (managerId) => {
+    setExpandedRow(expandedRow === managerId ? null : managerId);
+  };
+
+  if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div className="p-8 text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading league table...</p>
+          <div className="animate-spin w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-500">Loading league table...</p>
         </div>
       </div>
     );
   }
 
-  // Simple data filtering
-  const filteredStandings = standings.filter(manager => 
-    !searchQuery || 
-    (manager.managerName && manager.managerName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (manager.teamName && manager.teamName.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  // Calculate simple stats
-  const totalManagers = standings.length;
-  const averagePoints = totalManagers > 0 
-    ? Math.round(standings.reduce((sum, m) => sum + (m.totalPoints || 0), 0) / totalManagers)
-    : 0;
-  const highestPoints = totalManagers > 0 
-    ? Math.max(...standings.map(m => m.totalPoints || 0))
-    : 0;
-  const averageGW = totalManagers > 0 
-    ? Math.round(standings.reduce((sum, m) => sum + (m.gameweekPoints || 0), 0) / totalManagers)
-    : 0;
-  const highestGW = totalManagers > 0 
-    ? Math.max(...standings.map(m => m.gameweekPoints || 0))
-    : 0;
-
-  const toggleFavorite = (managerId) => {
-    const newFavorites = new Set(favorites);
-    if (newFavorites.has(managerId)) {
-      newFavorites.delete(managerId);
-    } else {
-      newFavorites.add(managerId);
-    }
-    setFavorites(newFavorites);
-  };
-
-  const getRankIcon = (rank) => {
-    if (rank === 1) return <Crown className="text-yellow-500" size={20} />;
-    if (rank === 2) return <Medal className="text-gray-500" size={20} />;
-    if (rank === 3) return <Award className="text-orange-500" size={20} />;
-    return <span className="font-bold text-lg">{rank}</span>;
-  };
-
-  const getRankBadgeColor = (rank) => {
-    if (rank === 1) return 'bg-gradient-to-r from-yellow-400 to-yellow-600';
-    if (rank === 2) return 'bg-gradient-to-r from-gray-400 to-gray-600';
-    if (rank === 3) return 'bg-gradient-to-r from-orange-400 to-orange-600';
-    if (rank <= 5) return 'bg-gradient-to-r from-green-400 to-green-600';
-    if (rank <= 10) return 'bg-gradient-to-r from-blue-400 to-blue-600';
-    return 'bg-gradient-to-r from-gray-500 to-gray-700';
-  };
-
-  const getChangeIndicator = (change) => {
-    if (!change || change === 0) return { icon: null, color: 'text-gray-400', text: '—' };
-    if (change > 0) return { 
-      icon: <ArrowUp size={12} />, 
-      color: 'text-green-600 bg-green-100', 
-      text: `+${change}` 
-    };
-    return { 
-      icon: <ArrowDown size={12} />, 
-      color: 'text-red-600 bg-red-100', 
-      text: `${change}` 
-    };
-  };
-
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-lg">
-              <Trophy size={24} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold">League Standings</h2>
-              <p className="text-blue-100">
-                Gameweek {gameweekInfo.current || 3} • {totalManagers} Managers
-              </p>
-            </div>
-          </div>
-          
-          {authStatus?.authenticated && (
-            <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-full">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium">Live Data</span>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white/10 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold">{averagePoints}</div>
-            <div className="text-sm opacity-80">Avg Total</div>
-          </div>
-          <div className="bg-white/10 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold">{highestPoints}</div>
-            <div className="text-sm opacity-80">Highest Total</div>
-          </div>
-          <div className="bg-white/10 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold">{averageGW}</div>
-            <div className="text-sm opacity-80">Avg GW</div>
-          </div>
-          <div className="bg-white/10 rounded-lg p-3 text-center">
-            <div className="text-xl font-bold">{highestGW}</div>
-            <div className="text-sm opacity-80">Highest GW</div>
+      <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-white font-bold text-lg flex items-center gap-2">
+            <Trophy size={20} />
+            League Table
+          </h2>
+          <div className="text-purple-100 text-sm">
+            {standings.length} managers
           </div>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="p-6 border-b border-gray-200 bg-gray-50">
-        <div className="relative max-w-md">
-          <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search managers or teams..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      </div>
+      <div className="overflow-hidden">
+        {enrichedStandings.map((manager, index) => (
+          <div
+            key={manager.id}
+            className={`
+              border-b border-gray-100 last:border-b-0
+              ${index < 3 ? 'bg-gradient-to-r from-yellow-50 to-orange-50' : 'bg-white'}
+              hover:bg-gray-50 transition-all duration-200
+              cursor-pointer active:scale-[0.99]
+            `}
+            onClick={() => handleRowClick(manager.id)}
+          >
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  {getRankIcon(manager.rank)}
+                  {manager.rankChange !== undefined && (
+                    <div className="flex items-center">
+                      {getRankChangeIcon(manager.rankChange)}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-gray-900 truncate">
+                    {manager.managerName}
+                  </div>
+                  <div className="text-sm text-gray-500 truncate">
+                    {manager.teamName}
+                  </div>
+                </div>
+              </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        {filteredStandings.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trophy className="text-gray-400" size={32} />
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="font-bold text-lg text-purple-600">
+                    {manager.totalPoints}
+                  </div>
+                  <div className="text-xs text-gray-500">pts</div>
+                </div>
+                
+                <div className="text-right hidden sm:block">
+                  <div className="font-semibold text-green-600">
+                    ৳{manager.totalPrizesWon}
+                  </div>
+                  <div className="text-xs text-gray-500">won</div>
+                </div>
+
+                <ChevronRight 
+                  className={`
+                    text-gray-400 transition-transform duration-200
+                    ${expandedRow === manager.id ? 'rotate-90' : ''}
+                  `} 
+                  size={16} 
+                />
+              </div>
             </div>
-            <h3 className="text-lg font-semibold text-gray-600 mb-2">No Managers Found</h3>
-            <p className="text-gray-500">
-              {searchQuery ? 'Try adjusting your search terms.' : 'Standings will appear here once data loads.'}
-            </p>
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left p-4 font-semibold text-gray-900">Position</th>
-                <th className="text-left p-4 font-semibold text-gray-900">Manager</th>
-                <th className="text-center p-4 font-semibold text-gray-900">Total Points</th>
-                <th className="text-center p-4 font-semibold text-gray-900">GW Points</th>
-                <th className="text-center p-4 font-semibold text-gray-900">Movement</th>
-                <th className="text-center p-4 font-semibold text-gray-900">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStandings.map((manager) => {
-                const changeIndicator = getChangeIndicator(manager.rankChange);
-                const isFavorite = favorites.has(manager.id);
 
-                return (
-                  <tr key={manager.id || manager.entry} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                    {/* Position */}
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`
-                          w-10 h-10 rounded-full flex items-center justify-center text-white font-bold
-                          ${getRankBadgeColor(manager.rank)}
-                        `}>
-                          {manager.rank <= 3 ? getRankIcon(manager.rank) : manager.rank}
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Manager */}
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                          {(manager.managerName || 'Unknown').split(' ').map(n => n[0]).join('').slice(0, 2)}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-900 flex items-center gap-2">
-                            {manager.managerName || 'Unknown Manager'}
-                            {isFavorite && <Heart size={14} className="text-red-500 fill-current" />}
-                          </div>
-                          <div className="text-sm text-gray-500">{manager.teamName || 'Unknown Team'}</div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Total Points */}
-                    <td className="p-4 text-center">
-                      <div className="font-bold text-lg text-gray-900">
-                        {(manager.totalPoints || 0).toLocaleString()}
-                      </div>
-                    </td>
-
-                    {/* GW Points */}
-                    <td className="p-4 text-center">
-                      <div className="font-semibold text-blue-600">
-                        {manager.gameweekPoints || 0}
-                      </div>
-                    </td>
-
-                    {/* Movement */}
-                    <td className="p-4 text-center">
-                      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${changeIndicator.color}`}>
-                        {changeIndicator.icon}
-                        {changeIndicator.text}
-                      </div>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={() => toggleFavorite(manager.id)}
-                        className={`p-2 rounded transition-colors ${
-                          isFavorite ? 'text-red-500' : 'text-gray-400 hover:text-red-500'
-                        }`}
-                      >
-                        <Heart size={16} fill={isFavorite ? 'currentColor' : 'none'} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="bg-gray-50 border-t border-gray-200 p-4">
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            {authStatus?.authenticated ? (
-              <>
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>
-                  Live data from FPL API • League ID: {import.meta.env.VITE_FPL_LEAGUE_ID} • 
-                  Last updated: {new Date().toLocaleString('en-US', { 
-                    timeZone: 'Asia/Dhaka',
-                    dateStyle: 'medium',
-                    timeStyle: 'short'
-                  })} (BD Time)
-                </span>
-              </>
-            ) : (
-              <>
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <span>
-                  Demo mode • 
-                  <button 
-                    className="text-blue-600 hover:text-blue-800 font-medium ml-1" 
-                    onClick={() => window.location.reload()}
-                  >
-                    Refresh to connect to FPL API
-                  </button>
-                </span>
-              </>
+            {expandedRow === manager.id && (
+              <div className="bg-gray-50 px-4 pb-4 border-t border-gray-100 animate-fade-in-up">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
+                  <div className="text-center">
+                    <div className="font-bold text-lg text-blue-600">
+                      {manager.gameweekPoints || 0}
+                    </div>
+                    <div className="text-xs text-gray-500">GW Points</div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="font-bold text-lg text-purple-600">
+                      {manager.totalPoints}
+                    </div>
+                    <div className="text-xs text-gray-500">Total Points</div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="font-bold text-lg text-green-600">
+                      ৳{manager.totalPrizesWon}
+                    </div>
+                    <div className="text-xs text-gray-500">Prizes Won</div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <a
+                      href={`https://fantasy.premierleague.com/entry/${manager.entry}/event/${gameweekInfo.current}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink size={12} />
+                      View Team
+                    </a>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
-          
-          <div className="text-xs text-gray-500">
-            Showing {filteredStandings.length} of {standings.length} managers
+        ))}
+      </div>
+
+      <div className="bg-gray-50 border-t border-gray-200 p-4">
+        <div className="text-center text-sm text-gray-600">
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>
+              Live data from FPL API • Last updated: {new Date().toLocaleString('en-US', { 
+                timeZone: 'Asia/Dhaka',
+                dateStyle: 'medium',
+                timeStyle: 'short'
+              })} (BD)
+            </span>
           </div>
         </div>
       </div>
