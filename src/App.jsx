@@ -1,10 +1,6 @@
-// src/App.jsx - Enhanced with Live Match Day Experience (Real Integration)
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+// src/App.jsx - Enhanced but Error-Free Version
+import React, { useState, useEffect, useCallback } from 'react';
 import fplApi from './services/fplApi';
-import { 
-  Clock, Users, Trophy, Activity, Target, Flame, 
-  Eye, Bell, RefreshCw, Zap 
-} from 'lucide-react';
 
 // Import YOUR existing components
 import Header from './components/Header';
@@ -20,50 +16,27 @@ import ErrorMessage from './components/ErrorMessage';
 import PerformanceMonitor from './components/PerformanceMonitor';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// NEW: Live Match Day Component (integrated with your real data)
+// Simple Live Match Day Component (no complex features)
 const LiveMatchDay = ({ bootstrap, standings, gameweekInfo, authStatus }) => {
-  const [liveMatches, setLiveMatches] = useState([]);
-  const [isLive, setIsLive] = useState(true);
-  const [notifications, setNotifications] = useState([]);
-  const [lastUpdate, setLastUpdate] = useState(new Date());
-
-  // Get current gameweek fixtures from bootstrap
-  const currentGWFixtures = useMemo(() => {
-    if (!bootstrap?.gameweeks || !gameweekInfo?.current) return [];
-    
-    const currentGW = bootstrap.gameweeks.find(gw => gw.id === gameweekInfo.current);
-    if (!currentGW) return [];
-
-    // Transform your real FPL data into match format
-    return [
-      {
-        id: 1,
-        gameweek: gameweekInfo.current,
-        status: currentGW.finished ? 'finished' : 'live',
-        deadline: currentGW.deadline_time,
-        averageScore: currentGW.average_entry_score || 0,
-        highestScore: currentGW.highest_score || 0,
-        transfersMade: currentGW.transfers_made || 0
-      }
-    ];
-  }, [bootstrap, gameweekInfo]);
-
-  // Live league activity using your real standings data
-  const liveLeagueActivity = useMemo(() => {
-    if (!standings || standings.length === 0) return [];
-    
-    return standings.slice(0, 5).map(manager => ({
-      id: manager.id,
-      name: manager.managerName,
-      team: manager.teamName,
-      currentPoints: manager.totalPoints,
-      gameweekPoints: manager.gameweekPoints || 0,
-      rank: manager.rank,
-      rankChange: manager.rankChange || 0,
-      status: Math.random() > 0.5 ? 'watching' : 'idle', // Simulated activity
-      lastSeen: 'now'
-    }));
-  }, [standings]);
+  const currentGW = gameweekInfo?.current || 3;
+  const totalManagers = standings?.length || 0;
+  
+  // Calculate simple stats from real data
+  const averagePoints = totalManagers > 0 
+    ? Math.round(standings.reduce((sum, m) => sum + (m.totalPoints || 0), 0) / totalManagers)
+    : 0;
+  
+  const highestPoints = totalManagers > 0 
+    ? Math.max(...standings.map(m => m.totalPoints || 0))
+    : 0;
+  
+  const averageGW = totalManagers > 0 
+    ? Math.round(standings.reduce((sum, m) => sum + (m.gameweekPoints || 0), 0) / totalManagers)
+    : 0;
+  
+  const highestGW = totalManagers > 0 
+    ? Math.max(...standings.map(m => m.gameweekPoints || 0))
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -75,68 +48,57 @@ const LiveMatchDay = ({ bootstrap, standings, gameweekInfo, authStatus }) => {
             <div className="flex items-center gap-2 px-3 py-1 bg-green-100 rounded-full">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium text-green-700">
-                GW {gameweekInfo.current} {authStatus?.authenticated ? 'Live' : 'Demo'}
+                GW {currentGW} {authStatus?.authenticated ? 'Live' : 'Demo'}
               </span>
             </div>
           </div>
           
           <div className="text-sm text-gray-500">
-            Last updated: {lastUpdate.toLocaleTimeString()}
+            Last updated: {new Date().toLocaleTimeString()}
           </div>
         </div>
 
         {/* Current Gameweek Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-blue-50 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{standings.length}</div>
+            <div className="text-2xl font-bold text-blue-600">{totalManagers}</div>
             <div className="text-sm text-blue-600">Active Managers</div>
           </div>
           <div className="bg-green-50 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {currentGWFixtures[0]?.averageScore || '--'}
-            </div>
-            <div className="text-sm text-green-600">Average Score</div>
+            <div className="text-2xl font-bold text-green-600">{averagePoints}</div>
+            <div className="text-sm text-green-600">Average Total</div>
           </div>
           <div className="bg-purple-50 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-purple-600">
-              {currentGWFixtures[0]?.highestScore || '--'}
-            </div>
-            <div className="text-sm text-purple-600">Highest Score</div>
+            <div className="text-2xl font-bold text-purple-600">{highestPoints}</div>
+            <div className="text-sm text-purple-600">Highest Total</div>
           </div>
           <div className="bg-orange-50 rounded-lg p-4 text-center">
-            <div className="text-2xl font-bold text-orange-600">
-              {Math.max(...standings.map(m => m.gameweekPoints || 0)) || '--'}
-            </div>
-            <div className="text-sm text-orange-600">League High</div>
+            <div className="text-2xl font-bold text-orange-600">{highestGW}</div>
+            <div className="text-sm text-orange-600">Best GW Score</div>
           </div>
         </div>
       </div>
 
       {/* Live League Activity */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Live League Activity</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Top 5</h3>
         <div className="space-y-3">
-          {liveLeagueActivity.map(manager => (
-            <div key={manager.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          {standings.slice(0, 5).map((manager, index) => (
+            <div key={manager.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                    {manager.name.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
-                    manager.status === 'watching' ? 'bg-green-500' : 'bg-gray-400'
-                  }`}></div>
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  {manager.rank || (index + 1)}
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900">{manager.name}</div>
-                  <div className="text-sm text-gray-500">{manager.team}</div>
+                  <div className="font-semibold text-gray-900">{manager.managerName || 'Unknown'}</div>
+                  <div className="text-sm text-gray-500">{manager.teamName || 'Unknown Team'}</div>
                 </div>
               </div>
               
               <div className="text-right">
-                <div className="font-bold text-gray-900">{manager.currentPoints}</div>
+                <div className="font-bold text-gray-900">{(manager.totalPoints || 0).toLocaleString()}</div>
                 <div className="text-sm text-gray-500">
-                  GW: {manager.gameweekPoints}
+                  GW: {manager.gameweekPoints || 0}
                 </div>
               </div>
             </div>
@@ -144,32 +106,30 @@ const LiveMatchDay = ({ bootstrap, standings, gameweekInfo, authStatus }) => {
         </div>
       </div>
 
-      {/* Real-time Updates */}
+      {/* Connection Status */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          {authStatus?.authenticated ? 'Live Updates' : 'Sample Live Updates'}
-        </h3>
-        <div className="space-y-2">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Live Updates</h3>
+        <div className="space-y-3">
           <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
             <span className="text-lg">⚽</span>
             <div>
-              <div className="font-medium">Gameweek {gameweekInfo.current} in Progress</div>
+              <div className="font-medium">Gameweek {currentGW} Status</div>
               <div className="text-sm text-gray-600">
                 {authStatus?.authenticated 
-                  ? 'Tracking live scores and fantasy points'
-                  : 'Connect to FPL API for live tracking'
+                  ? 'Connected to live FPL data'
+                  : 'Demo mode - refresh to connect'
                 }
               </div>
             </div>
           </div>
           
-          {!authStatus?.authenticated && (
-            <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-              <span className="text-lg">🔄</span>
+          {authStatus?.authenticated && (
+            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+              <span className="text-lg">✅</span>
               <div>
-                <div className="font-medium">Demo Mode Active</div>
+                <div className="font-medium">Real-time Updates Active</div>
                 <div className="text-sm text-gray-600">
-                  Refresh page to connect to live FPL data
+                  Data refreshes automatically every 2 minutes
                 </div>
               </div>
             </div>
@@ -206,14 +166,14 @@ function App() {
   // ENHANCED: Updated tabs with Live Match Day
   const tabs = [
     { id: 'standings', name: '🏆 Standings', icon: '🏆' },
-    { id: 'live', name: '🔴 Live Match Day', icon: '🔴' }, // NEW TAB
+    { id: 'live', name: '🔴 Live Match Day', icon: '🔴' },
     { id: 'gameweek', name: '📊 Gameweek Table', icon: '📊' },
     { id: 'monthly', name: '📅 Monthly Prizes', icon: '📅' },
     { id: 'weekly', name: '🎯 Weekly Prizes', icon: '🎯' },
     { id: 'prizes', name: '💰 Prize Distribution', icon: '💰' }
   ];
 
-  // Load data with optimizations (keeping your existing logic)
+  // Load data function (simplified)
   const loadData = useCallback(async (forceRefresh = false) => {
     if (!forceRefresh) {
       setLoading(true);
@@ -228,7 +188,7 @@ function App() {
       console.log(`🚀 Loading FPL data${forceRefresh ? ' (force refresh)' : ''}...`);
       
       const result = forceRefresh 
-        ? await fplApi.forceRefresh()
+        ? await fplApi.forceRefresh?.() || await fplApi.initializeWithAuth()
         : await fplApi.initializeWithAuth();
       
       const loadTime = Math.round(performance.now() - startTime);
@@ -243,18 +203,18 @@ function App() {
       
       // Update auth status
       setAuthStatus({
-        authenticated: result.authenticated,
+        authenticated: result.authenticated || false,
         message: result.authenticated 
           ? 'Connected to FPL API via Vercel'
           : result.error || 'Using fallback data'
       });
 
-      // Update data (keeping your existing structure)
+      // Update data safely
       if (result.bootstrap) {
         setGameweekInfo({
           current: result.bootstrap.currentGameweek || 3,
           total: result.bootstrap.totalGameweeks || 38,
-          status: result.bootstrap.gameweeks?.find(gw => gw.is_current)?.data_checked ? 'finalized' : 'active'
+          status: 'active'
         });
         setBootstrap(result.bootstrap);
       }
@@ -282,8 +242,7 @@ function App() {
         managersLoaded: result.standings?.length || 0,
         dataCompleteness: result.performance?.dataCompleteness || 0,
         cacheHit: result.fromCache || false,
-        cacheAge: result.cacheAge ? Math.round(result.cacheAge / 1000) : null,
-        clientMetrics: result.clientMetrics
+        cacheAge: result.cacheAge ? Math.round(result.cacheAge / 1000) : null
       });
 
       setLastUpdated(new Date());
@@ -310,20 +269,16 @@ function App() {
     }
   }, [standings.length]);
 
-  // Auto-refresh during live gameweeks
+  // Auto-refresh simplified
   useEffect(() => {
     let interval;
-    const startAutoRefresh = () => {
+    if (authStatus.authenticated) {
       interval = setInterval(() => {
-        if (!document.hidden && authStatus.authenticated) {
+        if (!document.hidden) {
           console.log('🔄 Auto-refreshing data...');
           loadData();
         }
-      }, 120000); // Every 2 minutes during live gameweeks
-    };
-
-    if (authStatus.authenticated) {
-      startAutoRefresh();
+      }, 120000); // Every 2 minutes
     }
 
     return () => {
@@ -341,23 +296,30 @@ function App() {
     await loadData(true);
   }, [loadData]);
 
-  // Enhanced render content function
+  // Render content function
   const renderContent = () => {
     if (loading && !standings.length) {
       return (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
-          <LoadingSpinner size="large" message="Loading league data..." />
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading league data...</p>
         </div>
       );
     }
 
     if (error && !standings.length) {
       return (
-        <ErrorMessage 
-          message={error} 
-          onRetry={refreshData}
-          details={authStatus.message}
-        />
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={refreshData}
+            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       );
     }
 
@@ -374,7 +336,7 @@ function App() {
           />
         );
 
-      case 'live': // NEW: Live Match Day tab
+      case 'live':
         return (
           <LiveMatchDay
             bootstrap={bootstrap}
@@ -429,16 +391,16 @@ function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        {/* Performance Monitor (enhanced) */}
+        {/* Performance Monitor (only in dev mode) */}
         {import.meta.env.VITE_DEV_MODE === 'true' && performanceInfo && (
           <PerformanceMonitor
             performanceInfo={performanceInfo}
             dataSource={dataSource}
-            cacheStatus={fplApi.getCacheStatus ? fplApi.getCacheStatus() : {}}
+            cacheStatus={{}}
           />
         )}
 
-        {/* Header with refresh capability */}
+        {/* Header */}
         <Header
           onRefresh={refreshData}
           authStatus={authStatus}
@@ -456,9 +418,9 @@ function App() {
           bootstrap={bootstrap}
         />
 
-        {/* Main content with enhanced navigation */}
+        {/* Main content */}
         <main className="container mx-auto px-4 py-8">
-          {/* Enhanced Tab Navigation */}
+          {/* Simple Tab Navigation */}
           <div className="flex justify-center mb-8">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-2 flex gap-2 overflow-x-auto max-w-5xl">
               {tabs.map(tab => (
@@ -471,7 +433,7 @@ function App() {
                     flex items-center gap-2 min-w-fit text-sm md:text-base
                     ${activeTab === tab.id 
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg transform scale-105' 
-                      : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50 hover:scale-102'
+                      : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
                     }
                     ${(loading && !standings.length) ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
@@ -479,7 +441,7 @@ function App() {
                   <span className="text-lg">{tab.icon}</span>
                   <span className="hidden sm:inline">{tab.name.split(' ').slice(1).join(' ')}</span>
                   <span className="sm:hidden">{tab.name.split(' ')[0]}</span>
-                  {/* NEW: Live indicator for live tab */}
+                  {/* Live indicator */}
                   {tab.id === 'live' && authStatus.authenticated && (
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse ml-1"></div>
                   )}
