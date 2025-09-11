@@ -40,7 +40,7 @@ const TabNavigation = ({ tabs, activeTab, onTabChange }) => {
               ref={(el) => tabRefs.current[tab.id] = el}
               onClick={() => handleTabClick(tab.id)}
               className={`
-                relative z-10 flex-1 px-3 py-2 text-sm font-medium rounded-lg
+                relative z-10 flex-1 px-2 md:px-3 py-2 text-sm font-medium rounded-lg
                 transition-all duration-300 ease-out
                 ${activeTab === tab.id 
                   ? 'text-purple-600' 
@@ -51,8 +51,11 @@ const TabNavigation = ({ tabs, activeTab, onTabChange }) => {
             >
               <div className="flex items-center justify-center gap-1.5">
                 <span className="text-base">{tab.icon}</span>
-                <span className="hidden sm:inline">{tab.name}</span>
-                <span className="sm:hidden">{tab.shortName}</span>
+                {/* Desktop: Full name */}
+                <span className="hidden lg:inline">{tab.name}</span>
+                {/* Tablet: Short name */}
+                <span className="hidden sm:inline lg:hidden">{tab.shortName}</span>
+                {/* Mobile: Icon only - no text */}
               </div>
               
               {activeTab === tab.id && (
@@ -60,6 +63,13 @@ const TabNavigation = ({ tabs, activeTab, onTabChange }) => {
               )}
             </button>
           ))}
+        </div>
+        
+        {/* Mobile: Show active tab name below the tabs */}
+        <div className="sm:hidden mt-2 text-center">
+          <span className="text-xs font-medium text-purple-600">
+            {tabs.find(tab => tab.id === activeTab)?.name}
+          </span>
         </div>
       </div>
     </div>

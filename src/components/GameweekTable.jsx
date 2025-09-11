@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, Trophy, TrendingUp, Users, Zap, Clock, Target, Crown, Medal, Award } from 'lucide-react';
 
-const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) => {
+const GameweekTable = ({ gameweekTable, currentGameweek, bootstrap, loading }) => {
   const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek || 3);
 
   const availableGameweeks = useMemo(() => {
@@ -9,6 +9,34 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
     gameweekTable?.forEach(gw => weeks.add(gw.gameweek));
     return Array.from(weeks).sort((a, b) => b - a);
   }, [gameweekTable]);
+
+  // Enhanced gameweek status determination using bootstrap data
+  const getGameweekStatus = (gameweekId) => {
+    const gameweekData = bootstrap?.gameweeks?.find(gw => gw.id === gameweekId);
+    
+    if (gameweekData) {
+      // Use actual FPL API status if available
+      if (gameweekData.finished) return 'completed';
+      if (gameweekData.is_current && !gameweekData.finished) return 'current';
+      if (gameweekData.is_next) return 'upcoming';
+      
+      // Check deadline to determine if gameweek should be considered finished
+      if (gameweekData.deadline_time) {
+        const deadline = new Date(gameweekData.deadline_time);
+        const now = new Date();
+        const hoursSinceDeadline = (now - deadline) / (1000 * 60 * 60);
+        
+        // If it's been more than 72 hours since deadline, consider it completed
+        if (hoursSinceDeadline > 72) return 'completed';
+        if (hoursSinceDeadline > 0) return 'current'; // In progress
+      }
+    }
+    
+    // Fallback to simple logic if bootstrap data unavailable
+    if (gameweekId < currentGameweek) return 'completed';
+    if (gameweekId === currentGameweek) return 'current';
+    return 'upcoming';
+  };
 
   const currentGameweekData = useMemo(() => {
     return gameweekTable?.find(gw => gw.gameweek === selectedGameweek);
@@ -87,6 +115,9 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
     return <span className="text-gray-600 font-bold text-sm">{rank}</span>;
   };
 
+  // Get status for selected gameweek
+  const selectedGameweekStatus = getGameweekStatus(selectedGameweek);
+
   if (loading || !gameweekTable?.length) {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
@@ -130,9 +161,25 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
             <h3 className="text-2xl font-bold text-gray-900">
               Gameweek {selectedGameweek}
             </h3>
-            <p className="text-sm text-gray-500">
-              {selectedGameweek === currentGameweek ? 'Current' : 
-               selectedGameweek < currentGameweek ? 'Completed' : 'Upcoming'}
+            <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
+              {selectedGameweekStatus === 'completed' && (
+                <>
+                  <Crown size={14} className="text-green-500" />
+                  <span>Completed</span>
+                </>
+              )}
+              {selectedGameweekStatus === 'current' && (
+                <>
+                  <Clock size={14} className="text-blue-500" />
+                  <span>In Progress</span>
+                </>
+              )}
+              {selectedGameweekStatus === 'upcoming' && (
+                <>
+                  <Target size={14} className="text-gray-500" />
+                  <span>Upcoming</span>
+                </>
+              )}
             </p>
           </div>
 
@@ -193,7 +240,7 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
               <tbody>
                 {sortedManagers.map((manager, index) => {
                   const rank = index + 1;
-                  const prize = rank === 1 ? 30 : 0;
+                  const prize = rank === 1 && selectedGameweekStatus === 'completed' ? 30 : 0;
                   const isWinner = rank === 1;
 
                   return (
@@ -248,6 +295,9 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
                         <span className={`font-bold text-lg ${prize > 0 ? 'text-green-600' : 'text-gray-400'}`}>
                           {prize > 0 ? `৳${prize}` : '--'}
                         </span>
+                        {prize > 0 && (
+                          <div className="text-xs text-green-600 mt-1">✅ Won</div>
+                        )}
                       </td>
                     </tr>
                   );
@@ -272,7 +322,7 @@ const GameweekTable = ({ gameweekTable, currentGameweek, loading, bootstrap }) =
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             <span>
-              Live gameweek data • Winner gets ৳30 • Transfer penalties deducted • 
+              Live gameweek data • Winner gets ৳30 • Transfer penalties deducted • Enhanced status detection •
               Last updated: {new Date().toLocaleString('en-US', { 
                 timeZone: 'Asia/Dhaka',
                 dateStyle: 'medium',

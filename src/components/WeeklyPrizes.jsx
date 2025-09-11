@@ -1,11 +1,40 @@
 import React, { useState, useMemo } from 'react';
 import { Trophy, Zap, Target, Calendar, Crown, TrendingUp, Clock, Filter, ChevronDown } from 'lucide-react';
 
-const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }) => {
+const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, loading = false }) => {
   const currentGW = gameweekInfo.current || 3;
   const [showCompleted, setShowCompleted] = useState(true);
   const [showUpcoming, setShowUpcoming] = useState(false);
   const [sortOrder, setSortOrder] = useState('desc'); // desc = newest first
+
+  // Enhanced gameweek status determination using bootstrap data
+  const getGameweekStatus = (gameweekId) => {
+    const gameweekData = bootstrap?.gameweeks?.find(gw => gw.id === gameweekId);
+    
+    if (gameweekData) {
+      // Use actual FPL API status if available
+      if (gameweekData.finished) return 'completed';
+      if (gameweekData.is_current && !gameweekData.finished) return 'current';
+      if (gameweekData.is_next) return 'upcoming';
+      
+      // Check deadline to determine if gameweek should be considered finished
+      if (gameweekData.deadline_time) {
+        const deadline = new Date(gameweekData.deadline_time);
+        const now = new Date();
+        const hoursSinceDeadline = (now - deadline) / (1000 * 60 * 60);
+        
+        // If it's been more than 72 hours since deadline, consider it completed
+        // (allows time for all matches to finish and points to be updated)
+        if (hoursSinceDeadline > 72) return 'completed';
+        if (hoursSinceDeadline > 0) return 'current'; // In progress
+      }
+    }
+    
+    // Fallback to simple logic if bootstrap data unavailable
+    if (gameweekId < currentGW) return 'completed';
+    if (gameweekId === currentGW) return 'current';
+    return 'upcoming';
+  };
 
   const weeklyWinners = useMemo(() => {
     if (!gameweekTable.length) return [];
@@ -56,7 +85,10 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
 
         if (!winner) return null;
 
-        console.log(`🏆 GW${gw.gameweek} winner: ${winner.managerName} (ID: ${winner.id}) with ${winner.netPoints} net points`);
+        // Use enhanced status determination
+        const status = getGameweekStatus(gw.gameweek);
+
+        console.log(`🏆 GW${gw.gameweek} winner: ${winner.managerName} (ID: ${winner.id}) with ${winner.netPoints} net points - Status: ${status}`);
 
         return {
           gameweek: gw.gameweek,
@@ -70,8 +102,7 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
             transfersCost: winner.transfersCost,
             totalPoints: winner.totalPoints
           },
-          status: gw.gameweek < currentGW ? 'completed' : 
-                 gw.gameweek === currentGW ? 'current' : 'upcoming',
+          status: status, // Use enhanced status
           prize: 30,
           managersCount: managersWithNetPoints.length,
           avgScore: Math.round(managersWithNetPoints.reduce((sum, m) => sum + m.netPoints, 0) / managersWithNetPoints.length),
@@ -80,7 +111,7 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
       })
       .filter(Boolean)
       .sort((a, b) => sortOrder === 'desc' ? b.gameweek - a.gameweek : a.gameweek - b.gameweek);
-  }, [gameweekTable, currentGW, sortOrder]);
+  }, [gameweekTable, currentGW, bootstrap, sortOrder]);
 
   const filteredWinners = useMemo(() => {
     return weeklyWinners.filter(gw => {
@@ -309,7 +340,7 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
                           ${isCompleted ? 'bg-green-100 text-green-800' :
                             isCurrent ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}
                         `}>
-                          {isCompleted ? 'Complete' : isCurrent ? 'Current' : 'Upcoming'}
+                          {isCompleted ? 'Complete' : isCurrent ? 'In Progress' : 'Upcoming'}
                         </div>
                       </td>
                     </tr>
@@ -335,7 +366,7 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
             <span>
-              Weekly gameweek champions • ৳30 per win • Net points after penalties • 
+              Weekly gameweek champions • ৳30 per win • Net points after penalties • Enhanced status detection •
               Updated: {new Date().toLocaleString('en-US', { 
                 timeZone: 'Asia/Dhaka',
                 dateStyle: 'medium',
