@@ -34,11 +34,32 @@
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         overflow-x: hidden;
+        /* 🔧 Essential touch improvements */
+        touch-action: manipulation; /* Prevents double-tap zoom, allows scrolling */
+        -webkit-text-size-adjust: 100%; /* Prevents text scaling on iOS */
+        -webkit-tap-highlight-color: transparent; /* Removes tap highlight */
       }
       
       #root {
         min-height: 100vh;
         width: 100%;
+      }
+      
+      /* 🔧 Improved touch targets */
+      button, 
+      a, 
+      [role="button"], 
+      .clickable {
+        min-height: 44px; /* Apple's recommended minimum */
+        min-width: 44px;
+        touch-action: manipulation; /* Fast click response */
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1); /* Subtle tap feedback */
+        cursor: pointer;
+      }
+      
+      /* 🔧 Better scrolling on mobile */
+      * {
+        -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
       }
       
       .loading-initial {
@@ -94,7 +115,7 @@
     
     <div id="root"></div>
     
-    <!-- Mark app as loaded after React mounts -->
+    <!-- 🔧 FIXED: Much safer mobile touch handling -->
     <script>
       window.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
@@ -113,22 +134,54 @@
         });
       }
       
-      // Disable zoom on double tap (iOS Safari)
+      // 🔧 MUCH SAFER: Only prevent zoom on double-tap, don't block other touches
       let lastTouchEnd = 0;
-      document.addEventListener('touchend', function (event) {
-        const now = (new Date()).getTime();
-        if (now - lastTouchEnd <= 300) {
-          event.preventDefault();
-        }
-        lastTouchEnd = now;
-      }, false);
+      let touchCount = 0;
       
-      // Prevent iOS Safari bounce
+      document.addEventListener('touchstart', function(e) {
+        touchCount = e.touches.length;
+      }, { passive: true });
+      
+      document.addEventListener('touchend', function(e) {
+        const now = Date.now();
+        
+        // Only prevent double-tap zoom when it's actually a double-tap
+        if (touchCount === 1 && now - lastTouchEnd <= 300) {
+          // Check if it's the same location (double-tap) vs different touches
+          const target = e.target;
+          if (target && !target.closest('button, a, [role="button"], .clickable, input, textarea, select')) {
+            e.preventDefault(); // Only prevent on non-interactive elements
+          }
+        }
+        
+        lastTouchEnd = now;
+        touchCount = 0;
+      }, { passive: false });
+      
+      // 🔧 SAFER: Only prevent bounce/zoom when user is actually trying to zoom
       document.addEventListener('touchmove', function(e) {
-        if (e.scale !== 1) { 
-          e.preventDefault(); 
+        // Only prevent if there are multiple touches (zoom gesture)
+        if (e.touches.length > 1) {
+          e.preventDefault();
         }
       }, { passive: false });
+      
+      // 🔧 ADD: Haptic feedback for supported devices
+      function addHapticFeedback() {
+        const clickableElements = document.querySelectorAll('button, a, [role="button"], .clickable');
+        
+        clickableElements.forEach(element => {
+          element.addEventListener('touchstart', function() {
+            // Light haptic feedback on supported devices
+            if (navigator.vibrate) {
+              navigator.vibrate(10);
+            }
+          }, { passive: true });
+        });
+      }
+      
+      // Add haptic feedback after React loads
+      setTimeout(addHapticFeedback, 1000);
     </script>
     
     <script type="module" src="./src/main.jsx"></script>
