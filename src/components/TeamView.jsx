@@ -1,4 +1,4 @@
-// src/components/TeamView.jsx - COMPLETE FIXED VERSION (List View & Points Fixed)
+// src/components/TeamView.jsx - COMPREHENSIVE FIX
 import { useState, useEffect } from 'react'
 import { X, Zap, AlertCircle, Users, ChevronLeft, ChevronRight, Trophy, TrendingUp, ArrowDown, Info, Shield, Star } from 'lucide-react'
 
@@ -27,6 +27,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
       if (result.success && result.data) {
         setTeamData(result.data)
         console.log('Team data set:', result.data) // Debug log
+        console.log('Starting XI sample:', result.data.startingXI?.slice(0, 3)) // Debug points
       } else {
         throw new Error(result.error || 'Failed to load team data')
       }
@@ -96,19 +97,19 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     if (player?.positionType === 'GKP') {
       groupIndex = gkp.findIndex(p => p?.id === player?.id)
       totalInGroup = gkp.length
-      verticalPosition = '5%'
+      verticalPosition = '8%'
     } else if (player?.positionType === 'DEF') {
       groupIndex = def.findIndex(p => p?.id === player?.id)
       totalInGroup = def.length
-      verticalPosition = '25%'
+      verticalPosition = '28%'
     } else if (player?.positionType === 'MID') {
       groupIndex = mid.findIndex(p => p?.id === player?.id)
       totalInGroup = mid.length
-      verticalPosition = '50%'
+      verticalPosition = '52%'
     } else if (player?.positionType === 'FWD') {
       groupIndex = fwd.findIndex(p => p?.id === player?.id)
       totalInGroup = fwd.length
-      verticalPosition = '75%'
+      verticalPosition = '76%'
     }
 
     // Calculate horizontal position
@@ -126,7 +127,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   const PlayerCard = ({ player, isBench = false }) => {
     if (!player) return null
     
-    const playerPoints = player.points !== undefined ? player.points : 0
+    // FIXED: Ensure points are properly retrieved and displayed
+    const playerPoints = player.points !== undefined && player.points !== null ? player.points : 0
     const chanceOfPlaying = player.chanceOfPlaying || 100
     const isInjured = player.status === 'i' || chanceOfPlaying < 75
     const isDoubtful = chanceOfPlaying >= 75 && chanceOfPlaying < 100
@@ -141,7 +143,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         {(player.isCaptain || player.isViceCaptain) && (
           <div className={`
             absolute -top-2 left-1/2 transform -translate-x-1/2 z-10
-            px-2 py-1 rounded-full text-xs font-bold border-2 border-white
+            px-2 py-1 rounded-full text-xs font-bold border-2 border-white shadow-sm
             ${player.isCaptain 
               ? 'bg-yellow-400 text-black' 
               : 'bg-gray-600 text-white'
@@ -150,64 +152,55 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             {player.isCaptain ? 'C' : 'V'}
           </div>
         )}
-        
-        {/* Player Jersey/Shirt */}
-        <div className="relative mb-1">
-          <div className={`
-            w-12 h-12 mx-auto rounded-full flex items-center justify-center font-bold text-white text-sm
-            border-2 border-white shadow-lg
-            ${getPositionColorClass(player.positionType)}
-            ${isInjured ? 'opacity-60 grayscale' : ''}
-            ${isDoubtful ? 'border-orange-400' : ''}
-          `}>
-            <span className="text-white font-bold">
-              {player.positionType === 'GKP' ? '1' : (player.positionType || '?').slice(0,1)}
-            </span>
-          </div>
-          
-          {/* Status indicator */}
-          {(isInjured || isDoubtful) && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center border border-white">
-              <AlertCircle size={8} className="text-white" />
+
+        {/* Player Circle */}
+        <div className={`
+          w-16 h-16 rounded-full flex flex-col items-center justify-center text-white font-bold text-xs shadow-lg border-4 border-white
+          ${getPositionColorClass(player.positionType)}
+          ${isInjured ? 'opacity-50' : ''}
+        `}>
+          <div className="text-center leading-tight">
+            <div className="truncate w-12">{player.name?.split(' ').pop() || '?'}</div>
+            <div className={`text-xs font-bold ${getPointsColorClass(playerPoints)}`} style={{ color: 'white' }}>
+              {playerPoints}
             </div>
-          )}
-        </div>
-        
-        {/* Player Name */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-lg px-1.5 py-0.5 shadow-sm">
-          <div className="text-xs font-semibold text-gray-900 truncate max-w-14">
-            {player.name || 'Unknown'}
-          </div>
-          
-          {/* Points */}
-          <div className={`text-xs font-bold ${getPointsColorClass(playerPoints)}`}>
-            {playerPoints || 0}
           </div>
         </div>
+
+        {/* Status indicators */}
+        {isInjured && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+            <AlertCircle size={10} className="text-white" />
+          </div>
+        )}
+        {isDoubtful && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+            <Info size={10} className="text-white" />
+          </div>
+        )}
       </div>
     )
   }
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full">
-          <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-            <p className="mt-4 text-gray-600">Loading team data...</p>
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
+        <div className="bg-white rounded-2xl w-full max-w-md max-h-[75vh] overflow-hidden shadow-2xl">
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading team data...</p>
           </div>
         </div>
       </div>
     )
   }
 
-  if (error) {
+  if (error || !teamData) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full">
-          <div className="flex flex-col items-center">
-            <AlertCircle className="text-red-500 mb-4" size={48} />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Team</h3>
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
+        <div className="bg-white rounded-2xl w-full max-w-md max-h-[75vh] overflow-hidden shadow-2xl">
+          <div className="p-8 text-center">
+            <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
             <p className="text-gray-600 text-center mb-4">{error}</p>
             <button
               onClick={onClose}
@@ -223,9 +216,10 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden shadow-2xl">
+      {/* FIXED: Reduced modal size and improved scrolling */}
+      <div className="bg-white rounded-2xl w-full max-w-md max-h-[75vh] overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-4 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-3 text-white relative overflow-hidden">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='20' height='20' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 20 0 L 0 0 0 20' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23grid)' /%3E%3C/svg%3E")`
@@ -233,38 +227,38 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           </div>
           
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Users size={24} className="text-white" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Users size={20} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">{managerName || 'Team View'}</h2>
+                  <h2 className="text-lg font-bold">{managerName || 'Team View'}</h2>
                   <p className="text-purple-200 text-sm">{teamName || ''}</p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-lg transition-colors backdrop-blur-sm"
+                className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm hover:bg-white/30 transition-colors"
               >
-                <X size={24} />
+                <X size={18} className="text-white" />
               </button>
             </div>
 
             {/* Gameweek Navigation */}
-            <div className="flex items-center justify-between bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+            <div className="flex items-center justify-between bg-white/10 rounded-lg p-2 backdrop-blur-sm">
               <button
                 onClick={handlePrevGW}
                 disabled={currentGameweek <= 1}
-                className="p-2 hover:bg-white/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1 hover:bg-white/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={16} />
               </button>
               
               <div className="text-center">
-                <div className="text-lg font-bold">Gameweek {currentGameweek}</div>
+                <div className="text-sm font-bold">Gameweek {currentGameweek}</div>
                 {teamData?.activeChip && (
-                  <div className="text-xs bg-yellow-400 text-gray-900 px-2 py-1 rounded-full inline-block mt-1 font-semibold">
+                  <div className="text-xs bg-yellow-400 text-purple-900 px-2 py-0.5 rounded-full inline-block mt-1 font-semibold">
                     {teamData.activeChip.toUpperCase()}
                   </div>
                 )}
@@ -273,19 +267,19 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               <button
                 onClick={handleNextGW}
                 disabled={currentGameweek >= (gameweekInfo?.total || 38)}
-                className="p-2 hover:bg-white/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-1 hover:bg-white/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronRight size={20} />
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Stats Header */}
-        <div className="bg-gray-50 border-b border-gray-200 p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        {/* Stats Section */}
+        <div className="bg-gray-50 border-b border-gray-200 p-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
             <div>
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-xl font-bold text-blue-600">
                 {teamData?.entryHistory?.points || 0}
               </div>
               <div className="text-xs text-gray-500">GW Points</div>
@@ -317,11 +311,11 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         </div>
 
         {/* View Toggle */}
-        <div className="flex justify-center p-3 bg-gray-50 border-b border-gray-200">
+        <div className="flex justify-center p-2 bg-gray-50 border-b border-gray-200">
           <div className="bg-white rounded-xl p-1 flex gap-1 shadow-sm border">
             <button
               onClick={() => setViewMode('pitch')}
-              className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 viewMode === 'pitch' 
                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' 
                   : 'text-gray-600 hover:bg-gray-100'
@@ -331,7 +325,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 viewMode === 'list' 
                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' 
                   : 'text-gray-600 hover:bg-gray-100'
@@ -343,13 +337,13 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         </div>
 
         {/* Team Display */}
-        <div className="bg-gradient-to-b from-green-50 to-green-100">
+        <div className="bg-gradient-to-b from-green-50 to-green-100 flex-1">
           {viewMode === 'pitch' ? (
-            // Pitch View - No scrolling needed
-            <div className="p-3">
-              <div className="relative h-[350px] max-w-xs mx-auto">
+            // FIXED: Pitch View - Reduced size and improved layout
+            <div className="p-2">
+              <div className="relative h-[280px] max-w-xs mx-auto">
                 {/* Enhanced Pitch Background */}
-                <div className="absolute inset-0 bg-gradient-to-b from-green-400 via-green-500 to-green-600 rounded-3xl shadow-2xl overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-b from-green-400 via-green-500 to-green-600 rounded-2xl shadow-xl overflow-hidden">
                   <div className="absolute inset-0 opacity-20">
                     <div className="absolute inset-0" style={{
                       backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='pitch' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23pitch)' /%3E%3C/svg%3E")`
@@ -358,9 +352,9 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                   
                   {/* Pitch markings */}
                   <div className="absolute inset-x-6 top-1/2 transform -translate-y-1/2 h-0.5 bg-white/40"></div>
-                  <div className="absolute inset-x-12 bottom-[8%] h-24 border-2 border-white/40 rounded-t-2xl"></div>
-                  <div className="absolute inset-x-12 top-[8%] h-24 border-2 border-white/40 rounded-b-2xl"></div>
-                  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/40 rounded-full"></div>
+                  <div className="absolute inset-x-10 bottom-[8%] h-20 border-2 border-white/40 rounded-t-2xl"></div>
+                  <div className="absolute inset-x-10 top-[8%] h-20 border-2 border-white/40 rounded-b-2xl"></div>
+                  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 border-2 border-white/40 rounded-full"></div>
                   <div className="absolute left-1/2 bottom-[8%] transform -translate-x-1/2 w-2 h-2 bg-white/60 rounded-full"></div>
                   <div className="absolute left-1/2 top-[8%] transform -translate-x-1/2 w-2 h-2 bg-white/60 rounded-full"></div>
                 </div>
@@ -377,19 +371,33 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                 ))}
 
                 {/* Formation Display */}
-                <div className="absolute top-4 left-4 bg-black/60 text-white px-3 py-2 rounded-xl backdrop-blur-sm">
-                  <div className="text-sm font-bold">{teamData?.formation || '4-4-2'}</div>
+                <div className="absolute top-3 left-3 bg-black/60 text-white px-2 py-1 rounded-lg backdrop-blur-sm">
+                  <div className="text-xs font-bold">{teamData?.formation || '4-4-2'}</div>
                 </div>
               </div>
+
+              {/* Bench */}
+              {teamData?.bench && teamData.bench.length > 0 && (
+                <div className="mt-3 px-2">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2 text-center">Substitutes</h4>
+                  <div className="flex justify-center gap-2">
+                    {teamData.bench.map((player, index) => (
+                      <div key={player?.id || index} className="scale-75">
+                        <PlayerCard player={player} isBench={true} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
-            // FIXED: List View with proper error handling
-            <div className="p-3 h-[40vh] overflow-y-auto">
-              <div className="space-y-3">
+            // FIXED: List View with proper scrolling and error handling
+            <div className="max-h-[35vh] overflow-y-auto">
+              <div className="p-3 space-y-3">
                 {/* Starting XI */}
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
-                    <Users size={20} className="text-purple-600" />
+                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-base">
+                    <Users size={18} className="text-purple-600" />
                     Starting XI
                   </h3>
                   <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -397,18 +405,19 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                       teamData.startingXI.map((player, index) => {
                         if (!player) return null
                         
-                        const displayPoints = player.points !== undefined ? player.points : 0
+                        // FIXED: Ensure points display correctly
+                        const displayPoints = player.points !== undefined && player.points !== null ? player.points : 0
                         
                         return (
                           <div 
                             key={player.id || index} 
-                            className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${
+                            className={`p-3 flex items-center justify-between hover:bg-gray-50 transition-colors ${
                               index !== teamData.startingXI.length - 1 ? 'border-b border-gray-100' : ''
                             }`}
                           >
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3">
                               <div className={`
-                                w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md
+                                w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-md
                                 ${getPositionColorClass(player.positionType)}
                               `}>
                                 {player.positionType || '?'}
@@ -417,10 +426,10 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                                 <div className="font-semibold text-gray-900 flex items-center gap-2">
                                   {player.name || 'Unknown'}
                                   {player.isCaptain && (
-                                    <span className="bg-yellow-400 text-gray-900 text-xs px-2 py-1 rounded-full font-bold border">C</span>
+                                    <span className="bg-yellow-400 text-gray-900 text-xs px-1.5 py-0.5 rounded-full font-bold border">C</span>
                                   )}
                                   {player.isViceCaptain && (
-                                    <span className="bg-gray-600 text-white text-xs px-2 py-1 rounded-full font-bold">V</span>
+                                    <span className="bg-gray-600 text-white text-xs px-1.5 py-0.5 rounded-full font-bold">V</span>
                                   )}
                                 </div>
                                 <div className="text-sm text-gray-600">{player.teamName || 'Unknown'}</div>
@@ -448,36 +457,40 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                 {/* Bench */}
                 {teamData?.bench && Array.isArray(teamData.bench) && teamData.bench.length > 0 && (
                   <div>
-                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
-                      <Shield size={20} className="text-gray-600" />
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-base">
+                      <Shield size={18} className="text-gray-600" />
                       Substitutes
                     </h3>
                     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
                       {teamData.bench.map((player, index) => {
                         if (!player) return null
                         
+                        const displayPoints = player.points !== undefined && player.points !== null ? player.points : 0
+                        
                         return (
                           <div 
                             key={player.id || index} 
-                            className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${
+                            className={`p-3 flex items-center justify-between hover:bg-gray-50 transition-colors ${
                               index !== teamData.bench.length - 1 ? 'border-b border-gray-100' : ''
                             }`}
                           >
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3">
                               <div className={`
-                                w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-sm
+                                w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-md opacity-70
                                 ${getPositionColorClass(player.positionType)}
                               `}>
                                 {player.positionType || '?'}
                               </div>
                               <div>
-                                <div className="font-medium text-gray-700">{player.name || 'Unknown'}</div>
-                                <div className="text-xs text-gray-500">{player.teamName || 'Unknown'}</div>
+                                <div className="font-semibold text-gray-900">
+                                  {player.name || 'Unknown'}
+                                </div>
+                                <div className="text-sm text-gray-600">{player.teamName || 'Unknown'}</div>
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="font-bold text-gray-600">
-                                {player.points !== undefined ? player.points : 0}
+                              <div className={`font-bold text-lg ${getPointsColorClass(displayPoints)}`}>
+                                {displayPoints}
                               </div>
                               <div className="text-xs text-gray-500">
                                 £{((player.nowCost || 0) / 10).toFixed(1)}m
@@ -492,26 +505,6 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               </div>
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="bg-gray-100 border-t border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-4 text-gray-600">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Team Value: £{((teamData?.entryHistory?.value || 1000) / 10).toFixed(1)}m</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span>In Bank: £{((teamData?.entryHistory?.bank || 0) / 10).toFixed(1)}m</span>
-              </div>
-            </div>
-            
-            <div className="text-gray-500">
-              GW{currentGameweek} • {teamData?.entryHistory?.points || 0} pts
-            </div>
-          </div>
         </div>
       </div>
     </div>
