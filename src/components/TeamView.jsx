@@ -406,6 +406,16 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             // List View
             <div className="p-6">
               <div className="space-y-6">
+                {/* Historical gameweek notice */}
+                {isHistoricalGameweek && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <div className="flex items-center gap-2 text-blue-700 text-sm">
+                      <Info size={16} />
+                      <span>Points data may not be available for completed gameweeks</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Starting XI */}
                 <div>
                   <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-lg">
