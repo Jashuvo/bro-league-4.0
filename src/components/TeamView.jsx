@@ -122,10 +122,23 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
   // FIXED: Enhanced player card component
   const PlayerCard = ({ player, isBench = false }) => {
-    const playerPoints = player.points || 0
+    // Better points detection with multiple fallbacks
+    const playerPoints = player.points || player.eventPoints || player.event_points || player.total_points || 0
     const chanceOfPlaying = player.chanceOfPlaying || 100
     const isInjured = player.status === 'i' || chanceOfPlaying < 75
     const isDoubtful = chanceOfPlaying >= 75 && chanceOfPlaying < 100
+    
+    // Debug logging for first few players
+    if (!isBench && playerPoints === 0) {
+      console.log('Player points debug:', {
+        name: player.name,
+        points: player.points,
+        eventPoints: player.eventPoints,
+        event_points: player.event_points,
+        total_points: player.total_points,
+        playerData: player
+      })
+    }
     
     return (
       <div className={`
