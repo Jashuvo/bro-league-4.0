@@ -1,4 +1,4 @@
-// api/team-picks.js - FIXED VERSION (Points Issue Resolved)
+// api/team-picks.js - COMPLETE FIXED VERSION 
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -34,7 +34,6 @@ export default async function handler(req, res) {
           'User-Agent': 'BRO-League-4.0/1.0',
           'Accept': 'application/json',
         },
-        timeout: 15000
       }
     );
 
@@ -52,7 +51,6 @@ export default async function handler(req, res) {
           'User-Agent': 'BRO-League-4.0/1.0',
           'Accept': 'application/json',
         },
-        timeout: 15000
       }
     );
 
@@ -66,31 +64,37 @@ export default async function handler(req, res) {
     const playersMap = new Map();
     const teamsMap = new Map();
     
-    bootstrapData.elements?.forEach(player => {
-      playersMap.set(player.id, {
-        id: player.id,
-        name: player.web_name,
-        fullName: `${player.first_name} ${player.second_name}`,
-        team: player.team,
-        teamCode: player.team_code,
-        position: player.element_type,
-        photo: player.photo,
-        eventPoints: player.event_points || 0,  // Current gameweek points
-        totalPoints: player.total_points || 0,
-        nowCost: player.now_cost,
-        status: player.status,
-        chanceOfPlaying: player.chance_of_playing_next_round
+    // Process bootstrap elements (players)
+    if (bootstrapData.elements && Array.isArray(bootstrapData.elements)) {
+      bootstrapData.elements.forEach(player => {
+        playersMap.set(player.id, {
+          id: player.id,
+          name: player.web_name,
+          fullName: `${player.first_name} ${player.second_name}`,
+          team: player.team,
+          teamCode: player.team_code,
+          position: player.element_type,
+          photo: player.photo,
+          eventPoints: player.event_points || 0,  // Actual gameweek points
+          totalPoints: player.total_points || 0,
+          nowCost: player.now_cost,
+          status: player.status || 'a',
+          chanceOfPlaying: player.chance_of_playing_next_round || 100
+        });
       });
-    });
+    }
     
-    bootstrapData.teams?.forEach(team => {
-      teamsMap.set(team.id, {
-        id: team.id,
-        name: team.name,
-        shortName: team.short_name,
-        code: team.code
+    // Process bootstrap teams
+    if (bootstrapData.teams && Array.isArray(bootstrapData.teams)) {
+      bootstrapData.teams.forEach(team => {
+        teamsMap.set(team.id, {
+          id: team.id,
+          name: team.name,
+          shortName: team.short_name,
+          code: team.code
+        });
       });
-    });
+    }
     
     // Map position types
     const positionTypes = {
@@ -100,38 +104,45 @@ export default async function handler(req, res) {
       4: 'FWD'
     };
     
-    // Process picks data with player information
-    const enrichedPicks = picksData.picks?.map(pick => {
-      const playerInfo = playersMap.get(pick.element) || {};
-      const teamInfo = teamsMap.get(playerInfo.team) || {};
-      
-      // FIXED: Use eventPoints from bootstrap data instead of pick.points
-      let playerPoints = playerInfo.eventPoints || 0;
-      
-      // Apply captain/vice-captain multiplier
-      if (pick.multiplier > 1) {
-        playerPoints *= pick.multiplier;
-      }
-      
-      return {
-        id: pick.element,
-        position: pick.position,
-        name: playerInfo.name || 'Unknown',
-        fullName: playerInfo.fullName || playerInfo.name || 'Unknown',
-        team: teamInfo.shortName || 'UNK',
-        teamName: teamInfo.name || 'Unknown',
-        positionType: positionTypes[playerInfo.position] || 'UNK',
-        isCaptain: pick.is_captain,
-        isViceCaptain: pick.is_vice_captain,
-        multiplier: pick.multiplier,
-        points: playerPoints,  // FIXED: Now uses actual gameweek points with multiplier
-        eventPoints: playerInfo.eventPoints || 0,  // Raw points without multiplier
-        photo: playerInfo.photo,
-        nowCost: playerInfo.nowCost,
-        status: playerInfo.status,
-        chanceOfPlaying: playerInfo.chanceOfPlaying
-      };
-    }) || [];
+    // Process picks data with enhanced player information
+    const enrichedPicks = [];
+    
+    if (picksData.picks && Array.isArray(picksData.picks)) {
+      picksData.picks.forEach(pick => {
+        const playerInfo = playersMap.get(pick.element) || {};
+        const teamInfo = teamsMap.get(playerInfo.team) || {};
+        
+        // Calculate actual points with multipliers
+        let finalPoints = playerInfo.eventPoints || 0;
+        
+        // Apply captain/vice-captain multiplier
+        if (pick.multiplier && pick.multiplier > 1) {
+          finalPoints *= pick.multiplier;
+        }
+        
+        const enrichedPick = {
+          id: pick.element || 0,
+          position: pick.position || 0,
+          name: playerInfo.name || 'Unknown',
+          fullName: playerInfo.fullName || playerInfo.name || 'Unknown',
+          team: teamInfo.shortName || 'UNK',
+          teamName: teamInfo.name || 'Unknown',
+          positionType: positionTypes[playerInfo.position] || 'UNK',
+          isCaptain: Boolean(pick.is_captain),
+          isViceCaptain: Boolean(pick.is_vice_captain),
+          multiplier: pick.multiplier || 1,
+          points: finalPoints,  // FIXED: Now uses actual eventPoints with multiplier
+          eventPoints: playerInfo.eventPoints || 0,  // Raw points without multiplier
+          totalPoints: playerInfo.totalPoints || 0,
+          photo: playerInfo.photo || '',
+          nowCost: playerInfo.nowCost || 0,
+          status: playerInfo.status || 'a',
+          chanceOfPlaying: playerInfo.chanceOfPlaying || 100
+        };
+        
+        enrichedPicks.push(enrichedPick);
+      });
+    }
     
     // Separate starting XI and bench
     const startingXI = enrichedPicks.slice(0, 11);
@@ -157,13 +168,13 @@ export default async function handler(req, res) {
       activeChip: picksData.active_chip || null,
       automaticSubs: picksData.automatic_subs || [],
       entryHistory: {
-        event: entryHistory.event,
+        event: entryHistory.event || parseInt(eventId),
         points: entryHistory.points || 0,
         totalPoints: entryHistory.total_points || 0,
         rank: entryHistory.rank || 0,
         overallRank: entryHistory.overall_rank || 0,
         bank: entryHistory.bank || 0,
-        value: entryHistory.value || 0,
+        value: entryHistory.value || 1000,
         eventTransfers: entryHistory.event_transfers || 0,
         eventTransfersCost: entryHistory.event_transfers_cost || 0,
         pointsOnBench: entryHistory.points_on_bench || 0
@@ -172,20 +183,26 @@ export default async function handler(req, res) {
       startingXI: startingXI,
       bench: bench,
       formation: formationString,
-      captain: startingXI.find(p => p.isCaptain),
-      viceCaptain: startingXI.find(p => p.isViceCaptain)
+      captain: startingXI.find(p => p.isCaptain) || null,
+      viceCaptain: startingXI.find(p => p.isViceCaptain) || null
     };
 
-    console.log(`✅ Team picks processed successfully for manager ${managerId}, GW${eventId}`);
-    console.log(`📊 Sample player points: ${startingXI.slice(0, 3).map(p => `${p.name}: ${p.points}`).join(', ')}`);
+    // Enhanced logging for debugging
+    console.log(`✅ Team picks processed for manager ${managerId}, GW${eventId}`);
+    console.log(`📊 Points sample: ${startingXI.slice(0, 3).map(p => `${p.name}:${p.points}`).join(', ')}`);
+    console.log(`⚡ Bootstrap players found: ${playersMap.size}, teams: ${teamsMap.size}`);
     
-    // Cache for 2 minutes
+    // Set cache headers
     res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=300');
     
     return res.status(200).json({
       success: true,
       data: responseData,
-      timestamp: new Date().toISOString()
+      metadata: {
+        playersProcessed: enrichedPicks.length,
+        bootstrapPlayers: playersMap.size,
+        timestamp: new Date().toISOString()
+      }
     });
 
   } catch (error) {
@@ -194,7 +211,7 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: 'Failed to fetch team picks data',
-      message: error.message,
+      details: error.message,
       timestamp: new Date().toISOString()
     });
   }
