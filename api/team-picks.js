@@ -1,6 +1,4 @@
-// api/team-picks.js - NEW Serverless Function for FPL Team Picks Data
-// This is a NEW file - does not replace anything existing
-
+// api/team-picks.js - FIXED VERSION (Points Issue Resolved)
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -77,8 +75,8 @@ export default async function handler(req, res) {
         teamCode: player.team_code,
         position: player.element_type,
         photo: player.photo,
-        eventPoints: player.event_points,
-        totalPoints: player.total_points,
+        eventPoints: player.event_points || 0,  // Current gameweek points
+        totalPoints: player.total_points || 0,
         nowCost: player.now_cost,
         status: player.status,
         chanceOfPlaying: player.chance_of_playing_next_round
@@ -107,6 +105,14 @@ export default async function handler(req, res) {
       const playerInfo = playersMap.get(pick.element) || {};
       const teamInfo = teamsMap.get(playerInfo.team) || {};
       
+      // FIXED: Use eventPoints from bootstrap data instead of pick.points
+      let playerPoints = playerInfo.eventPoints || 0;
+      
+      // Apply captain/vice-captain multiplier
+      if (pick.multiplier > 1) {
+        playerPoints *= pick.multiplier;
+      }
+      
       return {
         id: pick.element,
         position: pick.position,
@@ -118,7 +124,8 @@ export default async function handler(req, res) {
         isCaptain: pick.is_captain,
         isViceCaptain: pick.is_vice_captain,
         multiplier: pick.multiplier,
-        points: pick.points || 0,
+        points: playerPoints,  // FIXED: Now uses actual gameweek points with multiplier
+        eventPoints: playerInfo.eventPoints || 0,  // Raw points without multiplier
         photo: playerInfo.photo,
         nowCost: playerInfo.nowCost,
         status: playerInfo.status,
@@ -170,6 +177,7 @@ export default async function handler(req, res) {
     };
 
     console.log(`✅ Team picks processed successfully for manager ${managerId}, GW${eventId}`);
+    console.log(`📊 Sample player points: ${startingXI.slice(0, 3).map(p => `${p.name}: ${p.points}`).join(', ')}`);
     
     // Cache for 2 minutes
     res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=300');
