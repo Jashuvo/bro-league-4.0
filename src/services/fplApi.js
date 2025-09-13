@@ -281,6 +281,37 @@ class FPLApiService {
     });
   }
 
+  async getTeamPicks(managerId, eventId) {
+    const cacheKey = `picks_${managerId}_${eventId}`
+    const cached = this.getCache(cacheKey)
+    if (cached) return cached
+
+    return this.queueRequest(async () => {
+      try {
+        console.log(`⚽ Fetching team picks for manager ${managerId}, GW${eventId}...`)
+        
+        const response = await this.fetchWithRetry(
+          `${this.apiBaseUrl}/team-picks?managerId=${managerId}&eventId=${eventId}`,
+          { timeout: 10000 }
+        )
+
+        const result = await response.json()
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Team picks API error')
+        }
+
+        console.log(`✅ Team picks loaded for manager ${managerId}, GW${eventId}`)
+        this.setCache(cacheKey, result.data, 5) // Cache for 5 minutes
+        return result.data
+
+      } catch (error) {
+        console.error(`❌ Error fetching team picks:`, error)
+        return null
+      }
+    })
+  }
+
   // Main initialization method
   async initializeWithAuth() {
     console.log('🔐 Initializing FPL API...');
