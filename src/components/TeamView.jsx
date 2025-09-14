@@ -1,192 +1,260 @@
-// src/components/TeamView.jsx - FIXED: Compact subs + proper scrolling
-import { useState, useEffect } from 'react'
-import { X, Zap, AlertCircle, Users, Trophy, TrendingUp, ArrowDown, Info, Shield, Star } from 'lucide-react'
+// TeamView.jsx - FIXED VERSION with proper scrolling
+import React, { useState, useEffect } from 'react';
+import { Users, X, AlertCircle, Crown, Star, TrendingUp, ArrowUp } from 'lucide-react';
 
 const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) => {
-  const [teamData, setTeamData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [viewMode, setViewMode] = useState('pitch') // 'pitch' or 'list'
+  const [teamData, setTeamData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [viewMode, setViewMode] = useState('list'); // Default to list view
 
-  // Only use current gameweek - no navigation needed
-  const currentGameweek = gameweekInfo?.current || 4
-
-  // Fetch team data
-  const fetchTeamData = async () => {
-    setLoading(true)
-    setError(null)
-    
-    try {
-      const response = await fetch(`/api/team-picks?managerId=${managerId}&eventId=${currentGameweek}`)
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch team data: ${response.status}`)
-      }
-      
-      const result = await response.json()
-      console.log('API Response:', result) // Debug log
-      
-      if (result.success && result.data) {
-        setTeamData(result.data)
-        console.log('Team data set:', result.data) // Debug log
-        
-        // ENHANCED: Debug individual player points
-        if (result.data.startingXI) {
-          console.log('🔍 Starting XI points debug:', 
-            result.data.startingXI.slice(0, 5).map(p => ({
-              name: p?.name, 
-              points: p?.points, 
-              eventPoints: p?.eventPoints,
-              multiplier: p?.multiplier,
-              isCaptain: p?.isCaptain
-            }))
-          )
-        }
-      } else {
-        throw new Error(result.error || 'Failed to load team data')
-      }
-    } catch (err) {
-      console.error('Error fetching team data:', err)
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Current gameweek
+  const currentGameweek = gameweekInfo?.current || 3;
 
   useEffect(() => {
-    if (managerId) {
-      fetchTeamData()
-    }
-  }, [managerId])
+    const fetchTeamData = async () => {
+      if (!managerId) {
+        setError('No manager ID provided');
+        setLoading(false);
+        return;
+      }
 
-  // Helper function to get points color class
-  const getPointsColorClass = (points) => {
-    if (points === null || points === undefined || points === '-') return 'text-gray-400'
-    const pointValue = Number(points) || 0
-    if (pointValue >= 10) return 'text-green-600'
-    if (pointValue >= 5) return 'text-blue-600'
-    if (pointValue >= 1) return 'text-gray-700'
-    return 'text-red-600'
-  }
+      try {
+        setLoading(true);
+        setError(null);
 
-  // Helper function to get position color class
-  const getPositionColorClass = (positionType) => {
-    switch (positionType) {
-      case 'GKP': return 'bg-gradient-to-br from-green-500 to-green-600'
-      case 'DEF': return 'bg-gradient-to-br from-blue-500 to-blue-600'
-      case 'MID': return 'bg-gradient-to-br from-purple-500 to-purple-600'
-      case 'FWD': return 'bg-gradient-to-br from-red-500 to-red-600'
-      default: return 'bg-gradient-to-br from-gray-500 to-gray-600'
-    }
-  }
+        // Fetch team picks
+        const picksResponse = await fetch(`https://fantasy.premierleague.com/api/entry/${managerId}/event/${currentGameweek}/picks/`);
+        if (!picksResponse.ok) {
+          throw new Error(`Failed to fetch team picks: ${picksResponse.status}`);
+        }
+        const picksData = await picksResponse.json();
 
-  // Enhanced player positioning system - BETTER SPACING
-  const getPlayerPosition = (player, index, startingXI) => {
-    if (!startingXI || !Array.isArray(startingXI)) return { bottom: '10%', left: '50%', transform: 'translateX(-50%)' }
+        // Fetch live gameweek data
+        const liveResponse = await fetch(`https://fantasy.premierleague.com/api/event/${currentGameweek}/live/`);
+        if (!liveResponse.ok) {
+          throw new Error(`Failed to fetch live data: ${liveResponse.status}`);
+        }
+        const liveData = await liveResponse.json();
+
+        // Fetch bootstrap data for player info
+        const bootstrapResponse = await fetch('https://fantasy.premierleague.com/api/bootstrap-static/');
+        if (!bootstrapResponse.ok) {
+          throw new Error(`Failed to fetch bootstrap data: ${bootstrapResponse.status}`);
+        }
+        const bootstrapData = await bootstrapResponse.json();
+
+        // Process team data
+        const processedTeam = processTeamData(picksData, liveData, bootstrapData);
+        setTeamData(processedTeam);
+
+      } catch (err) {
+        console.error('Error fetching team data:', err);
+        setError(err.message || 'Failed to load team data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeamData();
+  }, [managerId, currentGameweek]);
+
+  // Process team data function
+  const processTeamData = (picks, live, bootstrap) => {
+    const players = bootstrap.elements;
+    const teams = bootstrap.teams;
     
-    // Group players by position
-    const gkp = startingXI.filter(p => p?.positionType === 'GKP')
-    const def = startingXI.filter(p => p?.positionType === 'DEF') 
-    const mid = startingXI.filter(p => p?.positionType === 'MID')
-    const fwd = startingXI.filter(p => p?.positionType === 'FWD')
+    const startingXI = [];
+    const bench = [];
+    let captainId = null;
+    let viceCaptainId = null;
 
-    // Find player's position within their group
-    let groupIndex = 0
-    let totalInGroup = 0
-    let verticalPosition = '10%'
+    picks.picks.forEach(pick => {
+      const player = players.find(p => p.id === pick.element);
+      const team = teams.find(t => t.id === player?.team);
+      const liveStats = live.elements[pick.element]?.stats || {};
+      
+      if (!player) return;
 
-    if (player?.positionType === 'GKP') {
-      groupIndex = gkp.findIndex(p => p?.id === player?.id)
-      totalInGroup = gkp.length
-      verticalPosition = '5%'
-    } else if (player?.positionType === 'DEF') {
-      groupIndex = def.findIndex(p => p?.id === player?.id)
-      totalInGroup = def.length
-      verticalPosition = '25%'
-    } else if (player?.positionType === 'MID') {
-      groupIndex = mid.findIndex(p => p?.id === player?.id)
-      totalInGroup = mid.length
-      verticalPosition = '50%'
-    } else if (player?.positionType === 'FWD') {
-      groupIndex = fwd.findIndex(p => p?.id === player?.id)
-      totalInGroup = fwd.length
-      verticalPosition = '75%'
-    }
+      const playerData = {
+        id: player.id,
+        name: player.web_name,
+        fullName: `${player.first_name} ${player.second_name}`,
+        positionType: getPositionAbbr(player.element_type),
+        team: team?.short_name || '',
+        price: player.now_cost / 10,
+        points: liveStats.total_points || 0,
+        eventPoints: liveStats.total_points || 0,
+        multiplier: pick.multiplier,
+        isCaptain: pick.is_captain,
+        isViceCaptain: pick.is_vice_captain,
+        position: pick.position,
+        status: player.status,
+        isInjured: player.status === 'i',
+        isDoubtful: player.status === 'd'
+      };
 
-    // MUCH BETTER horizontal spacing for realistic formation
-    let leftPosition = '50%'
-    if (totalInGroup === 1) {
-      leftPosition = '50%'
-    } else if (totalInGroup === 2) {
-      leftPosition = groupIndex === 0 ? '30%' : '70%'
-    } else if (totalInGroup === 3) {
-      leftPosition = ['20%', '50%', '80%'][groupIndex]
-    } else if (totalInGroup === 4) {
-      leftPosition = ['15%', '35%', '65%', '85%'][groupIndex]
-    } else if (totalInGroup === 5) {
-      leftPosition = ['10%', '27.5%', '50%', '72.5%', '90%'][groupIndex]
-    }
+      if (pick.is_captain) captainId = pick.element;
+      if (pick.is_vice_captain) viceCaptainId = pick.element;
+
+      if (pick.position <= 11) {
+        startingXI.push(playerData);
+      } else {
+        bench.push(playerData);
+      }
+    });
 
     return {
-      bottom: verticalPosition,
-      left: leftPosition,
-      transform: 'translateX(-50%)'
-    }
-  }
+      startingXI: startingXI.sort((a, b) => a.position - b.position),
+      bench: bench.sort((a, b) => a.position - b.position),
+      formation: getFormation(startingXI),
+      activeChip: picks.active_chip || null,
+      captainId,
+      viceCaptainId
+    };
+  };
 
-  // IMPROVED: Player card component with better layout
+  // Helper functions
+  const getPositionAbbr = (elementType) => {
+    const positions = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
+    return positions[elementType] || '?';
+  };
+
+  const getPositionColorClass = (position) => {
+    const colors = {
+      'GK': 'bg-yellow-500',
+      'DEF': 'bg-blue-500', 
+      'MID': 'bg-green-500',
+      'FWD': 'bg-red-500'
+    };
+    return colors[position] || 'bg-gray-500';
+  };
+
+  const getFormation = (startingXI) => {
+    if (!startingXI || startingXI.length === 0) return '4-4-2';
+    
+    const counts = startingXI.reduce((acc, player) => {
+      if (player.positionType !== 'GK') {
+        acc[player.positionType] = (acc[player.positionType] || 0) + 1;
+      }
+      return acc;
+    }, {});
+    
+    return `${counts.DEF || 0}-${counts.MID || 0}-${counts.FWD || 0}`;
+  };
+
+  const getPlayerPosition = (player, index, startingXI) => {
+    const formations = {
+      '3-4-3': {
+        'DEF': [{ left: '20%', bottom: '25%' }, { left: '50%', bottom: '20%' }, { left: '80%', bottom: '25%' }],
+        'MID': [{ left: '15%', bottom: '45%' }, { left: '40%', bottom: '50%' }, { left: '60%', bottom: '50%' }, { left: '85%', bottom: '45%' }],
+        'FWD': [{ left: '25%', bottom: '70%' }, { left: '50%', bottom: '75%' }, { left: '75%', bottom: '70%' }],
+        'GK': [{ left: '50%', bottom: '5%' }]
+      },
+      '3-5-2': {
+        'DEF': [{ left: '20%', bottom: '20%' }, { left: '50%', bottom: '15%' }, { left: '80%', bottom: '20%' }],
+        'MID': [{ left: '10%', bottom: '45%' }, { left: '30%', bottom: '50%' }, { left: '50%', bottom: '55%' }, { left: '70%', bottom: '50%' }, { left: '90%', bottom: '45%' }],
+        'FWD': [{ left: '35%', bottom: '75%' }, { left: '65%', bottom: '75%' }],
+        'GK': [{ left: '50%', bottom: '5%' }]
+      },
+      '4-3-3': {
+        'DEF': [{ left: '15%', bottom: '25%' }, { left: '35%', bottom: '20%' }, { left: '65%', bottom: '20%' }, { left: '85%', bottom: '25%' }],
+        'MID': [{ left: '25%', bottom: '50%' }, { left: '50%', bottom: '55%' }, { left: '75%', bottom: '50%' }],
+        'FWD': [{ left: '20%', bottom: '75%' }, { left: '50%', bottom: '80%' }, { left: '80%', bottom: '75%' }],
+        'GK': [{ left: '50%', bottom: '5%' }]
+      },
+      '4-4-2': {
+        'DEF': [{ left: '15%', bottom: '25%' }, { left: '35%', bottom: '20%' }, { left: '65%', bottom: '20%' }, { left: '85%', bottom: '25%' }],
+        'MID': [{ left: '20%', bottom: '50%' }, { left: '40%', bottom: '55%' }, { left: '60%', bottom: '55%' }, { left: '80%', bottom: '50%' }],
+        'FWD': [{ left: '35%', bottom: '75%' }, { left: '65%', bottom: '75%' }],
+        'GK': [{ left: '50%', bottom: '5%' }]
+      },
+      '4-5-1': {
+        'DEF': [{ left: '15%', bottom: '25%' }, { left: '35%', bottom: '20%' }, { left: '65%', bottom: '20%' }, { left: '85%', bottom: '25%' }],
+        'MID': [{ left: '10%', bottom: '45%' }, { left: '30%', bottom: '50%' }, { left: '50%', bottom: '55%' }, { left: '70%', bottom: '50%' }, { left: '90%', bottom: '45%' }],
+        'FWD': [{ left: '50%', bottom: '75%' }],
+        'GK': [{ left: '50%', bottom: '5%' }]
+      },
+      '5-3-2': {
+        'DEF': [{ left: '10%', bottom: '25%' }, { left: '25%', bottom: '20%' }, { left: '50%', bottom: '15%' }, { left: '75%', bottom: '20%' }, { left: '90%', bottom: '25%' }],
+        'MID': [{ left: '25%', bottom: '50%' }, { left: '50%', bottom: '55%' }, { left: '75%', bottom: '50%' }],
+        'FWD': [{ left: '35%', bottom: '75%' }, { left: '65%', bottom: '75%' }],
+        'GK': [{ left: '50%', bottom: '5%' }]
+      },
+      '5-4-1': {
+        'DEF': [{ left: '10%', bottom: '25%' }, { left: '25%', bottom: '20%' }, { left: '50%', bottom: '15%' }, { left: '75%', bottom: '20%' }, { left: '90%', bottom: '25%' }],
+        'MID': [{ left: '20%', bottom: '50%' }, { left: '40%', bottom: '55%' }, { left: '60%', bottom: '55%' }, { left: '80%', bottom: '50%' }],
+        'FWD': [{ left: '50%', bottom: '75%' }],
+        'GK': [{ left: '50%', bottom: '5%' }]
+      }
+    };
+
+    const formation = teamData?.formation || '4-4-2';
+    const positions = formations[formation] || formations['4-4-2'];
+    const positionArray = positions[player.positionType] || [{ left: '50%', bottom: '50%' }];
+    
+    const positionCounts = { 'GK': 0, 'DEF': 0, 'MID': 0, 'FWD': 0 };
+    startingXI.forEach((p, i) => {
+      if (i < index) positionCounts[p.positionType]++;
+    });
+    
+    const positionIndex = positionCounts[player.positionType];
+    const position = positionArray[positionIndex] || positionArray[0];
+    
+    return {
+      left: position.left,
+      bottom: position.bottom,
+      transform: 'translate(-50%, 50%)'
+    };
+  };
+
+  // Player Card Component
   const PlayerCard = ({ player, isBench = false }) => {
-    if (!player) return null
-    
-    // FIXED: Better points extraction and debugging
-    let playerPoints = 0
+    if (!player) return null;
+
+    const displayName = player.name || 'Unknown';
+    let playerPoints = 0;
+
     if (player.points !== undefined && player.points !== null) {
-      playerPoints = player.points
+      playerPoints = player.points;
     } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
-      playerPoints = player.eventPoints
+      playerPoints = player.eventPoints;
     }
-    
-    // Apply multiplier if captain/vice-captain
+
     if (player.isCaptain && player.multiplier && player.multiplier > 1) {
-      playerPoints = playerPoints * player.multiplier
+      playerPoints = playerPoints * player.multiplier;
     }
-    
-    const chanceOfPlaying = player.chanceOfPlaying || 100
-    const isInjured = player.status === 'i' || chanceOfPlaying < 75
-    const isDoubtful = chanceOfPlaying >= 75 && chanceOfPlaying < 100
-    
-    // Get short name for better display
-    const displayName = player.name ? 
-      (player.name.length > 8 ? player.name.split(' ').pop() : player.name) : '?'
-    
+
+    const isInjured = player.isInjured;
+    const isDoubtful = player.isDoubtful;
+
     return (
-      <div className={`
-        relative flex flex-col items-center
-        ${isBench ? 'scale-90' : ''}
-        ${isInjured ? 'opacity-60' : ''}
-      `}>
-        {/* Player circle */}
+      <div className={`relative ${isBench ? 'w-12 h-14' : 'w-16 h-20'}`}>
+        {/* Captain/Vice-Captain indicators */}
+        {player.isCaptain && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center z-10">
+            <Crown size={8} className="text-white" />
+          </div>
+        )}
+        {player.isViceCaptain && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-gray-400 rounded-full flex items-center justify-center z-10">
+            <Star size={6} className="text-white" />
+          </div>
+        )}
+
+        {/* Main player card */}
         <div className={`
-          w-12 h-12 rounded-full flex flex-col items-center justify-center text-white font-bold text-xs shadow-lg relative overflow-hidden
+          w-full h-full rounded-xl flex flex-col items-center justify-center relative
           ${getPositionColorClass(player.positionType)}
-          ${player.isCaptain ? 'ring-4 ring-yellow-400' : ''}
-          ${player.isViceCaptain ? 'ring-4 ring-gray-400' : ''}
+          ${isBench ? 'opacity-75' : 'shadow-lg'}
         `}>
-          {/* Captain/Vice-Captain badge */}
-          {player.isCaptain && (
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
-              <span className="text-gray-900 font-black text-xs">C</span>
-            </div>
-          )}
-          {player.isViceCaptain && (
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-gray-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-black text-xs">V</span>
-            </div>
-          )}
-          
-          {/* Position */}
-          <div className="text-xs font-bold leading-none mb-0.5">
-            {player.positionType || '?'}
+          {/* Position badge */}
+          <div className={`
+            absolute -top-1 left-1/2 transform -translate-x-1/2 
+            px-1.5 py-0.5 rounded-full text-xs font-bold
+            ${isBench ? 'bg-white/20 text-white' : 'bg-white/90 text-gray-900'}
+          `}>
+            {player.positionType}
           </div>
         </div>
 
@@ -257,10 +325,10 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       {/* Modal Container */}
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[95vh] overflow-hidden shadow-2xl">
+      <div className="bg-white rounded-2xl w-full max-w-md max-h-[95vh] flex flex-col shadow-2xl">
         
-        {/* MUCH SMALLER Header */}
-        <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-2 text-white relative">
+        {/* Header */}
+        <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-2 text-white relative flex-shrink-0">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
@@ -287,7 +355,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         </div>
 
         {/* View Toggle */}
-        <div className="p-2 border-b">
+        <div className="p-2 border-b flex-shrink-0">
           <div className="flex bg-gray-100 rounded-lg overflow-hidden">
             <button
               onClick={() => setViewMode('pitch')}
@@ -308,17 +376,16 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden max-h-[calc(95vh-120px)]">
+        {/* Content - FIXED: Removed overflow-hidden and added proper flex structure */}
+        <div className="flex-1 min-h-0">
           {viewMode === 'pitch' ? (
-            // PITCH VIEW - Big pitch, tiny subs
+            // PITCH VIEW
             <div className="bg-gradient-to-b from-green-400 to-green-600 h-full overflow-y-auto">
               <div className="relative">
-                {/* Football pitch - MUCH BIGGER */}
+                {/* Football pitch */}
                 <div className="relative h-[420px] mx-2 mt-2">
                   {/* Pitch markings */}
                   <div className="absolute inset-0 bg-green-500 rounded-2xl overflow-hidden">
-                    {/* Pitch lines */}
                     <div className="absolute inset-x-8 bottom-[8%] h-24 border-2 border-white/40 rounded-t-2xl"></div>
                     <div className="absolute inset-x-8 top-[8%] h-24 border-2 border-white/40 rounded-b-2xl"></div>
                     <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/40 rounded-full"></div>
@@ -343,17 +410,14 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                   </div>
                 </div>
 
-                {/* SUPER COMPACT Substitutes */}
+                {/* Substitutes */}
                 {teamData?.bench && teamData.bench.length > 0 && (
                   <div className="mx-4 mb-6">
-                    {/* Minimal header */}
                     <div className="text-center mb-2">
                       <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">
                         Substitutes
                       </span>
                     </div>
-                    
-                    {/* Simple row of players */}
                     <div className="flex justify-center gap-2">
                       {teamData.bench.map((player, index) => (
                         <div key={player?.id || index} className="scale-75 text-center">
@@ -366,9 +430,9 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               </div>
             </div>
           ) : (
-            // LIST VIEW - Fixed scrolling with proper height
+            // LIST VIEW - FIXED: Proper scrolling container
             <div className="h-full overflow-y-auto bg-gradient-to-b from-green-50 to-green-100">
-              <div className="p-3 pb-32">
+              <div className="p-3">
                 {/* Starting XI */}
                 <div className="mb-4">
                   <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
@@ -405,43 +469,38 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                               `}>
                                 {player.positionType || '?'}
                               </div>
-                              <div>
-                                <div className="font-semibold text-gray-900 flex items-center gap-1.5 text-sm">
-                                  {player.name || 'Unknown'}
-                                  {player.isCaptain && (
-                                    <span className="bg-yellow-400 text-gray-900 text-xs px-1.5 py-0.5 rounded-full font-bold border">C</span>
-                                  )}
-                                  {player.isViceCaptain && (
-                                    <span className="bg-gray-600 text-white text-xs px-1.5 py-0.5 rounded-full font-bold">V</span>
-                                  )}
+                              <div className="flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-gray-900 text-sm">{player.name}</span>
+                                  {player.isCaptain && <Crown size={12} className="text-yellow-500" />}
+                                  {player.isViceCaptain && <Star size={10} className="text-gray-400" />}
                                 </div>
-                                <div className="text-xs text-gray-600">{player.teamName || 'Unknown'}</div>
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                  <span>{player.team}</span>
+                                  <span>£{player.price}m</span>
+                                  {player.isInjured && <span className="text-red-500 font-semibold">INJ</span>}
+                                  {player.isDoubtful && !player.isInjured && <span className="text-yellow-600 font-semibold">DOUBT</span>}
+                                </div>
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className={`font-bold text-base ${getPointsColorClass(displayPoints)}`}>
-                                {displayPoints}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                £{((player.nowCost || 0) / 10).toFixed(1)}m
-                              </div>
+                              <div className="font-bold text-lg text-gray-900">{displayPoints}</div>
+                              <div className="text-xs text-gray-500">pts</div>
                             </div>
                           </div>
                         )
                       })
                     ) : (
-                      <div className="p-3 text-center text-gray-500 text-sm">
-                        No starting XI data available
-                      </div>
+                      <div className="p-4 text-center text-gray-500">No starting XI data available</div>
                     )}
                   </div>
                 </div>
 
-                {/* Substitutes List */}
-                {teamData?.bench && Array.isArray(teamData.bench) && teamData.bench.length > 0 && (
-                  <div>
+                {/* Bench */}
+                {teamData?.bench && teamData.bench.length > 0 && (
+                  <div className="mb-6">
                     <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
-                      <Shield size={16} className="text-gray-600" />
+                      <ArrowUp size={16} className="text-orange-500" />
                       Substitutes
                     </h3>
                     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -458,31 +517,30 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                         return (
                           <div 
                             key={player.id || index} 
-                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors ${
+                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors opacity-75 ${
                               index !== teamData.bench.length - 1 ? 'border-b border-gray-100' : ''
                             }`}
                           >
                             <div className="flex items-center gap-2.5">
                               <div className={`
-                                w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-xs shadow-md opacity-70
+                                w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-xs shadow-md
                                 ${getPositionColorClass(player.positionType)}
                               `}>
                                 {player.positionType || '?'}
                               </div>
-                              <div>
-                                <div className="font-semibold text-gray-900 text-sm">
-                                  {player.name || 'Unknown'}
+                              <div className="flex-1">
+                                <div className="font-semibold text-gray-900 text-sm">{player.name}</div>
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                  <span>{player.team}</span>
+                                  <span>£{player.price}m</span>
+                                  {player.isInjured && <span className="text-red-500 font-semibold">INJ</span>}
+                                  {player.isDoubtful && !player.isInjured && <span className="text-yellow-600 font-semibold">DOUBT</span>}
                                 </div>
-                                <div className="text-xs text-gray-600">{player.teamName || 'Unknown'}</div>
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className={`font-bold text-base ${getPointsColorClass(displayPoints)}`}>
-                                {displayPoints}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                £{((player.nowCost || 0) / 10).toFixed(1)}m
-                              </div>
+                              <div className="font-bold text-lg text-gray-700">{displayPoints}</div>
+                              <div className="text-xs text-gray-500">pts</div>
                             </div>
                           </div>
                         )
@@ -490,13 +548,16 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                     </div>
                   </div>
                 )}
+                
+                {/* Add extra padding at bottom for safe scrolling */}
+                <div className="h-4"></div>
               </div>
             </div>
           )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default TeamView
+export default TeamView;
