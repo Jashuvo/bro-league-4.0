@@ -493,56 +493,60 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                   </div>
                 </div>
 
-                {/* Bench */}
+                {/* Compact Bench Section */}
                 {teamData?.bench && Array.isArray(teamData.bench) && teamData.bench.length > 0 && (
-                  <div>
+                  <div className="mt-4">
                     <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
                       <Shield size={16} className="text-gray-600" />
                       Substitutes
                     </h3>
                     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                      {teamData.bench.map((player, index) => {
-                        if (!player) return null
-                        
-                        let displayPoints = 0
-                        if (player.points !== undefined && player.points !== null) {
-                          displayPoints = player.points
-                        } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
-                          displayPoints = player.eventPoints
-                        }
-                        
-                        return (
-                          <div 
-                            key={player.id || index} 
-                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors ${
-                              index !== teamData.bench.length - 1 ? 'border-b border-gray-100' : ''
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <div className={`
-                                w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-xs shadow-md opacity-70
-                                ${getPositionColorClass(player.positionType)}
-                              `}>
-                                {player.positionType || '?'}
-                              </div>
-                              <div>
-                                <div className="font-semibold text-gray-900 text-sm">
-                                  {player.name || 'Unknown'}
+                      <div className="grid grid-cols-2 gap-0">
+                        {teamData.bench.map((player, index) => {
+                          if (!player) return null
+                          
+                          let displayPoints = 0
+                          if (player.points !== undefined && player.points !== null) {
+                            displayPoints = player.points
+                          } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
+                            displayPoints = player.eventPoints
+                          }
+                          
+                          return (
+                            <div 
+                              key={player.id || index} 
+                              className={`p-2 flex items-center justify-between hover:bg-gray-50 transition-colors ${
+                                index % 2 === 0 ? 'border-r border-gray-100' : ''
+                              } ${
+                                index < 2 ? 'border-b border-gray-100' : ''
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className={`
+                                  w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-sm opacity-70
+                                  ${getPositionColorClass(player.positionType)}
+                                `}>
+                                  {player.positionType || '?'}
                                 </div>
-                                <div className="text-xs text-gray-600">{player.teamName || 'Unknown'}</div>
+                                <div>
+                                  <div className="font-semibold text-gray-900 text-xs">
+                                    {player.name || 'Unknown'}
+                                  </div>
+                                  <div className="text-xs text-gray-500">{player.teamName || 'Unknown'}</div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className={`font-bold text-sm ${getPointsColorClass(displayPoints)}`}>
+                                  {displayPoints}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  £{((player.nowCost || 0) / 10).toFixed(1)}m
+                                </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className={`font-bold text-base ${getPointsColorClass(displayPoints)}`}>
-                                {displayPoints}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                £{((player.nowCost || 0) / 10).toFixed(1)}m
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                      </div>
                     </div>
                   </div>
                 )}
