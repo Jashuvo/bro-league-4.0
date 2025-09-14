@@ -80,7 +80,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     }
   }
 
-  // Enhanced player positioning system - FIXED SPACING
+  // Enhanced player positioning system - BETTER SPACING
   const getPlayerPosition = (player, index, startingXI) => {
     if (!startingXI || !Array.isArray(startingXI)) return { bottom: '10%', left: '50%', transform: 'translateX(-50%)' }
     
@@ -98,33 +98,33 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     if (player?.positionType === 'GKP') {
       groupIndex = gkp.findIndex(p => p?.id === player?.id)
       totalInGroup = gkp.length
-      verticalPosition = '8%'
+      verticalPosition = '5%'
     } else if (player?.positionType === 'DEF') {
       groupIndex = def.findIndex(p => p?.id === player?.id)
       totalInGroup = def.length
-      verticalPosition = '30%'
+      verticalPosition = '25%'
     } else if (player?.positionType === 'MID') {
       groupIndex = mid.findIndex(p => p?.id === player?.id)
       totalInGroup = mid.length
-      verticalPosition = '55%'
+      verticalPosition = '50%'
     } else if (player?.positionType === 'FWD') {
       groupIndex = fwd.findIndex(p => p?.id === player?.id)
       totalInGroup = fwd.length
-      verticalPosition = '80%'
+      verticalPosition = '75%'
     }
 
-    // IMPROVED: Better horizontal spacing to prevent overlapping
+    // MUCH BETTER horizontal spacing for realistic formation
     let leftPosition = '50%'
     if (totalInGroup === 1) {
       leftPosition = '50%'
     } else if (totalInGroup === 2) {
-      leftPosition = groupIndex === 0 ? '35%' : '65%'
+      leftPosition = groupIndex === 0 ? '30%' : '70%'
     } else if (totalInGroup === 3) {
-      leftPosition = ['25%', '50%', '75%'][groupIndex]
+      leftPosition = ['20%', '50%', '80%'][groupIndex]
     } else if (totalInGroup === 4) {
-      leftPosition = ['20%', '40%', '60%', '80%'][groupIndex]
+      leftPosition = ['15%', '35%', '65%', '85%'][groupIndex]
     } else if (totalInGroup === 5) {
-      leftPosition = ['15%', '30%', '50%', '70%', '85%'][groupIndex]
+      leftPosition = ['10%', '27.5%', '50%', '72.5%', '90%'][groupIndex]
     }
 
     return {
