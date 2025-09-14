@@ -1,4 +1,4 @@
-// src/components/TeamView.jsx - ACTUALLY FIXED: Smaller headers, bigger pitch, proper scrolling
+// src/components/TeamView.jsx - COMPLETE UPDATED VERSION with improved substitutes
 import { useState, useEffect } from 'react'
 import { X, Zap, AlertCircle, Users, Trophy, TrendingUp, ArrowDown, Info, Shield, Star } from 'lucide-react'
 
@@ -161,83 +161,94 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     
     return (
       <div className={`
-        text-center cursor-pointer transition-all hover:scale-105
-        ${isBench ? 'scale-75' : 'scale-100'}
-        ${player.isCaptain || player.isViceCaptain ? 'relative' : ''}
+        relative flex flex-col items-center
+        ${isBench ? 'scale-90' : ''}
+        ${isInjured ? 'opacity-60' : ''}
       `}>
-        {/* Captain/Vice Badge */}
-        {(player.isCaptain || player.isViceCaptain) && (
-          <div className={`
-            absolute -top-2 left-1/2 transform -translate-x-1/2 z-20
-            w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center border-2 border-white shadow-lg
-            ${player.isCaptain 
-              ? 'bg-yellow-400 text-black' 
-              : 'bg-gray-600 text-white'
-            }
-          `}>
-            {player.isCaptain ? 'C' : 'V'}
-          </div>
-        )}
-
-        {/* IMPROVED: Player Circle with better text layout */}
+        {/* Player circle */}
         <div className={`
-          w-14 h-14 rounded-full flex flex-col items-center justify-center text-white font-bold shadow-lg border-3 border-white relative
+          w-12 h-12 rounded-full flex flex-col items-center justify-center text-white font-bold text-xs shadow-lg relative overflow-hidden
           ${getPositionColorClass(player.positionType)}
-          ${isInjured ? 'opacity-60' : ''}
+          ${player.isCaptain ? 'ring-4 ring-yellow-400' : ''}
+          ${player.isViceCaptain ? 'ring-4 ring-gray-400' : ''}
         `}>
-          {/* Player Name - Top */}
-          <div className="text-xs leading-tight text-center px-1 truncate w-12">
+          {/* Captain/Vice-Captain badge */}
+          {player.isCaptain && (
+            <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
+              <span className="text-gray-900 font-black text-xs">C</span>
+            </div>
+          )}
+          {player.isViceCaptain && (
+            <div className="absolute -top-1 -right-1 w-5 h-5 bg-gray-600 rounded-full flex items-center justify-center">
+              <span className="text-white font-black text-xs">V</span>
+            </div>
+          )}
+          
+          {/* Position */}
+          <div className="text-xs font-bold leading-none mb-0.5">
+            {player.positionType || '?'}
+          </div>
+        </div>
+
+        {/* Player name */}
+        <div className="mt-1 text-center">
+          <div className={`
+            text-xs font-bold leading-tight max-w-16 truncate
+            ${isBench ? 'text-white/90' : 'text-white'}
+          `}>
             {displayName}
           </div>
-          
-          {/* Points - Bottom */}
-          <div className="text-xs font-bold mt-0.5">
-            {playerPoints}
-          </div>
+        </div>
+
+        {/* Points */}
+        <div className={`
+          mt-0.5 px-1.5 py-0.5 rounded-full text-xs font-bold
+          ${isBench ? 'bg-white/20 text-white' : 'bg-white/90 text-gray-900'}
+        `}>
+          {playerPoints}
         </div>
 
         {/* Status indicators */}
         {isInjured && (
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center z-10">
-            <AlertCircle size={10} className="text-white" />
+          <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center">
+            <AlertCircle size={8} className="text-white" />
           </div>
         )}
-        {isDoubtful && (
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center z-10">
-            <Info size={10} className="text-white" />
+        {isDoubtful && !isInjured && (
+          <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+            <span className="text-white font-bold text-xs">!</span>
           </div>
         )}
       </div>
     )
   }
 
+  // Loading state
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
-        <div className="bg-white rounded-2xl w-full max-w-md max-h-[95vh] overflow-hidden shadow-2xl">
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading team data...</p>
-          </div>
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl p-8 text-center shadow-2xl">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading team data...</p>
         </div>
       </div>
     )
   }
 
-  if (error || !teamData) {
+  // Error state
+  if (error) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
-        <div className="bg-white rounded-2xl w-full max-w-md max-h-[95vh] overflow-hidden shadow-2xl">
-          <div className="p-8 text-center">
-            <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
-            <p className="text-gray-600 text-center mb-4">{error}</p>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              Close
-            </button>
-          </div>
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl p-8 text-center shadow-2xl max-w-sm">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Team</h3>
+          <p className="text-gray-600 text-center mb-4">{error}</p>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     )
@@ -270,50 +281,26 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           <div className="text-center bg-white/10 rounded-lg p-1">
             <div className="text-xs font-bold">GW {currentGameweek}</div>
             {teamData?.activeChip && (
-              <div className="text-xs bg-yellow-400 text-purple-900 px-1 py-0.5 rounded-full inline-block font-semibold">
-                {teamData.activeChip.toUpperCase()}
-              </div>
+              <div className="text-xs text-purple-200">Active: {teamData.activeChip}</div>
             )}
           </div>
         </div>
 
-        {/* MUCH SMALLER Stats */}
-        <div className="bg-gray-50 border-b border-gray-200 p-1.5">
-          <div className="grid grid-cols-4 gap-1 text-center">
-            <div>
-              <div className="text-sm font-bold text-blue-600">{teamData?.entryHistory?.points || 0}</div>
-              <div className="text-xs text-gray-500">GW</div>
-            </div>
-            <div>
-              <div className="text-xs font-bold text-purple-600">{teamData?.entryHistory?.totalPoints?.toLocaleString() || 0}</div>
-              <div className="text-xs text-gray-500">Total</div>
-            </div>
-            <div>
-              <div className="text-xs font-bold text-green-600">#{teamData?.entryHistory?.overallRank?.toLocaleString() || 'N/A'}</div>
-              <div className="text-xs text-gray-500">Rank</div>
-            </div>
-            <div>
-              <div className="text-xs font-bold text-orange-600">{Math.floor((teamData?.entryHistory?.eventTransfersCost || 0) / 4)}</div>
-              <div className="text-xs text-gray-500">Hits</div>
-            </div>
-          </div>
-        </div>
-
-        {/* SMALLER Toggle */}
-        <div className="flex justify-center p-1 bg-gray-50 border-b border-gray-200">
-          <div className="bg-white rounded-lg p-0.5 flex gap-0.5 shadow-sm border">
+        {/* View Toggle */}
+        <div className="p-2 border-b">
+          <div className="flex bg-gray-100 rounded-lg overflow-hidden">
             <button
               onClick={() => setViewMode('pitch')}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                viewMode === 'pitch' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+              className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${
+                viewMode === 'pitch' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               Pitch
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                viewMode === 'list' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+              className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${
+                viewMode === 'list' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               List
@@ -321,24 +308,17 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           </div>
         </div>
 
-        {/* MUCH BIGGER Content Area */}
-        <div style={{ height: 'calc(95vh - 120px)' }}>
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
           {viewMode === 'pitch' ? (
-            // PITCH VIEW - Much bigger pitch
-            <div className="bg-gradient-to-b from-green-50 to-green-100 h-full overflow-y-auto">
-              <div className="p-3">
-                {/* MUCH BIGGER Pitch */}
-                <div className="relative w-full max-w-sm mx-auto" style={{ height: '500px' }}>
-                  {/* Pitch Background */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-green-400 via-green-500 to-green-600 rounded-3xl shadow-2xl overflow-hidden">
-                    <div className="absolute inset-0 opacity-20">
-                      <div className="absolute inset-0" style={{
-                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='pitch' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23pitch)' /%3E%3C/svg%3E")`
-                      }}></div>
-                    </div>
-                    
-                    {/* Pitch markings */}
-                    <div className="absolute inset-x-6 top-1/2 transform -translate-y-1/2 h-0.5 bg-white/40"></div>
+            // PITCH VIEW - More space for pitch
+            <div className="bg-gradient-to-b from-green-400 to-green-600 h-full overflow-y-auto">
+              <div className="relative">
+                {/* Football pitch - BIGGER */}
+                <div className="relative h-80 mx-2 mt-2">
+                  {/* Pitch markings */}
+                  <div className="absolute inset-0 bg-green-500 rounded-2xl overflow-hidden">
+                    {/* Pitch lines */}
                     <div className="absolute inset-x-8 bottom-[8%] h-24 border-2 border-white/40 rounded-t-2xl"></div>
                     <div className="absolute inset-x-8 top-[8%] h-24 border-2 border-white/40 rounded-b-2xl"></div>
                     <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/40 rounded-full"></div>
@@ -363,16 +343,79 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                   </div>
                 </div>
 
-                {/* Bench with extra padding for scrolling */}
+                {/* IMPROVED Substitutes Section */}
                 {teamData?.bench && teamData.bench.length > 0 && (
-                  <div className="mt-6 pb-16">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-4 text-center">Substitutes</h4>
-                    <div className="flex justify-center gap-3">
-                      {teamData.bench.map((player, index) => (
-                        <div key={player?.id || index} className="scale-75">
-                          <PlayerCard player={player} isBench={true} />
+                  <div className="mt-8 pb-16">
+                    {/* Enhanced Substitutes Container */}
+                    <div className="relative mx-4">
+                      {/* Background Box with Gradient */}
+                      <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-md rounded-3xl border border-white/25 shadow-xl p-6 relative overflow-hidden">
+                        
+                        {/* Decorative Pattern */}
+                        <div className="absolute inset-0 opacity-10">
+                          <div className="absolute top-4 left-4 w-8 h-8 border-2 border-white rounded-full"></div>
+                          <div className="absolute top-4 right-4 w-8 h-8 border-2 border-white rounded-full"></div>
+                          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-white rounded-full"></div>
                         </div>
-                      ))}
+
+                        {/* Header Section */}
+                        <div className="relative z-10 text-center mb-6">
+                          <div className="inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-2xl border border-white/30 shadow-lg">
+                            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                            <h4 className="text-base font-bold text-white tracking-wide">
+                              SUBSTITUTES
+                            </h4>
+                            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                          </div>
+                          <p className="text-xs text-white/60 mt-2 font-medium">
+                            Bench Squad • Ready for Action
+                          </p>
+                        </div>
+
+                        {/* Substitutes Display */}
+                        <div className="relative z-10">
+                          <div className="flex justify-center items-center gap-6">
+                            {teamData.bench.map((player, index) => (
+                              <div 
+                                key={player?.id || index} 
+                                className="flex flex-col items-center group"
+                              >
+                                {/* Player Container */}
+                                <div className="relative">
+                                  {/* Subtle glow effect */}
+                                  <div className="absolute inset-0 bg-white/10 blur-xl rounded-full scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                  
+                                  {/* Player Card - Full size */}
+                                  <div className="relative transform group-hover:scale-105 transition-transform duration-200">
+                                    <PlayerCard player={player} isBench={true} />
+                                  </div>
+
+                                  {/* Position Badge */}
+                                  <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs font-bold px-2 py-1 rounded-full border-2 border-white shadow-lg">
+                                    {index + 1}
+                                  </div>
+                                </div>
+
+                                {/* Player Status */}
+                                <div className="mt-3 flex flex-col items-center">
+                                  <div className="bg-white/15 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full border border-white/20">
+                                    SUB
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Bottom Info */}
+                        <div className="relative z-10 mt-6 text-center">
+                          <div className="flex items-center justify-center gap-2 text-xs text-white/50">
+                            <div className="w-1 h-1 bg-white/50 rounded-full"></div>
+                            <span>Available for tactical substitutions</span>
+                            <div className="w-1 h-1 bg-white/50 rounded-full"></div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
