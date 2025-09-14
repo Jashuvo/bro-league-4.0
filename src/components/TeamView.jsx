@@ -548,9 +548,6 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                     </div>
                   </div>
                 )}
-                
-                {/* Add extra padding at bottom for safe scrolling */}
-                <div className="h-4"></div>
               </div>
             </div>
           )}
