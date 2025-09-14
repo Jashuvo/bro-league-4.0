@@ -1,4 +1,4 @@
-// src/components/TeamView.jsx - COMPLETE UPDATED VERSION with improved substitutes
+// src/components/TeamView.jsx - FIXED: Compact subs + proper scrolling
 import { useState, useEffect } from 'react'
 import { X, Zap, AlertCircle, Users, Trophy, TrendingUp, ArrowDown, Info, Shield, Star } from 'lucide-react'
 
@@ -309,13 +309,13 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden max-h-[calc(95vh-120px)]">
           {viewMode === 'pitch' ? (
-            // PITCH VIEW - Bigger pitch, compact subs
+            // PITCH VIEW - Big pitch, tiny subs
             <div className="bg-gradient-to-b from-green-400 to-green-600 h-full overflow-y-auto">
               <div className="relative">
-                {/* Football pitch - BIGGER and better proportioned */}
-                <div className="relative h-96 mx-2 mt-2">
+                {/* Football pitch - MUCH BIGGER */}
+                <div className="relative h-[420px] mx-2 mt-2">
                   {/* Pitch markings */}
                   <div className="absolute inset-0 bg-green-500 rounded-2xl overflow-hidden">
                     {/* Pitch lines */}
@@ -343,88 +343,32 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                   </div>
                 </div>
 
-                {/* IMPROVED Substitutes Section */}
+                {/* SUPER COMPACT Substitutes */}
                 {teamData?.bench && teamData.bench.length > 0 && (
-                  <div className="mt-8 pb-16">
-                    {/* Enhanced Substitutes Container */}
-                    <div className="relative mx-4">
-                      {/* Background Box with Gradient */}
-                      <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-md rounded-3xl border border-white/25 shadow-xl p-6 relative overflow-hidden">
-                        
-                        {/* Decorative Pattern */}
-                        <div className="absolute inset-0 opacity-10">
-                          <div className="absolute top-4 left-4 w-8 h-8 border-2 border-white rounded-full"></div>
-                          <div className="absolute top-4 right-4 w-8 h-8 border-2 border-white rounded-full"></div>
-                          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-white rounded-full"></div>
+                  <div className="mx-4 mb-6">
+                    {/* Minimal header */}
+                    <div className="text-center mb-2">
+                      <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                        Substitutes
+                      </span>
+                    </div>
+                    
+                    {/* Simple row of players */}
+                    <div className="flex justify-center gap-2">
+                      {teamData.bench.map((player, index) => (
+                        <div key={player?.id || index} className="scale-75 text-center">
+                          <PlayerCard player={player} isBench={true} />
                         </div>
-
-                        {/* Header Section */}
-                        <div className="relative z-10 text-center mb-6">
-                          <div className="inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm px-6 py-3 rounded-2xl border border-white/30 shadow-lg">
-                            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-                            <h4 className="text-base font-bold text-white tracking-wide">
-                              SUBSTITUTES
-                            </h4>
-                            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
-                          </div>
-                          <p className="text-xs text-white/60 mt-2 font-medium">
-                            Bench Squad • Ready for Action
-                          </p>
-                        </div>
-
-                        {/* Substitutes Display */}
-                        <div className="relative z-10">
-                          <div className="flex justify-center items-center gap-6">
-                            {teamData.bench.map((player, index) => (
-                              <div 
-                                key={player?.id || index} 
-                                className="flex flex-col items-center group"
-                              >
-                                {/* Player Container */}
-                                <div className="relative">
-                                  {/* Subtle glow effect */}
-                                  <div className="absolute inset-0 bg-white/10 blur-xl rounded-full scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                  
-                                  {/* Player Card - Full size */}
-                                  <div className="relative transform group-hover:scale-105 transition-transform duration-200">
-                                    <PlayerCard player={player} isBench={true} />
-                                  </div>
-
-                                  {/* Position Badge */}
-                                  <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white text-xs font-bold px-2 py-1 rounded-full border-2 border-white shadow-lg">
-                                    {index + 1}
-                                  </div>
-                                </div>
-
-                                {/* Player Status */}
-                                <div className="mt-3 flex flex-col items-center">
-                                  <div className="bg-white/15 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full border border-white/20">
-                                    SUB
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Bottom Info */}
-                        <div className="relative z-10 mt-6 text-center">
-                          <div className="flex items-center justify-center gap-2 text-xs text-white/50">
-                            <div className="w-1 h-1 bg-white/50 rounded-full"></div>
-                            <span>Available for tactical substitutions</span>
-                            <div className="w-1 h-1 bg-white/50 rounded-full"></div>
-                          </div>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            // LIST VIEW - Better scrolling
+            // LIST VIEW - Fixed scrolling
             <div className="bg-gradient-to-b from-green-50 to-green-100 h-full overflow-y-auto">
-              <div className="p-3 pb-16">
+              <div className="p-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}>
                 {/* Starting XI */}
                 <div className="mb-4">
                   <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
@@ -493,7 +437,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                   </div>
                 </div>
 
-                {/* Bench */}
+                {/* Substitutes List */}
                 {teamData?.bench && Array.isArray(teamData.bench) && teamData.bench.length > 0 && (
                   <div>
                     <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
