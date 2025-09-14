@@ -1,130 +1,116 @@
+// src/components/GameweekTable.jsx - Updated to match League Table UI design + Current GW Rank
 import React, { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, Trophy, TrendingUp, Users, Zap, Clock, Target, Crown, Medal, Award } from 'lucide-react';
+import { 
+  Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, ChevronRight, 
+  ChevronLeft, Calendar, Target, Zap, Users, Star 
+} from 'lucide-react';
 
-const GameweekTable = ({ gameweekTable, currentGameweek, bootstrap, loading }) => {
-  const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek || 3);
+const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = false, bootstrap = {} }) => {
+  const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek);
+  const [expandedRow, setExpandedRow] = useState(null);
 
-  const availableGameweeks = useMemo(() => {
-    const weeks = new Set();
-    gameweekTable?.forEach(gw => weeks.add(gw.gameweek));
-    return Array.from(weeks).sort((a, b) => b - a);
-  }, [gameweekTable]);
+  // Toggle row expansion
+  const toggleRowExpansion = (managerId) => {
+    setExpandedRow(expandedRow === managerId ? null : managerId);
+  };
 
-  // Enhanced gameweek status determination using bootstrap data
+  // Enhanced gameweek status determination
   const getGameweekStatus = (gameweekId) => {
     const gameweekData = bootstrap?.gameweeks?.find(gw => gw.id === gameweekId);
     
-    if (gameweekData) {
-      // Use actual FPL API status if available
-      if (gameweekData.finished) return 'completed';
-      if (gameweekData.is_current && !gameweekData.finished) return 'current';
-      if (gameweekData.is_next) return 'upcoming';
-      
-      // Check deadline to determine if gameweek should be considered finished
-      if (gameweekData.deadline_time) {
-        const deadline = new Date(gameweekData.deadline_time);
-        const now = new Date();
-        const hoursSinceDeadline = (now - deadline) / (1000 * 60 * 60);
-        
-        // If it's been more than 72 hours since deadline, consider it completed
-        if (hoursSinceDeadline > 72) return 'completed';
-        if (hoursSinceDeadline > 0) return 'current'; // In progress
-      }
-    }
-    
-    // Fallback to simple logic if bootstrap data unavailable
+    if (gameweekData?.finished) return 'completed';
+    if (gameweekData?.is_current) return 'current';
+    if (gameweekData?.is_next) return 'next';
     if (gameweekId < currentGameweek) return 'completed';
     if (gameweekId === currentGameweek) return 'current';
     return 'upcoming';
   };
 
-  const currentGameweekData = useMemo(() => {
-    return gameweekTable?.find(gw => gw.gameweek === selectedGameweek);
-  }, [selectedGameweek, gameweekTable]);
+  const selectedGameweekStatus = getGameweekStatus(selectedGameweek);
 
-  const sortedManagers = useMemo(() => {
-    if (!currentGameweekData?.managers) return [];
-    return [...currentGameweekData.managers]
+  // Calculate gameweek data and rankings
+  const gameweekData = useMemo(() => {
+    const gw = gameweekTable.find(g => g.gameweek === selectedGameweek);
+    if (!gw?.managers) return [];
+
+    // Calculate net points and rank managers for THIS gameweek
+    const managersWithNetPoints = gw.managers
+      .filter(m => m.points > 0)
       .map(manager => {
         const rawPoints = manager.gameweekPoints || manager.points || 0;
-        
-        // Check ALL possible transfer cost field names
-        const transfersCost = manager.transfersCost || 
-                             manager.event_transfers_cost || 
-                             manager.transferCost || 
-                             manager.transfers_cost ||
-                             manager.penalty ||
-                             manager.hit ||
-                             0;
-
+        const transfersCost = manager.transfersCost || manager.event_transfers_cost || manager.transferCost || 0;
         const netPoints = rawPoints - transfersCost;
-
-        // Enhanced debugging for transfer costs
-        if (transfersCost > 0) {
-          console.log(`💰 Gameweek ${selectedGameweek} ${manager.managerName || manager.manager_name}: ${rawPoints} pts - ${transfersCost} cost = ${netPoints}`);
-        }
 
         return {
           ...manager,
-          rawPoints: rawPoints,
-          transfersCost: transfersCost,
-          netPoints: netPoints,
-          gameweekPoints: rawPoints, // Keep original for display
-          finalScore: netPoints // What we sort by
+          rawPoints,
+          transfersCost,
+          netPoints,
+          overallRank: manager.rank || manager.overall_rank || 0 // Overall rank for this gameweek
         };
       })
-      .sort((a, b) => b.finalScore - a.finalScore);
-  }, [currentGameweekData, selectedGameweek]);
+      .sort((a, b) => b.netPoints - a.netPoints);
 
+    // Add current gameweek ranking
+    return managersWithNetPoints.map((manager, index) => ({
+      ...manager,
+      currentGWRank: index + 1 // Current gameweek rank
+    }));
+  }, [gameweekTable, selectedGameweek]);
+
+  // Calculate gameweek stats
   const gameweekStats = useMemo(() => {
-    if (!sortedManagers.length) return {};
+    if (gameweekData.length === 0) return {};
     
-    const netPoints = sortedManagers.map(m => m.finalScore);
-    const rawPoints = sortedManagers.map(m => m.rawPoints);
-    const totalPenalties = sortedManagers.reduce((sum, m) => sum + m.transfersCost, 0);
+    const netScores = gameweekData.map(m => m.netPoints);
+    const rawScores = gameweekData.map(m => m.rawPoints);
+    const penalties = gameweekData.map(m => m.transfersCost).filter(p => p > 0);
     
     return {
-      highest: Math.max(...netPoints),
-      lowest: Math.min(...netPoints),
-      average: Math.round(netPoints.reduce((sum, p) => sum + p, 0) / netPoints.length),
-      totalManagers: sortedManagers.length,
-      highestRaw: Math.max(...rawPoints),
-      totalPenalties: totalPenalties,
-      managersWithPenalties: sortedManagers.filter(m => m.transfersCost > 0).length
+      highest: Math.max(...netScores),
+      highestRaw: Math.max(...rawScores),
+      average: Math.round(netScores.reduce((sum, score) => sum + score, 0) / netScores.length),
+      totalPenalties: penalties.reduce((sum, penalty) => sum + penalty, 0),
+      managersWithPenalties: penalties.length,
+      totalManagers: gameweekData.length
     };
-  }, [sortedManagers]);
+  }, [gameweekData]);
 
-  const handlePrevious = () => {
-    const currentIndex = availableGameweeks.indexOf(selectedGameweek);
-    if (currentIndex < availableGameweeks.length - 1) {
-      setSelectedGameweek(availableGameweeks[currentIndex + 1]);
-    }
+  // Position styling (same as League Table)
+  const getPositionStyling = (position) => {
+    if (position === 1) return 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white shadow-lg';
+    if (position === 2) return 'bg-gradient-to-br from-gray-400 to-gray-600 text-white shadow-md';
+    if (position === 3) return 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-md';
+    if (position <= 5) return 'bg-gradient-to-br from-green-500 to-green-600 text-white';
+    if (position <= 10) return 'bg-gradient-to-br from-blue-500 to-blue-600 text-white';
+    return 'bg-gray-100 text-gray-700 border border-gray-300';
   };
 
-  const handleNext = () => {
-    const currentIndex = availableGameweeks.indexOf(selectedGameweek);
-    if (currentIndex > 0) {
-      setSelectedGameweek(availableGameweeks[currentIndex - 1]);
-    }
+  // Position icons (same as League Table)
+  const getPositionIcon = (position) => {
+    if (position === 1) return <Crown className="text-yellow-300" size={16} />;
+    if (position === 2) return <Medal className="text-gray-300" size={16} />;
+    if (position === 3) return <Award className="text-orange-300" size={16} />;
+    return null;
   };
 
-  const getRankIcon = (rank) => {
-    if (rank === 1) return <Crown className="text-yellow-500" size={18} />;
-    if (rank === 2) return <Medal className="text-gray-400" size={18} />;
-    if (rank === 3) return <Award className="text-orange-400" size={18} />;
-    return <span className="text-gray-600 font-bold text-sm">{rank}</span>;
+  // Points color class
+  const getPointsColorClass = (points) => {
+    if (points >= 80) return 'text-green-600';
+    if (points >= 60) return 'text-blue-600';
+    if (points >= 40) return 'text-gray-700';
+    return 'text-red-600';
   };
 
-  // Get status for selected gameweek
-  const selectedGameweekStatus = getGameweekStatus(selectedGameweek);
-
-  if (loading || !gameweekTable?.length) {
+  if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-        <div className="p-8 text-center">
-          <Calendar className="mx-auto mb-4 text-gray-400" size={48} />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">Loading Gameweek Data...</h3>
-          <p className="text-gray-500">Fetching historical gameweek performance</p>
+        <div className="p-8">
+          <div className="animate-pulse space-y-4">
+            {Array(5).map((_, i) => (
+              <div key={i} className="h-16 bg-gray-100 rounded"></div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -132,60 +118,77 @@ const GameweekTable = ({ gameweekTable, currentGameweek, bootstrap, loading }) =
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
+      {/* Header - Same style as League Table */}
+      <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
         <div className="flex items-center justify-between">
-          <h2 className="text-white font-bold text-lg flex items-center gap-2">
-            <Calendar size={20} />
-            Gameweek Analysis
-          </h2>
-          <div className="text-blue-100 text-sm">
-            {availableGameweeks.length} gameweeks available
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+              <Calendar size={24} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold">Gameweek History</h2>
+              <p className="text-purple-100">
+                GW {selectedGameweek} • {gameweekData.length} Managers
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-full">
+            <Target size={16} />
+            <span className="text-sm">
+              {selectedGameweekStatus === 'completed' ? 'Completed' : 
+               selectedGameweekStatus === 'current' ? 'Live' : 'Upcoming'}
+            </span>
           </div>
         </div>
+
+        {/* Quick Stats - Same as League Table */}
+        {gameweekStats.highest && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <div className="text-xl font-bold">{gameweekStats.highest}</div>
+              <div className="text-sm opacity-80">Highest Net</div>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <div className="text-xl font-bold">{gameweekStats.average}</div>
+              <div className="text-sm opacity-80">Average</div>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <div className="text-xl font-bold">-{gameweekStats.totalPenalties}</div>
+              <div className="text-sm opacity-80">Penalties</div>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 text-center">
+              <div className="text-xl font-bold">{gameweekStats.totalManagers}</div>
+              <div className="text-sm opacity-80">Managers</div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Gameweek Navigator */}
-      <div className="bg-gray-50 border-b border-gray-200 p-4">
+      {/* Gameweek Navigation */}
+      <div className="p-4 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center justify-between">
           <button
-            onClick={handlePrevious}
-            disabled={availableGameweeks.indexOf(selectedGameweek) >= availableGameweeks.length - 1}
+            onClick={() => setSelectedGameweek(Math.max(1, selectedGameweek - 1))}
+            disabled={selectedGameweek <= 1}
             className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft size={16} />
             <span className="hidden sm:inline">Previous</span>
           </button>
-
+          
           <div className="text-center">
-            <h3 className="text-2xl font-bold text-gray-900">
-              Gameweek {selectedGameweek}
-            </h3>
-            <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
-              {selectedGameweekStatus === 'completed' && (
-                <>
-                  <Crown size={14} className="text-green-500" />
-                  <span>Completed</span>
-                </>
-              )}
-              {selectedGameweekStatus === 'current' && (
-                <>
-                  <Clock size={14} className="text-blue-500" />
-                  <span>In Progress</span>
-                </>
-              )}
-              {selectedGameweekStatus === 'upcoming' && (
-                <>
-                  <Target size={14} className="text-gray-500" />
-                  <span>Upcoming</span>
-                </>
-              )}
-            </p>
+            <div className="font-bold text-lg text-gray-900">Gameweek {selectedGameweek}</div>
+            <div className="text-sm text-gray-600">
+              {selectedGameweekStatus === 'completed' && '✅ Completed'}
+              {selectedGameweekStatus === 'current' && '🔄 Current'}
+              {selectedGameweekStatus === 'upcoming' && '⏳ Upcoming'}
+            </div>
           </div>
-
+          
           <button
-            onClick={handleNext}
-            disabled={availableGameweeks.indexOf(selectedGameweek) <= 0}
+            onClick={() => setSelectedGameweek(Math.min(38, selectedGameweek + 1))}
+            disabled={selectedGameweek >= 38}
             className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <span className="hidden sm:inline">Next</span>
@@ -194,136 +197,152 @@ const GameweekTable = ({ gameweekTable, currentGameweek, bootstrap, loading }) =
         </div>
       </div>
 
-      {/* Stats Overview */}
-      {gameweekStats.highest && (
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 border-b border-gray-200">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="font-bold text-xl text-green-600">{gameweekStats.highest}</div>
-              <div className="text-xs text-gray-500">Highest Net</div>
-              {gameweekStats.highestRaw !== gameweekStats.highest && (
-                <div className="text-xs text-gray-400">({gameweekStats.highestRaw} raw)</div>
-              )}
-            </div>
-            <div className="text-center">
-              <div className="font-bold text-xl text-blue-600">{gameweekStats.average}</div>
-              <div className="text-xs text-gray-500">Average Net</div>
-            </div>
-            <div className="text-center">
-              <div className="font-bold text-xl text-red-600">-{gameweekStats.totalPenalties}</div>
-              <div className="text-xs text-gray-500">Total Penalties</div>
-              <div className="text-xs text-gray-400">{gameweekStats.managersWithPenalties} managers</div>
-            </div>
-            <div className="text-center">
-              <div className="font-bold text-xl text-purple-600">{gameweekStats.totalManagers}</div>
-              <div className="text-xs text-gray-500">Total Managers</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Results Table */}
-      <div className="overflow-hidden">
-        {sortedManagers.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100 border-b border-gray-200">
-                <tr>
-                  <th className="text-left p-4 font-semibold text-gray-700">Rank</th>
-                  <th className="text-left p-4 font-semibold text-gray-700">Manager</th>
-                  <th className="text-center p-4 font-semibold text-gray-700">Raw Points</th>
-                  <th className="text-center p-4 font-semibold text-gray-700">Penalties</th>
-                  <th className="text-center p-4 font-semibold text-gray-700">Net Score</th>
-                  <th className="text-center p-4 font-semibold text-gray-700 hidden md:table-cell">Prize</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedManagers.map((manager, index) => {
-                  const rank = index + 1;
-                  const prize = rank === 1 && selectedGameweekStatus === 'completed' ? 30 : 0;
-                  const isWinner = rank === 1;
-
-                  return (
-                    <tr
-                      key={manager.id || manager.entry || index}
-                      className={`
-                        border-b border-gray-100 hover:bg-gray-50 transition-colors
-                        ${isWinner ? 'bg-gradient-to-r from-yellow-50 to-orange-50' : ''}
-                      `}
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          {getRankIcon(rank)}
-                        </div>
-                      </td>
-                      
-                      <td className="p-4">
-                        <div className="font-semibold text-gray-900">
-                          {manager.managerName || manager.manager_name || `Manager ${manager.id || manager.entry}`}
-                        </div>
-                        {manager.teamName && (
-                          <div className="text-sm text-gray-500">{manager.teamName}</div>
-                        )}
-                      </td>
-
-                      <td className="p-4 text-center">
-                        <span className="font-bold text-lg text-blue-600">{manager.rawPoints}</span>
-                      </td>
-
-                      <td className="p-4 text-center">
-                        <span className={`font-semibold ${manager.transfersCost > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                          {manager.transfersCost > 0 ? `-${manager.transfersCost}` : '0'}
-                        </span>
-                      </td>
-
-                      <td className="p-4 text-center">
-                        <div className={`
-                          inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-bold
-                          ${isWinner ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}
-                        `}>
-                          <Zap size={12} />
-                          {manager.finalScore}
-                        </div>
-                        {manager.transfersCost > 0 && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {manager.rawPoints} - {manager.transfersCost} = {manager.finalScore}
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="p-4 text-center hidden md:table-cell">
-                        <span className={`font-bold text-lg ${prize > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                          {prize > 0 ? `৳${prize}` : '--'}
-                        </span>
-                        {prize > 0 && (
-                          <div className="text-xs text-green-600 mt-1">✅ Won</div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {/* Main Table Content - Same style as League Table */}
+      <div className="overflow-x-auto">
+        {!gameweekData || gameweekData.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>No data available for Gameweek {selectedGameweek}</p>
           </div>
         ) : (
-          <div className="text-center py-12">
-            <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-600 mb-2">No Data Available</h3>
-            <p className="text-gray-500">
-              Gameweek {selectedGameweek} data not yet available
-            </p>
+          <div className="divide-y divide-gray-100">
+            {gameweekData.map((manager, index) => {
+              const position = manager.currentGWRank; // Use current GW rank
+              const prize = position === 1 && selectedGameweekStatus === 'completed' ? 30 : 0;
+
+              return (
+                <div key={manager.id || manager.entry} className="hover:bg-gray-50 transition-colors">
+                  {/* Main Row - Same layout as League Table */}
+                  <div 
+                    className="p-4 cursor-pointer flex items-center justify-between"
+                    onClick={() => toggleRowExpansion(manager.id || manager.entry)}
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      {/* Position - Same styling as League Table */}
+                      <div className={`
+                        w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm
+                        ${getPositionStyling(position)}
+                      `}>
+                        {getPositionIcon(position) || position}
+                      </div>
+
+                      {/* Manager Info - Same layout as League Table */}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-gray-900 text-lg">
+                            {manager.managerName || manager.name}
+                          </h3>
+                          {position <= 3 && (
+                            <div className="flex">
+                              {getPositionIcon(position)}
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {manager.teamName || manager.entry_name}
+                        </p>
+                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                          <span>GW Rank: #{position}</span>
+                          <span>•</span>
+                          <span>Overall: #{manager.overallRank?.toLocaleString() || 'N/A'}</span>
+                          {prize > 0 && (
+                            <>
+                              <span>•</span>
+                              <span className="text-green-600 font-semibold">৳{prize} Won!</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Points Display - Same layout as League Table */}
+                      <div className="text-right">
+                        <div className="flex items-center gap-4">
+                          {/* Raw Points */}
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-blue-600">
+                              {manager.rawPoints}
+                            </div>
+                            <div className="text-xs text-gray-500">Raw</div>
+                          </div>
+
+                          {/* Penalties */}
+                          <div className="text-center">
+                            <div className={`text-lg font-bold ${
+                              manager.transfersCost > 0 ? 'text-red-600' : 'text-gray-400'
+                            }`}>
+                              -{manager.transfersCost}
+                            </div>
+                            <div className="text-xs text-gray-500">Penalty</div>
+                          </div>
+
+                          {/* Net Points */}
+                          <div className="text-center">
+                            <div className={`text-xl font-bold ${getPointsColorClass(manager.netPoints)}`}>
+                              {manager.netPoints}
+                            </div>
+                            <div className="text-xs text-gray-500">Net</div>
+                          </div>
+
+                          {/* Expand Arrow */}
+                          <div className="ml-2">
+                            <ChevronRight 
+                              className={`text-gray-400 transition-transform ${
+                                expandedRow === (manager.id || manager.entry) ? 'rotate-90' : ''
+                              }`} 
+                              size={20} 
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expanded Row - Same style as League Table */}
+                  {expandedRow === (manager.id || manager.entry) && (
+                    <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100 animate-fade-in-up">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                        <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                          <div className="text-lg font-bold text-purple-600">#{position}</div>
+                          <div className="text-xs text-gray-600">GW Rank</div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                          <div className="text-lg font-bold text-blue-600">#{manager.overallRank?.toLocaleString() || 'N/A'}</div>
+                          <div className="text-xs text-gray-600">Overall Rank</div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                          <div className="text-lg font-bold text-green-600">{manager.transfers || 0}</div>
+                          <div className="text-xs text-gray-600">Transfers</div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 text-center shadow-sm">
+                          <div className="text-lg font-bold text-orange-600">{manager.benchPoints || 0}</div>
+                          <div className="text-xs text-gray-600">Bench Points</div>
+                        </div>
+                      </div>
+
+                      {prize > 0 && (
+                        <div className="mt-4 p-3 bg-green-100 border border-green-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-green-800">
+                            <Trophy size={16} />
+                            <span className="font-semibold">Weekly Winner - ৳{prize} Prize!</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Footer */}
+      {/* Footer - Same style as League Table */}
       <div className="bg-gray-50 border-t border-gray-200 p-4">
         <div className="text-center text-sm text-gray-600">
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             <span>
-              Live gameweek data • Winner gets ৳30 • Transfer penalties deducted • Enhanced status detection •
-              Last updated: {new Date().toLocaleString('en-US', { 
+              Gameweek rankings based on net points (raw points - penalties) • Last updated: {new Date().toLocaleString('en-US', { 
                 timeZone: 'Asia/Dhaka',
                 dateStyle: 'medium',
                 timeStyle: 'short'
