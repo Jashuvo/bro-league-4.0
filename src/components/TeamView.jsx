@@ -366,135 +366,130 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               </div>
             </div>
           ) : (
-            // LIST VIEW - FULLY FIXED scrolling
-            <div className="h-full flex flex-col bg-gradient-to-b from-green-50 to-green-100">
-              <div className="flex-1 overflow-y-auto">
-                <div className="p-3">
-                  {/* Starting XI */}
-                  <div className="mb-4">
+            // LIST VIEW - Fixed scrolling with proper height
+            <div className="h-full overflow-y-auto bg-gradient-to-b from-green-50 to-green-100">
+              <div className="p-3 pb-32">
+                {/* Starting XI */}
+                <div className="mb-4">
+                  <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
+                    <Users size={16} className="text-purple-600" />
+                    Starting XI
+                  </h3>
+                  <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    {teamData?.startingXI && Array.isArray(teamData.startingXI) && teamData.startingXI.length > 0 ? (
+                      teamData.startingXI.map((player, index) => {
+                        if (!player) return null
+                        
+                        let displayPoints = 0
+                        if (player.points !== undefined && player.points !== null) {
+                          displayPoints = player.points
+                        } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
+                          displayPoints = player.eventPoints
+                        }
+                        
+                        if (player.isCaptain && player.multiplier && player.multiplier > 1) {
+                          displayPoints = displayPoints * player.multiplier
+                        }
+                        
+                        return (
+                          <div 
+                            key={player.id || index} 
+                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors ${
+                              index !== teamData.startingXI.length - 1 ? 'border-b border-gray-100' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className={`
+                                w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-xs shadow-md
+                                ${getPositionColorClass(player.positionType)}
+                              `}>
+                                {player.positionType || '?'}
+                              </div>
+                              <div>
+                                <div className="font-semibold text-gray-900 flex items-center gap-1.5 text-sm">
+                                  {player.name || 'Unknown'}
+                                  {player.isCaptain && (
+                                    <span className="bg-yellow-400 text-gray-900 text-xs px-1.5 py-0.5 rounded-full font-bold border">C</span>
+                                  )}
+                                  {player.isViceCaptain && (
+                                    <span className="bg-gray-600 text-white text-xs px-1.5 py-0.5 rounded-full font-bold">V</span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-600">{player.teamName || 'Unknown'}</div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className={`font-bold text-base ${getPointsColorClass(displayPoints)}`}>
+                                {displayPoints}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                £{((player.nowCost || 0) / 10).toFixed(1)}m
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div className="p-3 text-center text-gray-500 text-sm">
+                        No starting XI data available
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Substitutes List */}
+                {teamData?.bench && Array.isArray(teamData.bench) && teamData.bench.length > 0 && (
+                  <div>
                     <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
-                      <Users size={16} className="text-purple-600" />
-                      Starting XI
+                      <Shield size={16} className="text-gray-600" />
+                      Substitutes
                     </h3>
                     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                      {teamData?.startingXI && Array.isArray(teamData.startingXI) && teamData.startingXI.length > 0 ? (
-                        teamData.startingXI.map((player, index) => {
-                          if (!player) return null
-                          
-                          let displayPoints = 0
-                          if (player.points !== undefined && player.points !== null) {
-                            displayPoints = player.points
-                          } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
-                            displayPoints = player.eventPoints
-                          }
-                          
-                          if (player.isCaptain && player.multiplier && player.multiplier > 1) {
-                            displayPoints = displayPoints * player.multiplier
-                          }
-                          
-                          return (
-                            <div 
-                              key={player.id || index} 
-                              className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors ${
-                                index !== teamData.startingXI.length - 1 ? 'border-b border-gray-100' : ''
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <div className={`
-                                  w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-xs shadow-md
-                                  ${getPositionColorClass(player.positionType)}
-                                `}>
-                                  {player.positionType || '?'}
-                                </div>
-                                <div>
-                                  <div className="font-semibold text-gray-900 flex items-center gap-1.5 text-sm">
-                                    {player.name || 'Unknown'}
-                                    {player.isCaptain && (
-                                      <span className="bg-yellow-400 text-gray-900 text-xs px-1.5 py-0.5 rounded-full font-bold border">C</span>
-                                    )}
-                                    {player.isViceCaptain && (
-                                      <span className="bg-gray-600 text-white text-xs px-1.5 py-0.5 rounded-full font-bold">V</span>
-                                    )}
-                                  </div>
-                                  <div className="text-xs text-gray-600">{player.teamName || 'Unknown'}</div>
-                                </div>
+                      {teamData.bench.map((player, index) => {
+                        if (!player) return null
+                        
+                        let displayPoints = 0
+                        if (player.points !== undefined && player.points !== null) {
+                          displayPoints = player.points
+                        } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
+                          displayPoints = player.eventPoints
+                        }
+                        
+                        return (
+                          <div 
+                            key={player.id || index} 
+                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors ${
+                              index !== teamData.bench.length - 1 ? 'border-b border-gray-100' : ''
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className={`
+                                w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-xs shadow-md opacity-70
+                                ${getPositionColorClass(player.positionType)}
+                              `}>
+                                {player.positionType || '?'}
                               </div>
-                              <div className="text-right">
-                                <div className={`font-bold text-base ${getPointsColorClass(displayPoints)}`}>
-                                  {displayPoints}
+                              <div>
+                                <div className="font-semibold text-gray-900 text-sm">
+                                  {player.name || 'Unknown'}
                                 </div>
-                                <div className="text-xs text-gray-500">
-                                  £{((player.nowCost || 0) / 10).toFixed(1)}m
-                                </div>
+                                <div className="text-xs text-gray-600">{player.teamName || 'Unknown'}</div>
                               </div>
                             </div>
-                          )
-                        })
-                      ) : (
-                        <div className="p-3 text-center text-gray-500 text-sm">
-                          No starting XI data available
-                        </div>
-                      )}
+                            <div className="text-right">
+                              <div className={`font-bold text-base ${getPointsColorClass(displayPoints)}`}>
+                                {displayPoints}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                £{((player.nowCost || 0) / 10).toFixed(1)}m
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
-
-                  {/* Substitutes List */}
-                  {teamData?.bench && Array.isArray(teamData.bench) && teamData.bench.length > 0 && (
-                    <div className="mb-8">
-                      <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
-                        <Shield size={16} className="text-gray-600" />
-                        Substitutes
-                      </h3>
-                      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                        {teamData.bench.map((player, index) => {
-                          if (!player) return null
-                          
-                          let displayPoints = 0
-                          if (player.points !== undefined && player.points !== null) {
-                            displayPoints = player.points
-                          } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
-                            displayPoints = player.eventPoints
-                          }
-                          
-                          return (
-                            <div 
-                              key={player.id || index} 
-                              className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors ${
-                                index !== teamData.bench.length - 1 ? 'border-b border-gray-100' : ''
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <div className={`
-                                  w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-xs shadow-md opacity-70
-                                  ${getPositionColorClass(player.positionType)}
-                                `}>
-                                  {player.positionType || '?'}
-                                </div>
-                                <div>
-                                  <div className="font-semibold text-gray-900 text-sm">
-                                    {player.name || 'Unknown'}
-                                  </div>
-                                  <div className="text-xs text-gray-600">{player.teamName || 'Unknown'}</div>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className={`font-bold text-base ${getPointsColorClass(displayPoints)}`}>
-                                  {displayPoints}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  £{((player.nowCost || 0) / 10).toFixed(1)}m
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bottom spacer to ensure content is reachable */}
-                  <div className="h-8"></div>
-                </div>
+                )}
               </div>
             </div>
           )}
