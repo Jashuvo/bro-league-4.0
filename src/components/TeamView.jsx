@@ -366,9 +366,9 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               </div>
             </div>
           ) : (
-            // LIST VIEW - Fixed scrolling
-            <div className="bg-gradient-to-b from-green-50 to-green-100 h-full overflow-y-auto">
-              <div className="p-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}>
+            // LIST VIEW - Fixed scrolling with proper height
+            <div className="h-full overflow-y-auto bg-gradient-to-b from-green-50 to-green-100">
+              <div className="p-3 pb-32">
                 {/* Starting XI */}
                 <div className="mb-4">
                   <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
