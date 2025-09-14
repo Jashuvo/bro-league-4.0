@@ -1,440 +1,363 @@
+// src/components/PrizeDistribution.jsx - Updated to match League Table UI design
 import React, { useMemo } from 'react';
-import { DollarSign, Trophy, Calendar, Zap, Target, Gift, Award, Crown, Medal, TrendingUp, Users, Clock, PieChart } from 'lucide-react';
+import { 
+  DollarSign, Trophy, Calendar, Zap, Target, Gift, Award, Crown, Medal, 
+  TrendingUp, Users, Clock, Star, PieChart
+} from 'lucide-react';
 
-const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = [], bootstrap = {} }) => {
+const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = [] }) => {
   const currentGW = gameweekInfo.current || 3;
   const totalGWs = gameweekInfo.total || 38;
 
+  // Prize structure
   const prizeStructure = {
     season: {
       total: 1800,
       prizes: [
-        { position: 1, amount: 800, emoji: '🥇', color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
-        { position: 2, amount: 600, emoji: '🥈', color: 'text-gray-600', bgColor: 'bg-gray-50' },
-        { position: 3, amount: 400, emoji: '🥉', color: 'text-orange-600', bgColor: 'bg-orange-50' }
+        { position: 1, amount: 800, emoji: '🥇', color: 'text-yellow-600', label: 'Champion' },
+        { position: 2, amount: 600, emoji: '🥈', color: 'text-gray-600', label: 'Runner-up' },
+        { position: 3, amount: 400, emoji: '🥉', color: 'text-orange-600', label: 'Third Place' }
       ]
     },
     weekly: {
       perWeek: 30,
       totalWeeks: 38,
-      total: 1140
+      total: 1140 // 38 * 30
     },
     monthly: {
       regularMonths: 8,
-      regularPrizes: [350, 250, 150],
+      regularPrizes: [350, 250, 150], // per month
       finalMonth: [500, 400, 250],
-      total: 7150
+      total: 7150 // (8 * 750) + 1150
     },
     souvenirs: {
       total: 1910,
-      items: ['BRO League Jerseys', 'Certificates', 'Digital Badges', 'Trophy for Winner']
+      items: ['BRO League Jerseys', 'Certificates', 'Digital Badges', 'Trophy for Champion']
     }
   };
 
-  const grandTotal = 12000;
+  const grandTotal = 12000; // Total entry fees
 
-  // Enhanced gameweek status determination using bootstrap data
-  const getGameweekStatus = (gameweekId) => {
-    const gameweekData = bootstrap?.gameweeks?.find(gw => gw.id === gameweekId);
-    
-    if (gameweekData) {
-      // Use actual FPL API status if available
-      if (gameweekData.finished) return 'completed';
-      if (gameweekData.is_current && !gameweekData.finished) return 'current';
-      if (gameweekData.is_next) return 'upcoming';
-      
-      // Check deadline to determine if gameweek should be considered finished
-      if (gameweekData.deadline_time) {
-        const deadline = new Date(gameweekData.deadline_time);
-        const now = new Date();
-        const hoursSinceDeadline = (now - deadline) / (1000 * 60 * 60);
-        
-        // If it's been more than 72 hours since deadline, consider it completed
-        if (hoursSinceDeadline > 72) return 'completed';
-        if (hoursSinceDeadline > 0) return 'current'; // In progress
-      }
-    }
-    
-    // Fallback to simple logic if bootstrap data unavailable
-    if (gameweekId < currentGW) return 'completed';
-    if (gameweekId === currentGW) return 'current';
-    return 'upcoming';
-  };
-
+  // Calculate distribution stats
   const distributionStats = useMemo(() => {
-    // Enhanced calculation using actual gameweek statuses
-    const completedGameweeks = [];
-    for (let gw = 1; gw <= totalGWs; gw++) {
-      if (getGameweekStatus(gw) === 'completed') {
-        completedGameweeks.push(gw);
-      }
-    }
+    // Weekly prizes distributed
+    const completedGameweeks = Math.max(0, currentGW - 1);
+    const weeklyDistributed = completedGameweeks * prizeStructure.weekly.perWeek;
+    const weeklyProgress = (completedGameweeks / totalGWs) * 100;
 
-    const weeklyDistributed = completedGameweeks.length * prizeStructure.weekly.perWeek;
-    
-    // Enhanced monthly calculation
-    const monthlyDistributed = (() => {
-      const months = [
-        { gameweeks: [1, 2, 3, 4], prize: 750 },
-        { gameweeks: [5, 6, 7, 8], prize: 750 },
-        { gameweeks: [9, 10, 11, 12], prize: 750 },
-        { gameweeks: [13, 14, 15, 16], prize: 750 },
-        { gameweeks: [17, 18, 19, 20], prize: 750 },
-        { gameweeks: [21, 22, 23, 24], prize: 750 },
-        { gameweeks: [25, 26, 27, 28], prize: 750 },
-        { gameweeks: [29, 30, 31, 32], prize: 750 },
-        { gameweeks: [33, 34, 35, 36, 37, 38], prize: 1150 }
-      ];
+    // Monthly prizes distributed
+    const monthsCompleted = Math.floor(completedGameweeks / 4);
+    const monthlyDistributed = monthsCompleted * 750; // Regular months only
+    const monthlyProgress = (monthsCompleted / 9) * 100;
 
-      let monthlyTotal = 0;
-      months.forEach(month => {
-        // Check if ALL gameweeks in month are completed
-        const allCompleted = month.gameweeks.every(gw => getGameweekStatus(gw) === 'completed');
-        if (allCompleted) {
-          monthlyTotal += month.prize;
-        }
-      });
-
-      return monthlyTotal;
-    })();
-    
+    // Total distribution
     const totalDistributed = weeklyDistributed + monthlyDistributed;
     const remainingPrizes = grandTotal - prizeStructure.season.total - prizeStructure.souvenirs.total - totalDistributed;
-    
-    const seasonProgress = Math.min(100, (completedGameweeks.length / totalGWs) * 100);
-    const weeklyProgress = Math.min(100, (completedGameweeks.length / totalGWs) * 100);
-    
-    // Enhanced monthly progress calculation
-    const completedMonths = Math.floor(completedGameweeks.length / 4);
-    const monthlyProgress = Math.min(100, (completedMonths / 9) * 100);
 
-    // Calculate transfer penalty stats from gameweek data
-    let totalPenalties = 0;
-    let managersWithPenalties = 0;
-    const managerPenaltyTotals = {};
-
+    // Calculate top weekly winners
+    const weeklyWinners = {};
     gameweekTable.forEach(gw => {
-      if (getGameweekStatus(gw.gameweek) === 'completed' && gw.managers) {
-        gw.managers.forEach(manager => {
-          const managerId = manager.id || manager.entry;
-          const transfersCost = manager.transfersCost || 
-                               manager.event_transfers_cost || 
-                               manager.transferCost || 
-                               manager.transfers_cost ||
-                               manager.penalty ||
-                               manager.hit ||
-                               0;
-          
-          if (transfersCost > 0) {
-            totalPenalties += transfersCost;
-            if (!managerPenaltyTotals[managerId]) {
-              managerPenaltyTotals[managerId] = 0;
-              managersWithPenalties++;
-            }
-            managerPenaltyTotals[managerId] += transfersCost;
+      if (gw.managers && gw.managers.length > 0) {
+        const sortedManagers = [...gw.managers]
+          .sort((a, b) => {
+            const aNet = (a.gameweekPoints || a.points || 0) - (a.transfersCost || a.event_transfers_cost || 0);
+            const bNet = (b.gameweekPoints || b.points || 0) - (b.transfersCost || b.event_transfers_cost || 0);
+            return bNet - aNet;
+          });
+        
+        if (sortedManagers[0]) {
+          const winnerId = sortedManagers[0].id || sortedManagers[0].entry;
+          const winnerName = sortedManagers[0].managerName || sortedManagers[0].name;
+          if (!weeklyWinners[winnerId]) {
+            weeklyWinners[winnerId] = { name: winnerName, wins: 0, totalWon: 0 };
           }
-        });
+          weeklyWinners[winnerId].wins++;
+          weeklyWinners[winnerId].totalWon += 30;
+        }
       }
     });
 
+    const topWeeklyWinners = Object.values(weeklyWinners)
+      .sort((a, b) => b.wins - a.wins)
+      .slice(0, 5);
+
     return {
       weeklyDistributed,
+      weeklyProgress,
       monthlyDistributed,
+      monthlyProgress,
       totalDistributed,
       remainingPrizes,
-      seasonProgress,
-      weeklyProgress,
-      monthlyProgress,
-      weeklyRemaining: prizeStructure.weekly.total - weeklyDistributed,
-      monthlyRemaining: prizeStructure.monthly.total - monthlyDistributed,
-      totalPenalties,
-      managersWithPenalties,
-      avgPenaltyPerManager: managersWithPenalties > 0 ? Math.round(totalPenalties / managersWithPenalties) : 0,
-      completedGameweeks: completedGameweeks.length,
-      completedMonths: completedMonths
+      completedGameweeks,
+      topWeeklyWinners
     };
-  }, [currentGW, totalGWs, prizeStructure, gameweekTable, bootstrap]);
+  }, [gameweekTable, currentGW, totalGWs, grandTotal, prizeStructure]);
 
-  const pieChartData = [
-    { name: 'Season Prizes', value: prizeStructure.season.total, color: '#fbbf24', distributed: false },
-    { name: 'Weekly Prizes', value: distributionStats.weeklyDistributed, color: '#8b5cf6', distributed: true },
-    { name: 'Weekly Remaining', value: distributionStats.weeklyRemaining, color: '#e5e7eb', distributed: false },
-    { name: 'Monthly Prizes', value: distributionStats.monthlyDistributed, color: '#10b981', distributed: true },
-    { name: 'Monthly Remaining', value: distributionStats.monthlyRemaining, color: '#f3f4f6', distributed: false },
-    { name: 'Souvenirs', value: prizeStructure.souvenirs.total, color: '#f97316', distributed: false }
-  ];
-
-  const currentSeasonStandings = standings.slice(0, 3);
+  // Position styling (same as League Table)
+  const getPositionStyling = (position) => {
+    if (position === 1) return 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white shadow-lg';
+    if (position === 2) return 'bg-gradient-to-br from-gray-400 to-gray-600 text-white shadow-md';
+    if (position === 3) return 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-md';
+    return 'bg-gray-100 text-gray-700 border border-gray-300';
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-yellow-600 to-orange-600 p-4">
+      {/* Header - Same style as League Table */}
+      <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
         <div className="flex items-center justify-between">
-          <h2 className="text-white font-bold text-lg flex items-center gap-2">
-            <DollarSign size={20} />
-            Prize Distribution
-          </h2>
-          <div className="text-yellow-100 text-sm">
-            ৳{grandTotal.toLocaleString()} Total Pool
-          </div>
-        </div>
-      </div>
-
-      {/* Overview Stats */}
-      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 border-b border-gray-200">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <div className="font-bold text-2xl text-green-600">৳{distributionStats.totalDistributed}</div>
-            <div className="text-xs text-gray-600">Distributed</div>
-            <div className="text-xs text-green-600">{Math.round((distributionStats.totalDistributed / grandTotal) * 100)}%</div>
-          </div>
-          <div className="text-center">
-            <div className="font-bold text-2xl text-blue-600">৳{distributionStats.remainingPrizes}</div>
-            <div className="text-xs text-gray-600">Remaining</div>
-            <div className="text-xs text-blue-600">{Math.round((distributionStats.remainingPrizes / grandTotal) * 100)}%</div>
-          </div>
-          <div className="text-center">
-            <div className="font-bold text-2xl text-red-600">-{distributionStats.totalPenalties}</div>
-            <div className="text-xs text-gray-600">Total Penalties</div>
-            <div className="text-xs text-red-600">{distributionStats.managersWithPenalties} managers affected</div>
-          </div>
-          <div className="text-center">
-            <div className="font-bold text-2xl text-orange-600">{distributionStats.completedGameweeks}</div>
-            <div className="text-xs text-gray-600">GWs Complete</div>
-            <div className="text-xs text-orange-600">{Math.round(distributionStats.seasonProgress)}% done</div>
-          </div>
-        </div>
-
-        {/* Transfer Penalty Summary */}
-        {distributionStats.totalPenalties > 0 && (
-          <div className="mt-4 bg-red-50 rounded-lg p-3 border border-red-200">
-            <div className="text-center">
-              <div className="text-sm font-medium text-red-800 mb-1">Transfer Penalty Impact</div>
-              <div className="text-xs text-red-600">
-                {distributionStats.totalPenalties} penalty points deducted from competitions • 
-                Avg {distributionStats.avgPenaltyPerManager} penalties per affected manager
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+              <PieChart size={24} />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold">Prize Distribution</h2>
+              <p className="text-purple-100">
+                ৳{grandTotal.toLocaleString()} Total Prize Pool • GW {currentGW} of {totalGWs}
+              </p>
             </div>
           </div>
-        )}
+          
+          <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-full">
+            <DollarSign size={16} />
+            <span className="text-sm">৳{distributionStats.totalDistributed.toLocaleString()} Distributed</span>
+          </div>
+        </div>
+
+        {/* Quick Stats - Same as League Table */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <div className="bg-white/10 rounded-lg p-3 text-center">
+            <div className="text-xl font-bold">৳{distributionStats.weeklyDistributed}</div>
+            <div className="text-sm opacity-80">Weekly Prizes</div>
+          </div>
+          <div className="bg-white/10 rounded-lg p-3 text-center">
+            <div className="text-xl font-bold">৳{distributionStats.monthlyDistributed}</div>
+            <div className="text-sm opacity-80">Monthly Prizes</div>
+          </div>
+          <div className="bg-white/10 rounded-lg p-3 text-center">
+            <div className="text-xl font-bold">৳{distributionStats.remainingPrizes}</div>
+            <div className="text-sm opacity-80">Remaining</div>
+          </div>
+          <div className="bg-white/10 rounded-lg p-3 text-center">
+            <div className="text-xl font-bold">{Math.round((distributionStats.totalDistributed / grandTotal) * 100)}%</div>
+            <div className="text-sm opacity-80">Completed</div>
+          </div>
+        </div>
       </div>
 
-      {/* Prize Categories */}
+      {/* Prize Breakdown Sections */}
       <div className="p-6 space-y-6">
-        {/* Season Prizes */}
-        <div className="bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl p-4 border border-yellow-200">
+        
+        {/* Season End Prizes */}
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-200">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Trophy className="text-yellow-600" size={20} />
-              Season Finale Prizes
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Trophy className="text-yellow-600" size={24} />
+              Season End Championships
             </h3>
-            <div className="text-yellow-600 font-bold">৳{prizeStructure.season.total}</div>
+            <div className="text-yellow-600 font-bold text-lg">৳{prizeStructure.season.total}</div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {prizeStructure.season.prizes.map((prize, index) => {
-              const currentManager = currentSeasonStandings[index];
-              return (
-                <div key={prize.position} className={`${prize.bgColor} rounded-lg p-4 border border-gray-200`}>
-                  <div className="text-center">
-                    <div className="text-2xl mb-2">{prize.emoji}</div>
-                    <div className={`font-bold text-xl ${prize.color}`}>৳{prize.amount}</div>
-                    <div className="text-sm text-gray-600 mb-2">{prize.position === 1 ? '1st' : prize.position === 2 ? '2nd' : '3rd'} Place</div>
-                    {currentManager && (
-                      <div className="bg-white/70 rounded-lg p-2">
-                        <div className="font-semibold text-sm">{currentManager.managerName}</div>
-                        <div className="text-xs text-gray-600">{currentManager.totalPoints} pts</div>
-                      </div>
-                    )}
+            {prizeStructure.season.prizes.map((prize, index) => (
+              <div key={index} className="bg-white rounded-lg p-4 shadow-sm border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`
+                      w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm
+                      ${getPositionStyling(prize.position)}
+                    `}>
+                      <span className="text-xl">{prize.emoji}</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-900">{prize.label}</div>
+                      <div className="text-sm text-gray-600">Final Position #{prize.position}</div>
+                    </div>
+                  </div>
+                  <div className={`text-2xl font-bold ${prize.color}`}>
+                    ৳{prize.amount}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-4 text-center text-xs text-gray-600">
-            <div className="bg-white/50 rounded-lg p-2">
-              Season rankings based on total points after transfer penalties deducted
-            </div>
-          </div>
-        </div>
-
-        {/* Weekly Prizes */}
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Zap className="text-purple-600" size={20} />
-              Weekly Champions
-            </h3>
-            <div className="text-purple-600 font-bold">৳{prizeStructure.weekly.total}</div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/70 rounded-lg p-4">
-              <div className="text-center">
-                <div className="font-bold text-xl text-purple-600">৳30</div>
-                <div className="text-sm text-gray-600">Per Gameweek</div>
-                <div className="text-xs text-gray-500">Winner gets all</div>
-              </div>
-            </div>
-            <div className="bg-white/70 rounded-lg p-4">
-              <div className="text-center">
-                <div className="font-bold text-xl text-green-600">৳{distributionStats.weeklyDistributed}</div>
-                <div className="text-sm text-gray-600">Distributed</div>
-                <div className="text-xs text-gray-500">{distributionStats.completedGameweeks} gameweeks</div>
-              </div>
-            </div>
-            <div className="bg-white/70 rounded-lg p-4">
-              <div className="text-center">
-                <div className="font-bold text-xl text-blue-600">৳{distributionStats.weeklyRemaining}</div>
-                <div className="text-sm text-gray-600">Remaining</div>
-                <div className="text-xs text-gray-500">{totalGWs - distributionStats.completedGameweeks} gameweeks</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 bg-white/50 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">Weekly Progress</span>
-              <span className="text-sm font-bold text-purple-600">{Math.round(distributionStats.weeklyProgress)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${distributionStats.weeklyProgress}%` }}
-              ></div>
-            </div>
-            <div className="text-xs text-gray-600 mt-1">
-              Winners determined by highest net score (after transfer penalties) • Enhanced status detection
-            </div>
-          </div>
-        </div>
-
-        {/* Monthly Prizes */}
-        <div className="bg-gradient-to-r from-green-50 to-teal-50 rounded-xl p-4 border border-green-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Calendar className="text-green-600" size={20} />
-              Monthly Competitions
-            </h3>
-            <div className="text-green-600 font-bold">৳{prizeStructure.monthly.total}</div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white/70 rounded-lg p-4">
-              <div className="text-sm font-medium text-gray-700 mb-2">Regular Months (1-8)</div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>1st Place:</span>
-                  <span className="font-bold text-green-600">৳350</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>2nd Place:</span>
-                  <span className="font-bold text-green-600">৳250</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>3rd Place:</span>
-                  <span className="font-bold text-green-600">৳150</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between font-bold">
-                  <span>Per Month:</span>
-                  <span className="text-green-600">৳750</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white/70 rounded-lg p-4">
-              <div className="text-sm font-medium text-gray-700 mb-2">Final Month (9)</div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>1st Place:</span>
-                  <span className="font-bold text-green-600">৳500</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>2nd Place:</span>
-                  <span className="font-bold text-green-600">৳400</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>3rd Place:</span>
-                  <span className="font-bold text-green-600">৳250</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between font-bold">
-                  <span>Total:</span>
-                  <span className="text-green-600">৳1,150</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 bg-white/50 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">Monthly Progress</span>
-              <span className="text-sm font-bold text-green-600">{Math.round(distributionStats.monthlyProgress)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-gradient-to-r from-green-500 to-teal-500 h-2 rounded-full transition-all duration-500"
-                style={{ width: `${distributionStats.monthlyProgress}%` }}
-              ></div>
-            </div>
-            <div className="text-xs text-gray-600 mt-1">
-              {distributionStats.completedMonths} of 9 months completed • Rankings by net monthly points • Enhanced status detection
-            </div>
-          </div>
-        </div>
-
-        {/* Souvenirs & Extras */}
-        <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-4 border border-orange-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Gift className="text-orange-600" size={20} />
-              Souvenirs & Extras
-            </h3>
-            <div className="text-orange-600 font-bold">৳{prizeStructure.souvenirs.total}</div>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {prizeStructure.souvenirs.items.map((item, index) => (
-              <div key={index} className="bg-white/70 rounded-lg p-3 text-center">
-                <div className="text-2xl mb-2">
-                  {index === 0 ? '👕' : index === 1 ? '📜' : index === 2 ? '🏅' : '🏆'}
-                </div>
-                <div className="text-xs font-medium text-gray-700">{item}</div>
+                
+                {/* Current leader for this position */}
+                {standings[index] && (
+                  <div className="mt-3 p-2 bg-gray-50 rounded-lg">
+                    <div className="text-xs text-gray-600 mb-1">Current Leader:</div>
+                    <div className="font-semibold text-gray-900">
+                      {standings[index].managerName || standings[index].player_name}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {(standings[index].totalPoints || standings[index].total)?.toLocaleString()} points
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
-          
-          <div className="mt-4 text-center text-sm text-gray-600">
-            Physical and digital memorabilia distributed at season end
+        </div>
+
+        {/* Weekly Prizes Progress */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Zap className="text-blue-600" size={24} />
+              Weekly Competitions
+            </h3>
+            <div className="text-blue-600 font-bold text-lg">৳{prizeStructure.weekly.total} Total</div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm">
+              <div className="text-2xl font-bold text-green-600">৳{distributionStats.weeklyDistributed}</div>
+              <div className="text-sm text-gray-600">Distributed</div>
+              <div className="text-xs text-gray-500">{distributionStats.completedGameweeks} gameweeks</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm">
+              <div className="text-2xl font-bold text-blue-600">৳{prizeStructure.weekly.total - distributionStats.weeklyDistributed}</div>
+              <div className="text-sm text-gray-600">Remaining</div>
+              <div className="text-xs text-gray-500">{totalGWs - distributionStats.completedGameweeks} gameweeks</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm">
+              <div className="text-2xl font-bold text-purple-600">৳30</div>
+              <div className="text-sm text-gray-600">Per Week</div>
+              <div className="text-xs text-gray-500">Winner takes all</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm">
+              <div className="text-2xl font-bold text-orange-600">{Math.round(distributionStats.weeklyProgress)}%</div>
+              <div className="text-sm text-gray-600">Progress</div>
+              <div className="text-xs text-gray-500">Season completion</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Weekly Prize Progress</span>
+              <span className="text-sm font-bold text-purple-600">{Math.round(distributionStats.weeklyProgress)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
+                style={{ width: `${distributionStats.weeklyProgress}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Monthly Prizes Progress */}
+        <div className="bg-gradient-to-r from-green-50 to-teal-50 rounded-xl p-6 border border-green-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Calendar className="text-green-600" size={24} />
+              Monthly Competitions
+            </h3>
+            <div className="text-green-600 font-bold text-lg">৳{prizeStructure.monthly.total} Total</div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm">
+              <div className="text-2xl font-bold text-green-600">৳{distributionStats.monthlyDistributed}</div>
+              <div className="text-sm text-gray-600">Distributed</div>
+              <div className="text-xs text-gray-500">{Math.floor(distributionStats.completedGameweeks / 4)} months</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm">
+              <div className="text-2xl font-bold text-blue-600">৳{prizeStructure.monthly.total - distributionStats.monthlyDistributed}</div>
+              <div className="text-sm text-gray-600">Remaining</div>
+              <div className="text-xs text-gray-500">{9 - Math.floor(distributionStats.completedGameweeks / 4)} months</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm">
+              <div className="text-2xl font-bold text-purple-600">৳750</div>
+              <div className="text-sm text-gray-600">Per Month</div>
+              <div className="text-xs text-gray-500">Top 3 winners</div>
+            </div>
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm">
+              <div className="text-2xl font-bold text-orange-600">{Math.round(distributionStats.monthlyProgress)}%</div>
+              <div className="text-sm text-gray-600">Progress</div>
+              <div className="text-xs text-gray-500">Season completion</div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Monthly Prize Progress</span>
+              <span className="text-sm font-bold text-green-600">{Math.round(distributionStats.monthlyProgress)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div 
+                className="bg-gradient-to-r from-green-500 to-teal-500 h-3 rounded-full transition-all duration-500"
+                style={{ width: `${distributionStats.monthlyProgress}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Weekly Winners */}
+        {distributionStats.topWeeklyWinners.length > 0 && (
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-4">
+              <Star className="text-purple-600" size={24} />
+              Top Weekly Winners
+            </h3>
+
+            <div className="space-y-3">
+              {distributionStats.topWeeklyWinners.map((winner, index) => (
+                <div key={index} className="bg-white rounded-lg p-4 shadow-sm flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`
+                      w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+                      ${getPositionStyling(index + 1)}
+                    `}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-900">{winner.name}</div>
+                      <div className="text-sm text-gray-600">{winner.wins} weekly wins</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xl font-bold text-green-600">৳{winner.totalWon}</div>
+                    <div className="text-xs text-gray-500">Total earned</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Souvenirs & Miscellaneous */}
+        <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Gift className="text-gray-600" size={24} />
+              Souvenirs & Miscellaneous
+            </h3>
+            <div className="text-gray-600 font-bold text-lg">৳{prizeStructure.souvenirs.total}</div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {prizeStructure.souvenirs.items.map((item, index) => (
+              <div key={index} className="bg-white rounded-lg p-4 text-center shadow-sm">
+                <div className="text-2xl mb-2">
+                  {index === 0 ? '👕' : index === 1 ? '📜' : index === 2 ? '🏅' : '🏆'}
+                </div>
+                <div className="font-semibold text-gray-900 text-sm">{item}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Footer Summary */}
+      {/* Footer - Same style as League Table */}
       <div className="bg-gray-50 border-t border-gray-200 p-4">
-        <div className="text-center">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <div className="font-bold text-gray-900">৳{distributionStats.totalDistributed}</div>
-              <div className="text-gray-600">Already Distributed</div>
-            </div>
-            <div>
-              <div className="font-bold text-gray-900">৳{distributionStats.remainingPrizes}</div>
-              <div className="text-gray-600">Still Available</div>
-            </div>
-            <div>
-              <div className="font-bold text-gray-900">{Math.round((distributionStats.totalDistributed / grandTotal) * 100)}%</div>
-              <div className="text-gray-600">Season Progress</div>
-            </div>
-            <div>
-              <div className="font-bold text-gray-900">৳{grandTotal}</div>
-              <div className="text-gray-600">Total Prize Pool</div>
-            </div>
-          </div>
-          
-          <div className="mt-4 text-xs text-gray-500">
-            Prize distribution updated live • All competitions use net points (after transfer penalties) • Enhanced status detection • All amounts in Bangladeshi Taka (৳)
+        <div className="text-center text-sm text-gray-600">
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span>
+              Prize distribution updates in real-time as competitions conclude • Last updated: {new Date().toLocaleString('en-US', { 
+                timeZone: 'Asia/Dhaka',
+                dateStyle: 'medium',
+                timeStyle: 'short'
+              })} (BD)
+            </span>
           </div>
         </div>
       </div>
