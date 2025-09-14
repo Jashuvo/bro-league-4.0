@@ -1,21 +1,23 @@
-// src/components/TeamView.jsx - FIXED: API Limitation + Better Layout
+// src/components/TeamView.jsx - FIXED: Use More Screen Space + Current GW Only
 import { useState, useEffect } from 'react'
-import { X, Zap, AlertCircle, Users, ChevronLeft, ChevronRight, Trophy, TrendingUp, ArrowDown, Info, Shield, Star, Clock } from 'lucide-react'
+import { X, Zap, AlertCircle, Users, Trophy, TrendingUp, ArrowDown, Info, Shield, Star } from 'lucide-react'
 
 const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) => {
   const [teamData, setTeamData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [currentGameweek, setCurrentGameweek] = useState(gameweekInfo?.current || 4)
   const [viewMode, setViewMode] = useState('pitch') // 'pitch' or 'list'
 
+  // Only use current gameweek - no navigation needed
+  const currentGameweek = gameweekInfo?.current || 4
+
   // Fetch team data
-  const fetchTeamData = async (gw) => {
+  const fetchTeamData = async () => {
     setLoading(true)
     setError(null)
     
     try {
-      const response = await fetch(`/api/team-picks?managerId=${managerId}&eventId=${gw}`)
+      const response = await fetch(`/api/team-picks?managerId=${managerId}&eventId=${currentGameweek}`)
       
       if (!response.ok) {
         throw new Error(`Failed to fetch team data: ${response.status}`)
@@ -52,31 +54,13 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   }
 
   useEffect(() => {
-    if (managerId && currentGameweek) {
-      fetchTeamData(currentGameweek)
+    if (managerId) {
+      fetchTeamData()
     }
-  }, [managerId, currentGameweek])
-
-  // Navigate gameweeks
-  const handlePrevGW = () => {
-    if (currentGameweek > 1) {
-      setCurrentGameweek(prev => prev - 1)
-    }
-  }
-
-  const handleNextGW = () => {
-    if (currentGameweek < (gameweekInfo?.total || 38)) {
-      setCurrentGameweek(prev => prev + 1)
-    }
-  }
-
-  // IMPORTANT: Check if we should show individual player points
-  const isCurrentGameweek = currentGameweek === (gameweekInfo?.current || 4)
-  const showPlayerPoints = isCurrentGameweek
+  }, [managerId])
 
   // Helper function to get points color class
   const getPointsColorClass = (points) => {
-    if (!showPlayerPoints) return 'text-gray-400'
     if (points === null || points === undefined || points === '-') return 'text-gray-400'
     const pointValue = Number(points) || 0
     if (pointValue >= 10) return 'text-green-600'
@@ -118,15 +102,15 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     } else if (player?.positionType === 'DEF') {
       groupIndex = def.findIndex(p => p?.id === player?.id)
       totalInGroup = def.length
-      verticalPosition = '28%'
+      verticalPosition = '30%'
     } else if (player?.positionType === 'MID') {
       groupIndex = mid.findIndex(p => p?.id === player?.id)
       totalInGroup = mid.length
-      verticalPosition = '52%'
+      verticalPosition = '55%'
     } else if (player?.positionType === 'FWD') {
       groupIndex = fwd.findIndex(p => p?.id === player?.id)
       totalInGroup = fwd.length
-      verticalPosition = '76%'
+      verticalPosition = '80%'
     }
 
     // IMPROVED: Better horizontal spacing to prevent overlapping
@@ -136,11 +120,11 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     } else if (totalInGroup === 2) {
       leftPosition = groupIndex === 0 ? '35%' : '65%'
     } else if (totalInGroup === 3) {
-      leftPosition = ['30%', '50%', '70%'][groupIndex]
+      leftPosition = ['25%', '50%', '75%'][groupIndex]
     } else if (totalInGroup === 4) {
-      leftPosition = ['22%', '40%', '60%', '78%'][groupIndex]
+      leftPosition = ['20%', '40%', '60%', '80%'][groupIndex]
     } else if (totalInGroup === 5) {
-      leftPosition = ['18%', '32%', '50%', '68%', '82%'][groupIndex]
+      leftPosition = ['15%', '30%', '50%', '70%', '85%'][groupIndex]
     }
 
     return {
@@ -150,26 +134,21 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     }
   }
 
-  // IMPROVED: Player card component with API limitation handling
+  // IMPROVED: Player card component with better layout
   const PlayerCard = ({ player, isBench = false }) => {
     if (!player) return null
     
-    // FIXED: Handle API limitation for historical gameweeks
-    let displayPoints = '?'
-    if (showPlayerPoints) {
-      let playerPoints = 0
-      if (player.points !== undefined && player.points !== null) {
-        playerPoints = player.points
-      } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
-        playerPoints = player.eventPoints
-      }
-      
-      // Apply multiplier if captain/vice-captain
-      if (player.isCaptain && player.multiplier && player.multiplier > 1) {
-        playerPoints = playerPoints * player.multiplier
-      }
-      
-      displayPoints = playerPoints
+    // FIXED: Better points extraction and debugging
+    let playerPoints = 0
+    if (player.points !== undefined && player.points !== null) {
+      playerPoints = player.points
+    } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
+      playerPoints = player.eventPoints
+    }
+    
+    // Apply multiplier if captain/vice-captain
+    if (player.isCaptain && player.multiplier && player.multiplier > 1) {
+      playerPoints = playerPoints * player.multiplier
     }
     
     const chanceOfPlaying = player.chanceOfPlaying || 100
@@ -178,7 +157,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     
     // Get short name for better display
     const displayName = player.name ? 
-      (player.name.length > 9 ? player.name.split(' ').pop() : player.name) : '?'
+      (player.name.length > 8 ? player.name.split(' ').pop() : player.name) : '?'
     
     return (
       <div className={`
@@ -202,18 +181,18 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
         {/* IMPROVED: Player Circle with better text layout */}
         <div className={`
-          w-16 h-16 rounded-full flex flex-col items-center justify-center text-white font-bold shadow-lg border-3 border-white relative
+          w-14 h-14 rounded-full flex flex-col items-center justify-center text-white font-bold shadow-lg border-3 border-white relative
           ${getPositionColorClass(player.positionType)}
           ${isInjured ? 'opacity-60' : ''}
         `}>
           {/* Player Name - Top */}
-          <div className="text-xs leading-tight text-center px-1 truncate w-14 -mb-0.5">
+          <div className="text-xs leading-tight text-center px-1 truncate w-12">
             {displayName}
           </div>
           
           {/* Points - Bottom */}
-          <div className={`text-xs font-bold ${!showPlayerPoints ? 'text-gray-300' : ''}`}>
-            {displayPoints}
+          <div className="text-xs font-bold mt-0.5">
+            {playerPoints}
           </div>
         </div>
 
@@ -235,7 +214,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
-        <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl">
+        <div className="bg-white rounded-2xl w-full max-w-md max-h-[95vh] overflow-hidden shadow-2xl">
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading team data...</p>
@@ -248,7 +227,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   if (error || !teamData) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
-        <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl">
+        <div className="bg-white rounded-2xl w-full max-w-md max-h-[95vh] overflow-hidden shadow-2xl">
           <div className="p-8 text-center">
             <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
             <p className="text-gray-600 text-center mb-4">{error}</p>
@@ -266,9 +245,9 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      {/* IMPROVED: Better modal sizing using available space */}
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-        {/* Header */}
+      {/* IMPROVED: Use more available screen space */}
+      <div className="bg-white rounded-2xl w-full max-w-md max-h-[95vh] overflow-hidden shadow-2xl flex flex-col">
+        {/* Compact Header */}
         <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-4 text-white relative overflow-hidden flex-shrink-0">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
@@ -295,51 +274,17 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               </button>
             </div>
 
-            {/* Gameweek Navigation */}
-            <div className="flex items-center justify-between bg-white/10 rounded-lg p-3 backdrop-blur-sm">
-              <button
-                onClick={handlePrevGW}
-                disabled={currentGameweek <= 1}
-                className="p-2 hover:bg-white/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              
-              <div className="text-center">
-                <div className="text-lg font-bold">Gameweek {currentGameweek}</div>
-                <div className="flex items-center gap-2 justify-center mt-1">
-                  {teamData?.activeChip && (
-                    <div className="text-xs bg-yellow-400 text-purple-900 px-2 py-1 rounded-full font-semibold">
-                      {teamData.activeChip.toUpperCase()}
-                    </div>
-                  )}
-                  {!isCurrentGameweek && (
-                    <div className="flex items-center gap-1 text-xs text-purple-200">
-                      <Clock size={12} />
-                      Historical
-                    </div>
-                  )}
+            {/* Current Gameweek Display - No Navigation */}
+            <div className="text-center bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+              <div className="text-lg font-bold">Gameweek {currentGameweek}</div>
+              {teamData?.activeChip && (
+                <div className="text-xs bg-yellow-400 text-purple-900 px-2 py-1 rounded-full inline-block mt-1 font-semibold">
+                  {teamData.activeChip.toUpperCase()}
                 </div>
-              </div>
-              
-              <button
-                onClick={handleNextGW}
-                disabled={currentGameweek >= (gameweekInfo?.total || 38)}
-                className="p-2 hover:bg-white/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ChevronRight size={18} />
-              </button>
+              )}
             </div>
           </div>
         </div>
-
-        {/* API Limitation Notice for Historical Gameweeks */}
-        {!isCurrentGameweek && (
-          <div className="bg-amber-50 border-b border-amber-200 p-3 flex items-center gap-2 text-sm text-amber-800 flex-shrink-0">
-            <Info size={16} className="text-amber-600 flex-shrink-0" />
-            <span>Historical team selection shown. Individual player points only available for current gameweek.</span>
-          </div>
-        )}
 
         {/* Stats Section */}
         <div className="bg-gray-50 border-b border-gray-200 p-4 flex-shrink-0">
@@ -402,12 +347,12 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           </div>
         </div>
 
-        {/* Team Display - Uses remaining flex space */}
+        {/* Team Display - Now uses flex-1 for remaining space */}
         <div className="bg-gradient-to-b from-green-50 to-green-100 flex-1 overflow-hidden">
           {viewMode === 'pitch' ? (
-            // IMPROVED: Pitch View with better use of space
+            // IMPROVED: Pitch View with more space
             <div className="p-4 h-full flex flex-col">
-              <div className="relative flex-1 max-w-md mx-auto">
+              <div className="relative flex-1 max-w-sm mx-auto">
                 {/* Enhanced Pitch Background */}
                 <div className="absolute inset-0 bg-gradient-to-b from-green-400 via-green-500 to-green-600 rounded-3xl shadow-2xl overflow-hidden">
                   <div className="absolute inset-0 opacity-20">
@@ -418,9 +363,9 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                   
                   {/* Pitch markings */}
                   <div className="absolute inset-x-6 top-1/2 transform -translate-y-1/2 h-0.5 bg-white/40"></div>
-                  <div className="absolute inset-x-12 bottom-[8%] h-24 border-2 border-white/40 rounded-t-2xl"></div>
-                  <div className="absolute inset-x-12 top-[8%] h-24 border-2 border-white/40 rounded-b-2xl"></div>
-                  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/40 rounded-full"></div>
+                  <div className="absolute inset-x-10 bottom-[8%] h-20 border-2 border-white/40 rounded-t-2xl"></div>
+                  <div className="absolute inset-x-10 top-[8%] h-20 border-2 border-white/40 rounded-b-2xl"></div>
+                  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 border-2 border-white/40 rounded-full"></div>
                   <div className="absolute left-1/2 bottom-[8%] transform -translate-x-1/2 w-2 h-2 bg-white/60 rounded-full"></div>
                   <div className="absolute left-1/2 top-[8%] transform -translate-x-1/2 w-2 h-2 bg-white/60 rounded-full"></div>
                 </div>
@@ -471,22 +416,17 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                       teamData.startingXI.map((player, index) => {
                         if (!player) return null
                         
-                        // FIXED: Handle API limitation
-                        let displayPoints = '?'
-                        if (showPlayerPoints) {
-                          let playerPoints = 0
-                          if (player.points !== undefined && player.points !== null) {
-                            playerPoints = player.points
-                          } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
-                            playerPoints = player.eventPoints
-                          }
-                          
-                          // Apply multiplier if captain
-                          if (player.isCaptain && player.multiplier && player.multiplier > 1) {
-                            playerPoints = playerPoints * player.multiplier
-                          }
-                          
-                          displayPoints = playerPoints
+                        // FIXED: Better points extraction
+                        let displayPoints = 0
+                        if (player.points !== undefined && player.points !== null) {
+                          displayPoints = player.points
+                        } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
+                          displayPoints = player.eventPoints
+                        }
+                        
+                        // Apply multiplier if captain
+                        if (player.isCaptain && player.multiplier && player.multiplier > 1) {
+                          displayPoints = displayPoints * player.multiplier
                         }
                         
                         return (
@@ -546,15 +486,11 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                       {teamData.bench.map((player, index) => {
                         if (!player) return null
                         
-                        let displayPoints = '?'
-                        if (showPlayerPoints) {
-                          let playerPoints = 0
-                          if (player.points !== undefined && player.points !== null) {
-                            playerPoints = player.points
-                          } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
-                            playerPoints = player.eventPoints
-                          }
-                          displayPoints = playerPoints
+                        let displayPoints = 0
+                        if (player.points !== undefined && player.points !== null) {
+                          displayPoints = player.points
+                        } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
+                          displayPoints = player.eventPoints
                         }
                         
                         return (
