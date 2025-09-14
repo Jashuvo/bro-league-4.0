@@ -1,4 +1,4 @@
-// src/components/TeamView.jsx - MINIMAL FIX: Only changing pitch/subs proportions + scrolling
+// src/components/TeamView.jsx - BACK TO ORIGINAL WORKING VERSION + minimal changes only
 import { useState, useEffect } from 'react'
 import { X, Zap, AlertCircle, Users, Trophy, TrendingUp, ArrowDown, Info, Shield, Star } from 'lucide-react'
 
@@ -256,10 +256,10 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      {/* Modal Container - KEEPING ORIGINAL SIZE */}
+      {/* Modal Container */}
       <div className="bg-white rounded-2xl w-full max-w-md max-h-[95vh] overflow-hidden shadow-2xl">
         
-        {/* ORIGINAL Header - NO CHANGES */}
+        {/* Header */}
         <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-2 text-white relative">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
@@ -288,7 +288,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           </div>
         </div>
 
-        {/* ORIGINAL View Toggle - NO CHANGES */}
+        {/* View Toggle */}
         <div className="p-2 border-b">
           <div className="flex bg-gray-100 rounded-lg overflow-hidden">
             <button
@@ -310,15 +310,15 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           </div>
         </div>
 
-        {/* Content - ONLY CHANGING PROPORTIONS HERE */}
+        {/* Content */}
         <div className="flex-1 overflow-hidden">
           {viewMode === 'pitch' ? (
-            // PITCH VIEW - FIXED PROPORTIONS
+            // PITCH VIEW - BACK TO ORIGINAL STRUCTURE
             <div className="bg-gradient-to-b from-green-400 to-green-600 h-full overflow-y-auto">
-              <div className="flex flex-col h-full">
-                {/* Main Pitch - 80% of available space */}
-                <div style={{ height: '80%' }} className="relative mx-2 mt-2">
-                  {/* Pitch markings - keeping original design */}
+              <div className="relative">
+                {/* Football pitch - ORIGINAL SIZE */}
+                <div className="relative h-80 mx-2 mt-2">
+                  {/* Pitch markings */}
                   <div className="absolute inset-0 bg-green-500 rounded-2xl overflow-hidden">
                     {/* Pitch lines */}
                     <div className="absolute inset-x-8 bottom-[8%] h-24 border-2 border-white/40 rounded-t-2xl"></div>
@@ -345,22 +345,24 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                   </div>
                 </div>
 
-                {/* COMPACT Substitutes - 20% of available space */}
+                {/* ONLY CHANGE: More compact substitutes section */}
                 {teamData?.bench && teamData.bench.length > 0 && (
-                  <div style={{ height: '20%' }} className="mx-4 mb-2 flex items-center">
-                    <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-3 w-full">
-                      <h4 className="text-xs font-bold text-white text-center mb-2">SUBSTITUTES</h4>
-                      <div className="flex justify-center gap-3">
-                        {teamData.bench.map((player, index) => (
-                          <div key={player?.id || index} className="flex flex-col items-center">
-                            <div className="scale-75">
-                              <PlayerCard player={player} isBench={true} />
+                  <div className="mt-4 pb-16">
+                    <div className="mx-4">
+                      <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-4">
+                        <h4 className="text-sm font-bold text-white text-center mb-3">SUBSTITUTES</h4>
+                        <div className="flex justify-center gap-3">
+                          {teamData.bench.map((player, index) => (
+                            <div key={player?.id || index} className="flex flex-col items-center">
+                              <div className="scale-75">
+                                <PlayerCard player={player} isBench={true} />
+                              </div>
+                              <div className="mt-1 bg-purple-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
+                                {index + 1}
+                              </div>
                             </div>
-                            <div className="mt-1 bg-purple-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-                              {index + 1}
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -368,10 +370,10 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               </div>
             </div>
           ) : (
-            // LIST VIEW - FIXED SCROLLING ONLY
+            // LIST VIEW - ONLY FIXING SCROLLING
             <div className="bg-gradient-to-b from-green-50 to-green-100 h-full overflow-y-auto">
-              <div className="p-3 pb-24">
-                {/* Starting XI - keeping original */}
+              <div className="p-3 pb-32">
+                {/* Starting XI */}
                 <div className="mb-4">
                   <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
                     <Users size={16} className="text-purple-600" />
@@ -439,7 +441,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                   </div>
                 </div>
 
-                {/* Bench - keeping original design */}
+                {/* Bench */}
                 {teamData?.bench && Array.isArray(teamData.bench) && teamData.bench.length > 0 && (
                   <div>
                     <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm">
