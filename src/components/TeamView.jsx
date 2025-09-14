@@ -1,4 +1,4 @@
-// src/components/TeamView.jsx - FIXED: Use More Screen Space + Current GW Only
+// src/components/TeamView.jsx - COMPLETELY FIXED: Pitch View + Scrolling
 import { useState, useEffect } from 'react'
 import { X, Zap, AlertCircle, Users, Trophy, TrendingUp, ArrowDown, Info, Shield, Star } from 'lucide-react'
 
@@ -246,9 +246,9 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       {/* IMPROVED: Use more available screen space */}
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[95vh] overflow-hidden shadow-2xl flex flex-col">
+      <div className="bg-white rounded-2xl w-full max-w-md max-h-[95vh] overflow-hidden shadow-2xl">
         {/* Compact Header */}
-        <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-4 text-white relative overflow-hidden flex-shrink-0">
+        <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-4 text-white relative overflow-hidden">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='20' height='20' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 20 0 L 0 0 0 20' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23grid)' /%3E%3C/svg%3E")`
@@ -287,7 +287,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         </div>
 
         {/* Stats Section */}
-        <div className="bg-gray-50 border-b border-gray-200 p-4 flex-shrink-0">
+        <div className="bg-gray-50 border-b border-gray-200 p-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
               <div className="text-2xl font-bold text-blue-600">
@@ -322,7 +322,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         </div>
 
         {/* View Toggle */}
-        <div className="flex justify-center p-3 bg-gray-50 border-b border-gray-200 flex-shrink-0">
+        <div className="flex justify-center p-3 bg-gray-50 border-b border-gray-200">
           <div className="bg-white rounded-xl p-1 flex gap-1 shadow-sm border">
             <button
               onClick={() => setViewMode('pitch')}
@@ -347,14 +347,16 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           </div>
         </div>
 
-        {/* Team Display - Now uses flex-1 for remaining space */}
-        <div className="bg-gradient-to-b from-green-50 to-green-100 flex-1 overflow-hidden">
-          {viewMode === 'pitch' ? (
-            // IMPROVED: Pitch View with more space
-            <div className="p-4 h-full flex flex-col">
-              <div className="relative flex-1 max-w-sm mx-auto">
-                {/* Enhanced Pitch Background */}
+        {/* COMPLETELY FIXED: Team Display Content */}
+        {viewMode === 'pitch' ? (
+          // PITCH VIEW - Fixed to show properly
+          <div className="bg-gradient-to-b from-green-50 to-green-100" style={{ height: 'calc(95vh - 280px)' }}>
+            <div className="h-full overflow-y-auto p-4">
+              {/* Main Pitch Container */}
+              <div className="relative w-full max-w-xs mx-auto" style={{ height: '350px', minHeight: '350px' }}>
+                {/* Pitch Background */}
                 <div className="absolute inset-0 bg-gradient-to-b from-green-400 via-green-500 to-green-600 rounded-3xl shadow-2xl overflow-hidden">
+                  {/* Grass texture */}
                   <div className="absolute inset-0 opacity-20">
                     <div className="absolute inset-0" style={{
                       backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='pitch' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23pitch)' /%3E%3C/svg%3E")`
@@ -370,7 +372,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                   <div className="absolute left-1/2 top-[8%] transform -translate-x-1/2 w-2 h-2 bg-white/60 rounded-full"></div>
                 </div>
 
-                {/* Players positioned correctly */}
+                {/* Starting XI Players */}
                 {teamData?.startingXI?.map((player, index) => (
                   <div
                     key={player?.id || index}
@@ -387,11 +389,11 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                 </div>
               </div>
 
-              {/* Bench */}
+              {/* Bench Section */}
               {teamData?.bench && teamData.bench.length > 0 && (
-                <div className="mt-4 flex-shrink-0">
+                <div className="mt-6">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3 text-center">Substitutes</h4>
-                  <div className="flex justify-center gap-3">
+                  <div className="flex justify-center gap-3 pb-4">
                     {teamData.bench.map((player, index) => (
                       <div key={player?.id || index} className="scale-75">
                         <PlayerCard player={player} isBench={true} />
@@ -401,10 +403,12 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                 </div>
               )}
             </div>
-          ) : (
-            // FIXED: List View with better scrolling
+          </div>
+        ) : (
+          // LIST VIEW - Fixed scrolling issue
+          <div className="bg-gradient-to-b from-green-50 to-green-100" style={{ height: 'calc(95vh - 280px)' }}>
             <div className="h-full overflow-y-auto">
-              <div className="p-4 space-y-4">
+              <div className="p-4 pb-8 space-y-4">
                 {/* Starting XI */}
                 <div>
                   <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-lg">
@@ -530,8 +534,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                 )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
