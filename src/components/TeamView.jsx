@@ -1,6 +1,6 @@
-// src/components/TeamView.jsx - COMPREHENSIVE FIX FOR POINTS & LAYOUT
+// src/components/TeamView.jsx - FIXED: API Limitation + Better Layout
 import { useState, useEffect } from 'react'
-import { X, Zap, AlertCircle, Users, ChevronLeft, ChevronRight, Trophy, TrendingUp, ArrowDown, Info, Shield, Star } from 'lucide-react'
+import { X, Zap, AlertCircle, Users, ChevronLeft, ChevronRight, Trophy, TrendingUp, ArrowDown, Info, Shield, Star, Clock } from 'lucide-react'
 
 const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) => {
   const [teamData, setTeamData] = useState(null)
@@ -70,8 +70,13 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     }
   }
 
+  // IMPORTANT: Check if we should show individual player points
+  const isCurrentGameweek = currentGameweek === (gameweekInfo?.current || 4)
+  const showPlayerPoints = isCurrentGameweek
+
   // Helper function to get points color class
   const getPointsColorClass = (points) => {
+    if (!showPlayerPoints) return 'text-gray-400'
     if (points === null || points === undefined || points === '-') return 'text-gray-400'
     const pointValue = Number(points) || 0
     if (pointValue >= 10) return 'text-green-600'
@@ -113,15 +118,15 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     } else if (player?.positionType === 'DEF') {
       groupIndex = def.findIndex(p => p?.id === player?.id)
       totalInGroup = def.length
-      verticalPosition = '30%'
+      verticalPosition = '28%'
     } else if (player?.positionType === 'MID') {
       groupIndex = mid.findIndex(p => p?.id === player?.id)
       totalInGroup = mid.length
-      verticalPosition = '55%'
+      verticalPosition = '52%'
     } else if (player?.positionType === 'FWD') {
       groupIndex = fwd.findIndex(p => p?.id === player?.id)
       totalInGroup = fwd.length
-      verticalPosition = '80%'
+      verticalPosition = '76%'
     }
 
     // IMPROVED: Better horizontal spacing to prevent overlapping
@@ -131,11 +136,11 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     } else if (totalInGroup === 2) {
       leftPosition = groupIndex === 0 ? '35%' : '65%'
     } else if (totalInGroup === 3) {
-      leftPosition = ['25%', '50%', '75%'][groupIndex]
+      leftPosition = ['30%', '50%', '70%'][groupIndex]
     } else if (totalInGroup === 4) {
-      leftPosition = ['20%', '40%', '60%', '80%'][groupIndex]
+      leftPosition = ['22%', '40%', '60%', '78%'][groupIndex]
     } else if (totalInGroup === 5) {
-      leftPosition = ['15%', '30%', '50%', '70%', '85%'][groupIndex]
+      leftPosition = ['18%', '32%', '50%', '68%', '82%'][groupIndex]
     }
 
     return {
@@ -145,21 +150,26 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     }
   }
 
-  // IMPROVED: Player card component with better layout
+  // IMPROVED: Player card component with API limitation handling
   const PlayerCard = ({ player, isBench = false }) => {
     if (!player) return null
     
-    // FIXED: Better points extraction and debugging
-    let playerPoints = 0
-    if (player.points !== undefined && player.points !== null) {
-      playerPoints = player.points
-    } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
-      playerPoints = player.eventPoints
-    }
-    
-    // Apply multiplier if captain/vice-captain
-    if (player.isCaptain && player.multiplier && player.multiplier > 1) {
-      playerPoints = playerPoints * player.multiplier
+    // FIXED: Handle API limitation for historical gameweeks
+    let displayPoints = '?'
+    if (showPlayerPoints) {
+      let playerPoints = 0
+      if (player.points !== undefined && player.points !== null) {
+        playerPoints = player.points
+      } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
+        playerPoints = player.eventPoints
+      }
+      
+      // Apply multiplier if captain/vice-captain
+      if (player.isCaptain && player.multiplier && player.multiplier > 1) {
+        playerPoints = playerPoints * player.multiplier
+      }
+      
+      displayPoints = playerPoints
     }
     
     const chanceOfPlaying = player.chanceOfPlaying || 100
@@ -168,7 +178,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     
     // Get short name for better display
     const displayName = player.name ? 
-      (player.name.length > 8 ? player.name.split(' ').pop() : player.name) : '?'
+      (player.name.length > 9 ? player.name.split(' ').pop() : player.name) : '?'
     
     return (
       <div className={`
@@ -192,18 +202,18 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
         {/* IMPROVED: Player Circle with better text layout */}
         <div className={`
-          w-14 h-14 rounded-full flex flex-col items-center justify-center text-white font-bold shadow-lg border-3 border-white relative
+          w-16 h-16 rounded-full flex flex-col items-center justify-center text-white font-bold shadow-lg border-3 border-white relative
           ${getPositionColorClass(player.positionType)}
           ${isInjured ? 'opacity-60' : ''}
         `}>
           {/* Player Name - Top */}
-          <div className="text-xs leading-tight text-center px-1 truncate w-12">
+          <div className="text-xs leading-tight text-center px-1 truncate w-14 -mb-0.5">
             {displayName}
           </div>
           
           {/* Points - Bottom */}
-          <div className="text-xs font-bold mt-0.5">
-            {playerPoints}
+          <div className={`text-xs font-bold ${!showPlayerPoints ? 'text-gray-300' : ''}`}>
+            {displayPoints}
           </div>
         </div>
 
@@ -225,7 +235,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
-        <div className="bg-white rounded-2xl w-full max-w-sm max-h-[70vh] overflow-hidden shadow-2xl">
+        <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl">
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading team data...</p>
@@ -238,7 +248,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   if (error || !teamData) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
-        <div className="bg-white rounded-2xl w-full max-w-sm max-h-[70vh] overflow-hidden shadow-2xl">
+        <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-hidden shadow-2xl">
           <div className="p-8 text-center">
             <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
             <p className="text-gray-600 text-center mb-4">{error}</p>
@@ -255,11 +265,11 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2">
-      {/* FIXED: Better modal sizing - smaller and more compact */}
-      <div className="bg-white rounded-2xl w-full max-w-sm max-h-[80vh] overflow-hidden shadow-2xl">
-        {/* Compact Header */}
-        <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-3 text-white relative overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      {/* IMPROVED: Better modal sizing using available space */}
+      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-4 text-white relative overflow-hidden flex-shrink-0">
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='grid' width='20' height='20' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 20 0 L 0 0 0 20' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23grid)' /%3E%3C/svg%3E")`
@@ -267,14 +277,14 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           </div>
           
           <div className="relative">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Users size={16} className="text-white" />
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Users size={20} className="text-white" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold truncate">{managerName || 'Team View'}</h2>
-                  <p className="text-purple-200 text-xs truncate">{teamName || ''}</p>
+                  <h2 className="text-lg font-bold">{managerName || 'Team View'}</h2>
+                  <p className="text-purple-200 text-sm">{teamName || ''}</p>
                 </div>
               </div>
               <button
@@ -285,105 +295,121 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               </button>
             </div>
 
-            {/* Compact Gameweek Navigation */}
-            <div className="flex items-center justify-between bg-white/10 rounded-lg p-2 backdrop-blur-sm">
+            {/* Gameweek Navigation */}
+            <div className="flex items-center justify-between bg-white/10 rounded-lg p-3 backdrop-blur-sm">
               <button
                 onClick={handlePrevGW}
                 disabled={currentGameweek <= 1}
-                className="p-1 hover:bg-white/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 hover:bg-white/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={18} />
               </button>
               
               <div className="text-center">
-                <div className="text-sm font-bold">GW {currentGameweek}</div>
-                {teamData?.activeChip && (
-                  <div className="text-xs bg-yellow-400 text-purple-900 px-2 py-0.5 rounded-full inline-block mt-0.5 font-semibold">
-                    {teamData.activeChip.toUpperCase()}
-                  </div>
-                )}
+                <div className="text-lg font-bold">Gameweek {currentGameweek}</div>
+                <div className="flex items-center gap-2 justify-center mt-1">
+                  {teamData?.activeChip && (
+                    <div className="text-xs bg-yellow-400 text-purple-900 px-2 py-1 rounded-full font-semibold">
+                      {teamData.activeChip.toUpperCase()}
+                    </div>
+                  )}
+                  {!isCurrentGameweek && (
+                    <div className="flex items-center gap-1 text-xs text-purple-200">
+                      <Clock size={12} />
+                      Historical
+                    </div>
+                  )}
+                </div>
               </div>
               
               <button
                 onClick={handleNextGW}
                 disabled={currentGameweek >= (gameweekInfo?.total || 38)}
-                className="p-1 hover:bg-white/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="p-2 hover:bg-white/20 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <ChevronRight size={14} />
+                <ChevronRight size={18} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Compact Stats Section */}
-        <div className="bg-gray-50 border-b border-gray-200 p-3">
-          <div className="grid grid-cols-4 gap-2 text-center">
+        {/* API Limitation Notice for Historical Gameweeks */}
+        {!isCurrentGameweek && (
+          <div className="bg-amber-50 border-b border-amber-200 p-3 flex items-center gap-2 text-sm text-amber-800 flex-shrink-0">
+            <Info size={16} className="text-amber-600 flex-shrink-0" />
+            <span>Historical team selection shown. Individual player points only available for current gameweek.</span>
+          </div>
+        )}
+
+        {/* Stats Section */}
+        <div className="bg-gray-50 border-b border-gray-200 p-4 flex-shrink-0">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <div className="text-lg font-bold text-blue-600">
+              <div className="text-2xl font-bold text-blue-600">
                 {teamData?.entryHistory?.points || 0}
               </div>
-              <div className="text-xs text-gray-500">GW</div>
+              <div className="text-xs text-gray-500">GW Points</div>
             </div>
             <div>
-              <div className="text-sm font-bold text-purple-600">
+              <div className="text-lg font-bold text-purple-600">
                 {teamData?.entryHistory?.totalPoints?.toLocaleString() || 0}
               </div>
-              <div className="text-xs text-gray-500">Total</div>
+              <div className="text-xs text-gray-500">Total Points</div>
             </div>
             <div>
-              <div className="text-sm font-bold text-green-600">
+              <div className="text-lg font-bold text-green-600">
                 #{teamData?.entryHistory?.overallRank?.toLocaleString() || 'N/A'}
               </div>
-              <div className="text-xs text-gray-500">Rank</div>
+              <div className="text-xs text-gray-500">Overall Rank</div>
             </div>
             <div>
-              <div className="text-sm font-bold text-orange-600">
+              <div className="text-lg font-bold text-orange-600">
                 {Math.floor((teamData?.entryHistory?.eventTransfersCost || 0) / 4)}
                 {teamData?.entryHistory?.eventTransfersCost > 0 && (
-                  <span className="text-red-600 text-xs ml-1">
-                    (-{teamData.entryHistory.eventTransfersCost})
+                  <span className="text-red-600 text-sm ml-1">
+                    (-{teamData.entryHistory.eventTransfersCost}pts)
                   </span>
                 )}
               </div>
-              <div className="text-xs text-gray-500">Hits</div>
+              <div className="text-xs text-gray-500">Transfers</div>
             </div>
           </div>
         </div>
 
-        {/* Compact View Toggle */}
-        <div className="flex justify-center p-2 bg-gray-50 border-b border-gray-200">
-          <div className="bg-white rounded-lg p-0.5 flex gap-0.5 shadow-sm border">
+        {/* View Toggle */}
+        <div className="flex justify-center p-3 bg-gray-50 border-b border-gray-200 flex-shrink-0">
+          <div className="bg-white rounded-xl p-1 flex gap-1 shadow-sm border">
             <button
               onClick={() => setViewMode('pitch')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
                 viewMode === 'pitch' 
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm' 
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' 
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              Pitch
+              Pitch View
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+              className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
                 viewMode === 'list' 
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm' 
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' 
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              List
+              List View
             </button>
           </div>
         </div>
 
-        {/* Team Display */}
-        <div className="bg-gradient-to-b from-green-50 to-green-100">
+        {/* Team Display - Uses remaining flex space */}
+        <div className="bg-gradient-to-b from-green-50 to-green-100 flex-1 overflow-hidden">
           {viewMode === 'pitch' ? (
-            // IMPROVED: Compact Pitch View 
-            <div className="p-2">
-              <div className="relative h-[300px] max-w-xs mx-auto">
+            // IMPROVED: Pitch View with better use of space
+            <div className="p-4 h-full flex flex-col">
+              <div className="relative flex-1 max-w-md mx-auto">
                 {/* Enhanced Pitch Background */}
-                <div className="absolute inset-0 bg-gradient-to-b from-green-400 via-green-500 to-green-600 rounded-2xl shadow-xl overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-b from-green-400 via-green-500 to-green-600 rounded-3xl shadow-2xl overflow-hidden">
                   <div className="absolute inset-0 opacity-20">
                     <div className="absolute inset-0" style={{
                       backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='pitch' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='white' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23pitch)' /%3E%3C/svg%3E")`
@@ -392,9 +418,9 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                   
                   {/* Pitch markings */}
                   <div className="absolute inset-x-6 top-1/2 transform -translate-y-1/2 h-0.5 bg-white/40"></div>
-                  <div className="absolute inset-x-8 bottom-[8%] h-20 border-2 border-white/40 rounded-t-2xl"></div>
-                  <div className="absolute inset-x-8 top-[8%] h-20 border-2 border-white/40 rounded-b-2xl"></div>
-                  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border-2 border-white/40 rounded-full"></div>
+                  <div className="absolute inset-x-12 bottom-[8%] h-24 border-2 border-white/40 rounded-t-2xl"></div>
+                  <div className="absolute inset-x-12 top-[8%] h-24 border-2 border-white/40 rounded-b-2xl"></div>
+                  <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/40 rounded-full"></div>
                   <div className="absolute left-1/2 bottom-[8%] transform -translate-x-1/2 w-2 h-2 bg-white/60 rounded-full"></div>
                   <div className="absolute left-1/2 top-[8%] transform -translate-x-1/2 w-2 h-2 bg-white/60 rounded-full"></div>
                 </div>
@@ -411,16 +437,16 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                 ))}
 
                 {/* Formation Display */}
-                <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded-lg backdrop-blur-sm">
-                  <div className="text-xs font-bold">{teamData?.formation || '4-4-2'}</div>
+                <div className="absolute top-4 left-4 bg-black/60 text-white px-3 py-2 rounded-xl backdrop-blur-sm">
+                  <div className="text-sm font-bold">{teamData?.formation || '4-4-2'}</div>
                 </div>
               </div>
 
-              {/* Compact Bench */}
+              {/* Bench */}
               {teamData?.bench && teamData.bench.length > 0 && (
-                <div className="mt-2 px-2">
-                  <h4 className="text-xs font-semibold text-gray-700 mb-2 text-center">Bench</h4>
-                  <div className="flex justify-center gap-1">
+                <div className="mt-4 flex-shrink-0">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3 text-center">Substitutes</h4>
+                  <div className="flex justify-center gap-3">
                     {teamData.bench.map((player, index) => (
                       <div key={player?.id || index} className="scale-75">
                         <PlayerCard player={player} isBench={true} />
@@ -432,61 +458,66 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             </div>
           ) : (
             // FIXED: List View with better scrolling
-            <div className="max-h-[35vh] overflow-y-auto">
-              <div className="p-3 space-y-3">
+            <div className="h-full overflow-y-auto">
+              <div className="p-4 space-y-4">
                 {/* Starting XI */}
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2 text-sm">
-                    <Users size={16} className="text-purple-600" />
+                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-lg">
+                    <Users size={20} className="text-purple-600" />
                     Starting XI
                   </h3>
-                  <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                  <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
                     {teamData?.startingXI && Array.isArray(teamData.startingXI) && teamData.startingXI.length > 0 ? (
                       teamData.startingXI.map((player, index) => {
                         if (!player) return null
                         
-                        // FIXED: Better points extraction
-                        let displayPoints = 0
-                        if (player.points !== undefined && player.points !== null) {
-                          displayPoints = player.points
-                        } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
-                          displayPoints = player.eventPoints
-                        }
-                        
-                        // Apply multiplier if captain
-                        if (player.isCaptain && player.multiplier && player.multiplier > 1) {
-                          displayPoints = displayPoints * player.multiplier
+                        // FIXED: Handle API limitation
+                        let displayPoints = '?'
+                        if (showPlayerPoints) {
+                          let playerPoints = 0
+                          if (player.points !== undefined && player.points !== null) {
+                            playerPoints = player.points
+                          } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
+                            playerPoints = player.eventPoints
+                          }
+                          
+                          // Apply multiplier if captain
+                          if (player.isCaptain && player.multiplier && player.multiplier > 1) {
+                            playerPoints = playerPoints * player.multiplier
+                          }
+                          
+                          displayPoints = playerPoints
                         }
                         
                         return (
                           <div 
                             key={player.id || index} 
-                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors ${
+                            className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${
                               index !== teamData.startingXI.length - 1 ? 'border-b border-gray-100' : ''
                             }`}
                           >
-                            <div className="flex items-center gap-2.5">
+                            <div className="flex items-center gap-3">
                               <div className={`
-                                w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-md
+                                w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md
                                 ${getPositionColorClass(player.positionType)}
                               `}>
                                 {player.positionType || '?'}
                               </div>
                               <div>
-                                <div className="font-semibold text-gray-900 flex items-center gap-1.5 text-sm">
+                                <div className="font-semibold text-gray-900 flex items-center gap-2">
                                   {player.name || 'Unknown'}
                                   {player.isCaptain && (
-                                    <span className="bg-yellow-400 text-gray-900 text-xs px-1 py-0.5 rounded-full font-bold">C</span>
+                                    <span className="bg-yellow-400 text-gray-900 text-xs px-2 py-1 rounded-full font-bold border">C</span>
                                   )}
                                   {player.isViceCaptain && (
-                                    <span className="bg-gray-600 text-white text-xs px-1 py-0.5 rounded-full font-bold">V</span>
+                                    <span className="bg-gray-600 text-white text-xs px-2 py-1 rounded-full font-bold">V</span>
                                   )}
                                 </div>
-                                <div className="text-xs text-gray-600">{player.teamName || 'Unknown'}</div>
+                                <div className="text-sm text-gray-600">{player.teamName || 'Unknown'}</div>
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className={`font-bold text-sm ${getPointsColorClass(displayPoints)}`}>
+                              <div className={`font-bold text-lg ${getPointsColorClass(displayPoints)}`}>
                                 {displayPoints}
                               </div>
                               <div className="text-xs text-gray-500">
@@ -497,7 +528,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                         )
                       })
                     ) : (
-                      <div className="p-4 text-center text-gray-500 text-sm">
+                      <div className="p-4 text-center text-gray-500">
                         No starting XI data available
                       </div>
                     )}
@@ -507,44 +538,48 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                 {/* Bench */}
                 {teamData?.bench && Array.isArray(teamData.bench) && teamData.bench.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2 text-sm">
-                      <Shield size={16} className="text-gray-600" />
-                      Bench
+                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-lg">
+                      <Shield size={20} className="text-gray-600" />
+                      Substitutes
                     </h3>
-                    <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                    <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
                       {teamData.bench.map((player, index) => {
                         if (!player) return null
                         
-                        let displayPoints = 0
-                        if (player.points !== undefined && player.points !== null) {
-                          displayPoints = player.points
-                        } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
-                          displayPoints = player.eventPoints
+                        let displayPoints = '?'
+                        if (showPlayerPoints) {
+                          let playerPoints = 0
+                          if (player.points !== undefined && player.points !== null) {
+                            playerPoints = player.points
+                          } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
+                            playerPoints = player.eventPoints
+                          }
+                          displayPoints = playerPoints
                         }
                         
                         return (
                           <div 
                             key={player.id || index} 
-                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors opacity-75 ${
+                            className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${
                               index !== teamData.bench.length - 1 ? 'border-b border-gray-100' : ''
                             }`}
                           >
-                            <div className="flex items-center gap-2.5">
+                            <div className="flex items-center gap-3">
                               <div className={`
-                                w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-md
+                                w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md opacity-70
                                 ${getPositionColorClass(player.positionType)}
                               `}>
                                 {player.positionType || '?'}
                               </div>
                               <div>
-                                <div className="font-semibold text-gray-900 text-sm">
+                                <div className="font-semibold text-gray-900">
                                   {player.name || 'Unknown'}
                                 </div>
-                                <div className="text-xs text-gray-600">{player.teamName || 'Unknown'}</div>
+                                <div className="text-sm text-gray-600">{player.teamName || 'Unknown'}</div>
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className={`font-bold text-sm ${getPointsColorClass(displayPoints)}`}>
+                              <div className={`font-bold text-lg ${getPointsColorClass(displayPoints)}`}>
                                 {displayPoints}
                               </div>
                               <div className="text-xs text-gray-500">
