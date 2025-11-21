@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import fplApi from './services/fplApi';
+import { ThemeProvider } from './context/ThemeContext';
 
 import StickyHeader from './components/StickyHeader';
 import CompactHero from './components/CompactHero';
@@ -13,7 +14,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
 import Footer from './components/Footer';
 
-function App() {
+function AppContent() {
   const [standings, setStandings] = useState([]);
   const [gameweekInfo, setGameweekInfo] = useState({ current: 3, total: 38 });
   const [gameweekTable, setGameweekTable] = useState([]);
@@ -41,20 +42,20 @@ function App() {
     } else {
       setIsRefreshing(true);
     }
-    
+
     setError(null);
     const startTime = performance.now();
 
     try {
-      const result = forceRefresh 
+      const result = forceRefresh
         ? await fplApi.forceRefresh()
         : await fplApi.initializeWithAuth();
-      
+
       const loadTime = Math.round(performance.now() - startTime);
-      
+
       setAuthStatus({
         authenticated: result.authenticated,
-        message: result.authenticated 
+        message: result.authenticated
           ? 'Live FPL data loaded successfully'
           : 'Using cached data'
       });
@@ -62,7 +63,7 @@ function App() {
       if (result.standings && result.standings.length > 0) {
         setStandings(result.standings);
       }
-      
+
       if (result.bootstrap) {
         setBootstrap(result.bootstrap);
         setGameweekInfo({
@@ -70,11 +71,11 @@ function App() {
           total: result.bootstrap.totalGameweeks || 38
         });
       }
-      
+
       if (result.gameweekTable) {
         setGameweekTable(result.gameweekTable);
       }
-      
+
       if (result.leagueStats) {
         setLeagueStats(result.leagueStats);
       }
@@ -107,7 +108,7 @@ function App() {
     switch (activeTab) {
       case 'standings':
         return (
-          <LeagueTable 
+          <LeagueTable
             standings={standings}
             loading={loading}
             authStatus={authStatus}
@@ -159,16 +160,16 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <StickyHeader 
+    <div className="min-h-screen bg-base-200 transition-colors duration-300">
+      <StickyHeader
         authStatus={authStatus}
         isRefreshing={isRefreshing}
         onRefresh={handleRefresh}
         performanceInfo={performanceInfo}
         lastUpdated={lastUpdated}
       />
-      
-      <CompactHero 
+
+      <CompactHero
         standings={standings}
         gameweekInfo={gameweekInfo}
         authStatus={authStatus}
@@ -177,7 +178,7 @@ function App() {
       />
 
       <div className="container mx-auto px-4 pb-20">
-        <TabNavigation 
+        <TabNavigation
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -185,9 +186,9 @@ function App() {
 
         <div className="mt-6">
           {error && (
-            <ErrorMessage 
-              message={error} 
-              onRetry={() => loadData(true)} 
+            <ErrorMessage
+              message={error}
+              onRetry={() => loadData(true)}
             />
           )}
           <div className="animate-fade-in-up">
@@ -196,13 +197,21 @@ function App() {
         </div>
       </div>
 
-      <Footer 
+      <Footer
         gameweekInfo={gameweekInfo}
         standings={standings}
         authStatus={authStatus}
         bootstrap={bootstrap}
       />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

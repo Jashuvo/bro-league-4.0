@@ -17,28 +17,28 @@ const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
 
   // Get current season year from bootstrap data or calculate from current date
   const currentYear = new Date().getFullYear()
-  const seasonYear = bootstrap?.gameweeks?.[0]?.deadline_time 
+  const seasonYear = bootstrap?.gameweeks?.[0]?.deadline_time
     ? new Date(bootstrap.gameweeks[0].deadline_time).getFullYear()
     : currentYear
 
   return (
-    <footer className="bg-purple-900/80 backdrop-blur text-white mt-16">
+    <footer className="bg-base-300/80 backdrop-blur text-base-content mt-16 transition-colors duration-300">
       <div className="container mx-auto px-4 py-12">
-        
+
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-          
+
           {/* League Info */}
           <div className="text-center md:text-left">
             <h3 className="text-2xl font-bold mb-4 flex items-center justify-center md:justify-start gap-2">
               <Trophy className="text-yellow-400" size={24} />
               {leagueName}
             </h3>
-            <p className="text-gray-300 mb-4">
-              The ultimate Fantasy Premier League competition among friends. 
+            <p className="text-base-content/70 mb-4">
+              The ultimate Fantasy Premier League competition among friends.
               {actualParticipants} bros, one champion, endless memories.
             </p>
-            <div className="flex items-center justify-center md:justify-start gap-2 text-sm">
+            <div className="flex items-center justify-center md:justify-start gap-2 text-sm text-base-content/60">
               <Users size={16} />
               <span>{actualParticipants} Participants • Season {seasonYear}/{seasonYear + 1}</span>
             </div>
@@ -73,14 +73,14 @@ const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
           <div className="text-center md:text-right">
             <h4 className="text-lg font-bold mb-4 text-green-400">Stay Connected</h4>
             <div className="space-y-3">
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-base-content/60">
                 Updates every Tuesday after gameweek
               </div>
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-base-content/60">
                 Made with ❤️ for the bros
               </div>
               {authStatus?.message && (
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-base-content/40">
                   {authStatus.message}
                 </div>
               )}
@@ -89,36 +89,36 @@ const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
         </div>
 
         {/* Prize Summary */}
-        <div className="border-t border-white/20 pt-8 mb-8">
+        <div className="border-t border-base-content/10 pt-8 mb-8">
           <h4 className="text-center text-lg font-bold mb-4 text-green-400">
             Prize Distribution Summary
           </h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div className="bg-white/5 rounded-lg p-3">
+            <div className="bg-base-100/50 rounded-lg p-3 shadow-sm">
               <div className="text-yellow-400 font-bold">৳1,800</div>
-              <div className="text-xs text-gray-400">Season Top 3</div>
+              <div className="text-xs text-base-content/60">Season Top 3</div>
             </div>
-            <div className="bg-white/5 rounded-lg p-3">
+            <div className="bg-base-100/50 rounded-lg p-3 shadow-sm">
               <div className="text-green-400 font-bold">৳7,150</div>
-              <div className="text-xs text-gray-400">Monthly Prizes</div>
+              <div className="text-xs text-base-content/60">Monthly Prizes</div>
             </div>
-            <div className="bg-white/5 rounded-lg p-3">
+            <div className="bg-base-100/50 rounded-lg p-3 shadow-sm">
               <div className="text-blue-400 font-bold">৳1,140</div>
-              <div className="text-xs text-gray-400">Weekly Prizes</div>
+              <div className="text-xs text-base-content/60">Weekly Prizes</div>
             </div>
-            <div className="bg-white/5 rounded-lg p-3">
+            <div className="bg-base-100/50 rounded-lg p-3 shadow-sm">
               <div className="text-pink-400 font-bold">৳1,910</div>
-              <div className="text-xs text-gray-400">Jerseys</div>
+              <div className="text-xs text-base-content/60">Jerseys</div>
             </div>
           </div>
         </div>
 
         {/* Bottom Footer */}
-        <div className="border-t border-white/20 pt-6">
+        <div className="border-t border-base-content/10 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            
+
             {/* Copyright */}
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-base-content/60">
               © {currentYear} {leagueName}. Built with React + Vite
             </div>
 
@@ -128,7 +128,7 @@ const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
             </div>
 
             {/* Last Updated */}
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-base-content/60">
               Last updated: {new Date().toLocaleString('en-US', {
                 timeZone: 'Asia/Dhaka',
                 dateStyle: 'short',
@@ -139,11 +139,11 @@ const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
         </div>
 
         {/* Fun Footer Message */}
-        <div className="text-center mt-6 p-4 bg-gradient-to-r from-green-600/20 to-blue-600/20 rounded-lg border border-green-400/30">
-          <div className="text-sm text-gray-300 mb-2">
+        <div className="text-center mt-6 p-4 bg-gradient-to-r from-green-600/10 to-blue-600/10 rounded-lg border border-green-400/20">
+          <div className="text-sm text-base-content/80 mb-2">
             "May your captain always return, your differentials always haul, and your rivals always blank!"
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-base-content/50">
             - Ancient FPL Wisdom 🏆⚽
           </div>
         </div>
