@@ -14,59 +14,73 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
 
     if (gameweekTable.length === 0) return 0;
 
+    // Helper to get net points safely
+    const getNetPoints = (manager) => {
+      const rawPoints = manager.gameweekPoints || manager.points || 0;
+      const transfersCost = manager.transfersCost ||
+        manager.event_transfers_cost ||
+        manager.transferCost ||
+        manager.transfers_cost ||
+        manager.penalty ||
+        manager.hit ||
+        0;
+      return rawPoints - transfersCost;
+    };
+
     // Calculate weekly prizes
     for (let gw = 1; gw <= currentGW; gw++) {
       const gameweekData = gameweekTable.find(g => g.gameweek === gw);
       if (!gameweekData?.managers) continue;
-      
+
+      // Filter for positive points (matching WeeklyPrizes logic) and sort
       const sortedManagers = [...gameweekData.managers]
-        .sort((a, b) => (b.gameweekPoints - b.transfersCost || 0) - (a.gameweekPoints - a.transfersCost || 0));
-      
+        .filter(m => (m.gameweekPoints || m.points || 0) > 0)
+        .sort((a, b) => getNetPoints(b) - getNetPoints(a));
+
       const managerRank = sortedManagers.findIndex(m => m.id === managerId) + 1;
-      
+
       if (managerRank === 1) totalWon += 30;
     }
 
-    // Calculate monthly prizes
+    // Calculate monthly prizes - Ranges matched to MonthlyPrizes.jsx
     const monthlyGameweeks = {
-      1: { start: 1, end: 5, prize: 750 },
-      2: { start: 6, end: 9, prize: 750 },
-      3: { start: 10, end: 13, prize: 750 },
-      4: { start: 14, end: 18, prize: 750 },
-      5: { start: 19, end: 22, prize: 750 },
-      6: { start: 23, end: 26, prize: 750 },
-      7: { start: 27, end: 30, prize: 750 },
-      8: { start: 31, end: 34, prize: 750 },
-      9: { start: 35, end: 38, prize: 750 }
+      1: { start: 1, end: 4 },
+      2: { start: 5, end: 8 },
+      3: { start: 9, end: 12 },
+      4: { start: 13, end: 16 },
+      5: { start: 17, end: 20 },
+      6: { start: 21, end: 24 },
+      7: { start: 25, end: 28 },
+      8: { start: 29, end: 32 },
+      9: { start: 33, end: 38 } // Final month
     };
 
-    Object.values(monthlyGameweeks).forEach(month => {
-      if (currentGW >= month.end) {
-        const monthlyData = gameweekTable
-          .filter(gw => gw.gameweek >= month.start && gw.gameweek <= month.end)
-          .reduce((acc, gw) => {
-            const manager = gw.managers?.find(m => m.id === managerId);
-            if (manager) {
-              acc.totalPoints += (manager.gameweekPoints || 0) - (manager.transfersCost || 0);
-            }
-            return acc;
-          }, { totalPoints: 0 });
+    const regularPrizes = [350, 250, 150];
+    const finalMonthPrizes = [500, 400, 250];
 
+    Object.entries(monthlyGameweeks).forEach(([monthNum, month]) => {
+      if (currentGW >= month.end) {
         const allMonthlyScores = gameweekTable
           .filter(gw => gw.gameweek >= month.start && gw.gameweek <= month.end)
           .reduce((scores, gw) => {
             gw.managers?.forEach(manager => {
               if (!scores[manager.id]) scores[manager.id] = 0;
-              scores[manager.id] += (manager.gameweekPoints || 0) - (manager.transfersCost || 0);
+              scores[manager.id] += getNetPoints(manager);
             });
             return scores;
           }, {});
 
         const sortedMonthly = Object.entries(allMonthlyScores)
           .sort((a, b) => b[1] - a[1]);
-        
+
         const monthlyRank = sortedMonthly.findIndex(([id]) => id == managerId) + 1;
-        if (monthlyRank === 1) totalWon += month.prize;
+
+        // Award prizes for top 3
+        if (monthlyRank >= 1 && monthlyRank <= 3) {
+          const isFinalMonth = parseInt(monthNum) === 9;
+          const prizes = isFinalMonth ? finalMonthPrizes : regularPrizes;
+          totalWon += prizes[monthlyRank - 1];
+        }
       }
     });
 
@@ -145,7 +159,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                 </p>
               </div>
             </div>
-            
+
             {authStatus?.authenticated && (
               <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-full">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
@@ -186,8 +200,8 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
               </div>
               <h3 className="text-lg font-semibold text-gray-600 mb-2">No Data Available</h3>
               <p className="text-gray-500">
-                {authStatus?.authenticated 
-                  ? "Standings will appear here once data loads." 
+                {authStatus?.authenticated
+                  ? "Standings will appear here once data loads."
                   : "Connect to FPL API to see live standings."}
               </p>
             </div>
@@ -202,7 +216,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                 return (
                   <div key={manager.id || manager.entry} className="hover:bg-gray-50 transition-colors">
                     {/* Main Row */}
-                    <div 
+                    <div
                       className="p-4 cursor-pointer flex items-center justify-between"
                       onClick={() => toggleRowExpansion(manager.id || manager.entry)}
                     >
@@ -242,11 +256,10 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                           <div className="flex items-center gap-4">
                             {/* GW Points */}
                             <div className="text-center">
-                              <div className={`text-lg font-bold ${
-                                gameweekPoints >= (leagueStats?.highestGameweek || 0) 
-                                  ? 'text-green-600 bg-green-100 px-2 py-1 rounded-lg' 
-                                  : 'text-gray-900'
-                              }`}>
+                              <div className={`text-lg font-bold ${gameweekPoints >= (leagueStats?.highestGameweek || 0)
+                                ? 'text-green-600 bg-green-100 px-2 py-1 rounded-lg'
+                                : 'text-gray-900'
+                                }`}>
                                 {gameweekPoints}
                               </div>
                               <div className="text-xs text-gray-500">GW</div>
@@ -275,11 +288,10 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
 
                             {/* Expand Arrow */}
                             <div className="ml-2">
-                              <ChevronRight 
-                                className={`text-gray-400 transition-transform ${
-                                  expandedRow === (manager.id || manager.entry) ? 'rotate-90' : ''
-                                }`} 
-                                size={16} 
+                              <ChevronRight
+                                className={`text-gray-400 transition-transform ${expandedRow === (manager.id || manager.entry) ? 'rotate-90' : ''
+                                  }`}
+                                size={16}
                               />
                             </div>
                           </div>
@@ -298,7 +310,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                             </div>
                             <div className="text-xs text-gray-500">GW Points</div>
                           </div>
-                          
+
                           {/* Total Points */}
                           <div className="text-center">
                             <div className="font-bold text-lg text-purple-600">
@@ -306,7 +318,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                             </div>
                             <div className="text-xs text-gray-500">Total Points</div>
                           </div>
-                          
+
                           {/* Prizes Won */}
                           <div className="text-center">
                             <div className="font-bold text-lg text-green-600">
@@ -344,7 +356,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
             <div className="flex items-center justify-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span>
-                Live data from FPL API • Last updated: {new Date().toLocaleString('en-US', { 
+                Live data from FPL API • Last updated: {new Date().toLocaleString('en-US', {
                   timeZone: 'Asia/Dhaka',
                   dateStyle: 'medium',
                   timeStyle: 'short'
