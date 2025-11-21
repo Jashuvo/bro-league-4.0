@@ -23,29 +23,38 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         setLoading(true);
         setError(null);
 
-        // Fetch team picks
-        const picksResponse = await fetch(`https://fantasy.premierleague.com/api/entry/${managerId}/event/${currentGameweek}/picks/`);
-        if (!picksResponse.ok) {
-          throw new Error(`Failed to fetch team picks: ${picksResponse.status}`);
-        }
-        const picksData = await picksResponse.json();
+        // Use internal API proxy to avoid CORS
+        const response = await fetch(`/api/team-picks?managerId=${managerId}&eventId=${currentGameweek}`);
 
-        // Fetch live gameweek data
-        const liveResponse = await fetch(`https://fantasy.premierleague.com/api/event/${currentGameweek}/live/`);
-        if (!liveResponse.ok) {
-          throw new Error(`Failed to fetch live data: ${liveResponse.status}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch team data: ${response.status}`);
         }
-        const liveData = await liveResponse.json();
 
-        // Fetch bootstrap data for player info
-        const bootstrapResponse = await fetch('https://fantasy.premierleague.com/api/bootstrap-static/');
-        if (!bootstrapResponse.ok) {
-          throw new Error(`Failed to fetch bootstrap data: ${bootstrapResponse.status}`);
+        const result = await response.json();
+
+        if (!result.success || !result.data) {
+          throw new Error(result.error || 'Failed to load team data');
         }
-        const bootstrapData = await bootstrapResponse.json();
 
-        // Process team data
-        const processedTeam = processTeamData(picksData, liveData, bootstrapData);
+        // Process the API response to match component expectations
+        const processedTeam = {
+          ...result.data,
+          startingXI: result.data.startingXI.map(p => ({
+            ...p,
+            positionType: p.positionType === 'GKP' ? 'GK' : p.positionType, // Map GKP to GK for styling
+            price: p.nowCost / 10, // Convert cost to price
+            isInjured: p.status === 'i',
+            isDoubtful: p.status === 'd'
+          })),
+          bench: result.data.bench.map(p => ({
+            ...p,
+            positionType: p.positionType === 'GKP' ? 'GK' : p.positionType,
+            price: p.nowCost / 10,
+            isInjured: p.status === 'i',
+            isDoubtful: p.status === 'd'
+          }))
+        };
+
         setTeamData(processedTeam);
 
       } catch (err) {
@@ -59,61 +68,6 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     fetchTeamData();
   }, [managerId, currentGameweek]);
 
-  // Process team data function
-  const processTeamData = (picks, live, bootstrap) => {
-    const players = bootstrap.elements;
-    const teams = bootstrap.teams;
-    
-    const startingXI = [];
-    const bench = [];
-    let captainId = null;
-    let viceCaptainId = null;
-
-    picks.picks.forEach(pick => {
-      const player = players.find(p => p.id === pick.element);
-      const team = teams.find(t => t.id === player?.team);
-      const liveStats = live.elements[pick.element]?.stats || {};
-      
-      if (!player) return;
-
-      const playerData = {
-        id: player.id,
-        name: player.web_name,
-        fullName: `${player.first_name} ${player.second_name}`,
-        positionType: getPositionAbbr(player.element_type),
-        team: team?.short_name || '',
-        price: player.now_cost / 10,
-        points: liveStats.total_points || 0,
-        eventPoints: liveStats.total_points || 0,
-        multiplier: pick.multiplier,
-        isCaptain: pick.is_captain,
-        isViceCaptain: pick.is_vice_captain,
-        position: pick.position,
-        status: player.status,
-        isInjured: player.status === 'i',
-        isDoubtful: player.status === 'd'
-      };
-
-      if (pick.is_captain) captainId = pick.element;
-      if (pick.is_vice_captain) viceCaptainId = pick.element;
-
-      if (pick.position <= 11) {
-        startingXI.push(playerData);
-      } else {
-        bench.push(playerData);
-      }
-    });
-
-    return {
-      startingXI: startingXI.sort((a, b) => a.position - b.position),
-      bench: bench.sort((a, b) => a.position - b.position),
-      formation: getFormation(startingXI),
-      activeChip: picks.active_chip || null,
-      captainId,
-      viceCaptainId
-    };
-  };
-
   // Helper functions
   const getPositionAbbr = (elementType) => {
     const positions = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
@@ -123,7 +77,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   const getPositionColorClass = (position) => {
     const colors = {
       'GK': 'bg-yellow-500',
-      'DEF': 'bg-blue-500', 
+      'DEF': 'bg-blue-500',
       'MID': 'bg-green-500',
       'FWD': 'bg-red-500'
     };
@@ -132,14 +86,14 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
   const getFormation = (startingXI) => {
     if (!startingXI || startingXI.length === 0) return '4-4-2';
-    
+
     const counts = startingXI.reduce((acc, player) => {
       if (player.positionType !== 'GK') {
         acc[player.positionType] = (acc[player.positionType] || 0) + 1;
       }
       return acc;
     }, {});
-    
+
     return `${counts.DEF || 0}-${counts.MID || 0}-${counts.FWD || 0}`;
   };
 
@@ -192,15 +146,15 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     const formation = teamData?.formation || '4-4-2';
     const positions = formations[formation] || formations['4-4-2'];
     const positionArray = positions[player.positionType] || [{ left: '50%', bottom: '50%' }];
-    
+
     const positionCounts = { 'GK': 0, 'DEF': 0, 'MID': 0, 'FWD': 0 };
     startingXI.forEach((p, i) => {
       if (i < index) positionCounts[p.positionType]++;
     });
-    
+
     const positionIndex = positionCounts[player.positionType];
     const position = positionArray[positionIndex] || positionArray[0];
-    
+
     return {
       left: position.left,
       bottom: position.bottom,
@@ -326,7 +280,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       {/* Modal Container */}
       <div className="bg-white rounded-2xl w-full max-w-md max-h-[95vh] flex flex-col shadow-2xl">
-        
+
         {/* Header */}
         <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-2 text-white relative flex-shrink-0">
           <div className="flex items-center justify-between mb-1">
@@ -359,17 +313,15 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           <div className="flex bg-gray-100 rounded-lg overflow-hidden">
             <button
               onClick={() => setViewMode('pitch')}
-              className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${
-                viewMode === 'pitch' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${viewMode === 'pitch' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               Pitch
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${
-                viewMode === 'list' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-gray-900'
-              }`}
+              className={`flex-1 py-1.5 px-2 text-xs font-medium transition-colors ${viewMode === 'list' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}
             >
               List
             </button>
@@ -443,24 +395,23 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                     {teamData?.startingXI && Array.isArray(teamData.startingXI) && teamData.startingXI.length > 0 ? (
                       teamData.startingXI.map((player, index) => {
                         if (!player) return null
-                        
+
                         let displayPoints = 0
                         if (player.points !== undefined && player.points !== null) {
                           displayPoints = player.points
                         } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
                           displayPoints = player.eventPoints
                         }
-                        
+
                         if (player.isCaptain && player.multiplier && player.multiplier > 1) {
                           displayPoints = displayPoints * player.multiplier
                         }
-                        
+
                         return (
-                          <div 
-                            key={player.id || index} 
-                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors ${
-                              index !== teamData.startingXI.length - 1 ? 'border-b border-gray-100' : ''
-                            }`}
+                          <div
+                            key={player.id || index}
+                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors ${index !== teamData.startingXI.length - 1 ? 'border-b border-gray-100' : ''
+                              }`}
                           >
                             <div className="flex items-center gap-2.5">
                               <div className={`
@@ -506,20 +457,19 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
                       {teamData.bench.map((player, index) => {
                         if (!player) return null
-                        
+
                         let displayPoints = 0
                         if (player.points !== undefined && player.points !== null) {
                           displayPoints = player.points
                         } else if (player.eventPoints !== undefined && player.eventPoints !== null) {
                           displayPoints = player.eventPoints
                         }
-                        
+
                         return (
-                          <div 
-                            key={player.id || index} 
-                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors opacity-75 ${
-                              index !== teamData.bench.length - 1 ? 'border-b border-gray-100' : ''
-                            }`}
+                          <div
+                            key={player.id || index}
+                            className={`p-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors opacity-75 ${index !== teamData.bench.length - 1 ? 'border-b border-gray-100' : ''
+                              }`}
                           >
                             <div className="flex items-center gap-2.5">
                               <div className={`
@@ -548,7 +498,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                     </div>
                   </div>
                 )}
-                
+
                 {/* Add extra padding at bottom for safe scrolling */}
                 <div className="h-4"></div>
               </div>
