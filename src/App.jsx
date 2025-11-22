@@ -8,7 +8,6 @@ import TabNavigation from './components/TabNavigation';
 import LeagueTable from './components/LeagueTable';
 import GameweekTable from './components/GameweekTable';
 import MonthlyPrizes from './components/MonthlyPrizes';
-import WeeklyPrizes from './components/WeeklyPrizes';
 import PrizeDistribution from './components/PrizeDistribution';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
