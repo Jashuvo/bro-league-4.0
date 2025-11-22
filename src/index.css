@@ -35,7 +35,7 @@
 
 @layer components {
   .glass-panel {
-    @apply bg-bro-card/60 backdrop-blur-xl border border-white/10 shadow-xl;
+    @apply bg-base-200/60 backdrop-blur-xl border border-base-content/10 shadow-xl;
   }
 
   .glass-card {
@@ -54,11 +54,11 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-bro-dark;
+  @apply bg-base-100;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-bro-card rounded-full hover:bg-bro-muted/50 transition-colors;
+  @apply bg-base-200 rounded-full hover:bg-base-content/5 transition-colors;
 }
 
 /* Utilities */

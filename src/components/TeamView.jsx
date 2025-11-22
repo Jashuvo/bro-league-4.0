@@ -196,7 +196,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-bro-card rounded-2xl p-8 flex flex-col items-center shadow-2xl border border-white/10"
+          className="bg-base-200 rounded-2xl p-8 flex flex-col items-center shadow-2xl border border-base-content/10"
         >
           <div className="w-10 h-10 border-4 border-bro-primary border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-white font-medium">Scouting team...</p>
@@ -211,7 +211,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-bro-card rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl border border-white/10"
+          className="bg-base-200 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl border border-base-content/10"
         >
           <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="text-red-500" size={24} />
@@ -236,7 +236,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 50 }}
-        className="bg-bro-dark rounded-3xl w-full max-w-lg h-[85vh] md:h-[800px] flex flex-col shadow-2xl overflow-hidden border border-white/10"
+        className="bg-base-100 rounded-3xl w-full max-w-lg h-[85vh] md:h-[800px] flex flex-col shadow-2xl overflow-hidden border border-base-content/10"
       >
 
         {/* Header */}
@@ -286,8 +286,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         </div>
 
         {/* View Toggle */}
-        <div className="p-2 bg-bro-card border-b border-white/5 shrink-0">
-          <div className="flex bg-black/20 p-1 rounded-xl">
+        <div className="p-2 bg-base-200 border-b border-base-content/5 shrink-0">
+          <div className="flex bg-base-300 p-1 rounded-xl">
             <button
               onClick={() => setViewMode('pitch')}
               className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${viewMode === 'pitch'
@@ -310,7 +310,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto bg-bro-dark relative">
+        <div className="flex-1 overflow-y-auto bg-base-100 relative">
           {viewMode === 'pitch' ? (
             <div className="min-h-full flex flex-col">
               {/* Pitch Container */}
@@ -344,7 +344,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               </div>
 
               {/* Bench Section */}
-              <div className="bg-bro-card border-t border-white/5 p-4 pb-8 z-10">
+              <div className="bg-base-200 border-t border-base-content/5 p-4 pb-8 z-10">
                 <div className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 text-center">Substitutes</div>
                 <div className="flex justify-center gap-2 overflow-x-auto pb-2">
                   {teamData?.bench?.map((player) => (
@@ -359,7 +359,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               {/* Starting XI List */}
               <div>
                 <h3 className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 ml-1">Starting XI</h3>
-                <div className="bg-bro-card rounded-xl shadow-sm border border-white/5 overflow-hidden">
+                <div className="bg-base-200 rounded-xl shadow-sm border border-base-content/5 overflow-hidden">
                   {teamData?.startingXI?.map((player, idx) => (
                     <motion.div
                       key={player.id}
@@ -367,8 +367,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
                       className={`
-                        flex items-center justify-between p-3 hover:bg-white/5 transition-colors
-                        ${idx !== teamData.startingXI.length - 1 ? 'border-b border-white/5' : ''}
+                        flex items-center justify-between p-3 hover:bg-base-content/5 transition-colors
+                        ${idx !== teamData.startingXI.length - 1 ? 'border-b border-base-content/5' : ''}
                       `}
                     >
                       <div className="flex items-center gap-3">
@@ -381,7 +381,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                           {player.positionType}
                         </div>
                         <div>
-                          <div className="font-semibold text-white text-sm flex items-center gap-1.5">
+                          <div className="font-semibold text-base-content text-sm flex items-center gap-1.5">
                             {player.name}
                             {player.isCaptain && <span className="bg-bro-primary text-white text-[9px] px-1 rounded">C</span>}
                             {player.isViceCaptain && <span className="bg-bro-muted text-white text-[9px] px-1 rounded">V</span>}
@@ -393,7 +393,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-white">{player.points * (player.multiplier || 1)}</div>
+                        <div className="font-bold text-base-content">{player.points * (player.multiplier || 1)}</div>
                         <div className="text-[10px] text-bro-muted">pts</div>
                       </div>
                     </motion.div>
@@ -404,7 +404,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               {/* Bench List */}
               <div>
                 <h3 className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 ml-1">Bench</h3>
-                <div className="bg-bro-card rounded-xl shadow-sm border border-white/5 overflow-hidden opacity-75">
+                <div className="bg-base-200 rounded-xl shadow-sm border border-base-content/5 overflow-hidden opacity-75">
                   {teamData?.bench?.map((player, idx) => (
                     <motion.div
                       key={player.id}
@@ -412,21 +412,21 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: (idx + 11) * 0.05 }}
                       className={`
-                        flex items-center justify-between p-3 hover:bg-white/5 transition-colors
-                        ${idx !== teamData.bench.length - 1 ? 'border-b border-white/5' : ''}
+                        flex items-center justify-between p-3 hover:bg-base-content/5 transition-colors
+                        ${idx !== teamData.bench.length - 1 ? 'border-b border-base-content/5' : ''}
                       `}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-bro-muted text-xs font-bold">
+                        <div className="w-8 h-8 rounded-lg bg-base-content/10 flex items-center justify-center text-bro-muted text-xs font-bold">
                           {player.positionType}
                         </div>
                         <div>
-                          <div className="font-semibold text-white text-sm">{player.name}</div>
+                          <div className="font-semibold text-base-content text-sm">{player.name}</div>
                           <div className="text-xs text-bro-muted">{player.team}</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-white">{player.points}</div>
+                        <div className="font-bold text-base-content">{player.points}</div>
                         <div className="text-[10px] text-bro-muted">pts</div>
                       </div>
                     </motion.div>

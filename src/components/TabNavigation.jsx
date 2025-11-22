@@ -5,9 +5,9 @@ const TabNavigation = ({ tabs, activeTab, onTabChange }) => {
   const [hoveredTab, setHoveredTab] = useState(null);
 
   return (
-    <div className="sticky top-20 z-40 bg-bro-dark/80 backdrop-blur-xl border-b border-white/5 -mx-4 px-4 py-3 transition-colors duration-300">
+    <div className="sticky top-20 z-40 bg-base-100/80 backdrop-blur-xl border-b border-base-content/5 -mx-4 px-4 py-3 transition-colors duration-300">
       <div className="relative max-w-4xl mx-auto">
-        <div className="flex space-x-1 bg-bro-card/50 rounded-xl p-1 relative overflow-hidden border border-white/5">
+        <div className="flex space-x-1 bg-base-200/50 rounded-xl p-1 relative overflow-hidden border border-base-content/5">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             const isHovered = hoveredTab === tab.id;

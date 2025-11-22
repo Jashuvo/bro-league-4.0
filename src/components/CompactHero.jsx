@@ -36,7 +36,7 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
   };
 
   return (
-    <div className="relative overflow-hidden bg-bro-dark pt-12 pb-8">
+    <div className="relative overflow-hidden bg-base-100 pt-12 pb-8">
       {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
@@ -58,7 +58,7 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
             <div className="inline-flex items-center justify-center p-3 mb-4 bg-gradient-to-br from-bro-primary to-bro-secondary rounded-2xl shadow-lg shadow-bro-primary/25">
               <Crown className="text-white" size={32} />
             </div>
-            <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-2 tracking-tight">
+            <h1 className="text-4xl md:text-5xl font-display font-bold text-base-content mb-2 tracking-tight">
               {leagueName}
             </h1>
             <p className="text-bro-muted text-lg">Fantasy Premier League Championship</p>
@@ -103,7 +103,7 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
               <Card className="flex items-center justify-between p-4 border-l-4 border-l-yellow-400">
                 <div>
                   <div className="text-bro-muted text-xs uppercase tracking-wider font-bold mb-1">Current Leader</div>
-                  <div className="text-white font-bold text-lg">{currentLeader.managerName}</div>
+                  <div className="text-base-content font-bold text-lg">{currentLeader.managerName}</div>
                   <div className="text-yellow-400 text-sm font-medium">{currentLeader.totalPoints} pts</div>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-yellow-400/10 flex items-center justify-center">
@@ -117,7 +117,7 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
               <Card className="flex items-center justify-between p-4 border-l-4 border-l-bro-primary">
                 <div>
                   <div className="text-bro-muted text-xs uppercase tracking-wider font-bold mb-1">Next Deadline</div>
-                  <div className="text-white font-bold text-lg">
+                  <div className="text-base-content font-bold text-lg">
                     {nextDeadline.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
                   </div>
                   <div className="text-bro-primary text-sm font-medium">
@@ -136,11 +136,11 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
             <motion.div variants={itemVariants} className="w-full max-w-4xl mt-8">
               <div className="flex items-center gap-2 mb-4">
                 <Zap className="text-yellow-400" size={18} />
-                <h3 className="text-white font-bold">Gameweek Heroes</h3>
+                <h3 className="text-base-content font-bold">Gameweek Heroes</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {topPerformers.map((manager, index) => (
-                  <Card key={manager.id} className="flex items-center gap-3 p-3 hover:bg-white/10 transition-colors">
+                  <Card key={manager.id} className="flex items-center gap-3 p-3 hover:bg-base-content/10 transition-colors">
                     <div className={`
                       w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm
                       ${index === 0 ? 'bg-yellow-400 text-yellow-900' :
@@ -150,7 +150,7 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-white font-medium truncate">{manager.managerName}</div>
+                      <div className="text-base-content font-medium truncate">{manager.managerName}</div>
                       <div className="text-bro-muted text-xs">{manager.teamName}</div>
                     </div>
                     <Badge variant="success">

@@ -15,7 +15,7 @@ const Layout = ({
     bootstrap
 }) => {
     return (
-        <div className="min-h-screen bg-bro-dark text-bro-text transition-colors duration-300 flex flex-col">
+        <div className="min-h-screen bg-base-100 text-base-content transition-colors duration-300 flex flex-col">
             <StickyHeader
                 authStatus={authStatus}
                 isRefreshing={isRefreshing}

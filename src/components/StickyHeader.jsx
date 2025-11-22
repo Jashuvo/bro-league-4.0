@@ -30,8 +30,8 @@ const StickyHeader = ({
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-            ? 'bg-bro-dark/80 backdrop-blur-xl border-b border-white/10 py-3 shadow-lg'
-            : 'bg-transparent py-5'
+          ? 'bg-base-100/80 backdrop-blur-xl border-b border-base-content/10 py-3 shadow-lg'
+          : 'bg-transparent py-5'
           }`}
       >
         <div className="container mx-auto px-4">
@@ -40,12 +40,12 @@ const StickyHeader = ({
             <div className="flex items-center gap-3">
               <div className="relative group cursor-pointer">
                 <div className="absolute -inset-1 bg-gradient-to-r from-bro-primary to-bro-secondary rounded-xl blur opacity-25 group-hover:opacity-75 transition duration-200"></div>
-                <div className="relative w-10 h-10 bg-bro-card rounded-xl flex items-center justify-center border border-white/10">
+                <div className="relative w-10 h-10 bg-base-200 rounded-xl flex items-center justify-center border border-base-content/10">
                   <span className="text-transparent bg-clip-text bg-gradient-to-br from-bro-secondary to-bro-primary font-bold text-sm">BR</span>
                 </div>
               </div>
               <div className="hidden sm:block">
-                <h1 className="font-display font-bold text-xl tracking-tight text-white">
+                <h1 className="font-display font-bold text-xl tracking-tight text-base-content">
                   BRO League <span className="text-bro-secondary">4.0</span>
                 </h1>
               </div>
@@ -64,11 +64,11 @@ const StickyHeader = ({
                 </div>
               )}
 
-              <div className="h-6 w-px bg-white/10 mx-2"></div>
+              <div className="h-6 w-px bg-base-content/10 mx-2"></div>
 
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg text-bro-muted hover:text-white hover:bg-white/5 transition-colors"
+                className="p-2 rounded-lg text-bro-muted hover:text-base-content hover:bg-base-content/5 transition-colors"
               >
                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
               </button>
@@ -89,13 +89,13 @@ const StickyHeader = ({
             <div className="md:hidden flex items-center gap-3">
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg text-bro-muted hover:text-white hover:bg-white/5 transition-colors"
+                className="p-2 rounded-lg text-bro-muted hover:text-base-content hover:bg-base-content/5 transition-colors"
               >
                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
               </button>
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 text-white"
+                className="p-2 text-base-content"
               >
                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -111,10 +111,10 @@ const StickyHeader = ({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-40 bg-bro-dark/95 backdrop-blur-xl pt-24 px-4 md:hidden"
+            className="fixed inset-0 z-40 bg-base-100/95 backdrop-blur-xl pt-24 px-4 md:hidden"
           >
             <div className="flex flex-col gap-6">
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+              <div className="flex items-center justify-between p-4 bg-base-content/5 rounded-xl border border-base-content/10">
                 <span className="text-bro-muted">Status</span>
                 <Badge variant={authStatus?.authenticated ? 'success' : 'warning'}>
                   {authStatus?.authenticated ? 'Live' : 'Offline'}

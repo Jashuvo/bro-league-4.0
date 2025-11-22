@@ -108,18 +108,18 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
               <Trophy className="text-white" size={24} />
             </div>
             <div>
-              <h2 className="text-2xl font-display font-bold text-white">League Standings</h2>
+              <h2 className="text-2xl font-display font-bold text-base-content">League Standings</h2>
               <p className="text-bro-muted text-sm">Gameweek {gameweekInfo?.current || 3} • {enhancedStandings.length} Managers</p>
             </div>
           </div>
 
           {leagueStats && (
             <div className="flex gap-4 overflow-x-auto pb-2 md:pb-0">
-              <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm whitespace-nowrap">
+              <div className="px-4 py-2 rounded-xl bg-base-content/5 border border-base-content/10 backdrop-blur-sm whitespace-nowrap">
                 <div className="text-xs text-bro-muted uppercase tracking-wider">Avg Total</div>
-                <div className="text-lg font-bold text-white">{leagueStats.averageScore || '--'}</div>
+                <div className="text-lg font-bold text-base-content">{leagueStats.averageScore || '--'}</div>
               </div>
-              <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm whitespace-nowrap">
+              <div className="px-4 py-2 rounded-xl bg-base-content/5 border border-base-content/10 backdrop-blur-sm whitespace-nowrap">
                 <div className="text-xs text-bro-muted uppercase tracking-wider">Highest</div>
                 <div className="text-lg font-bold text-bro-secondary">{leagueStats.highestTotal || '--'}</div>
               </div>
@@ -143,7 +143,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                 <Card
                   className={`
                     p-0 overflow-hidden transition-all duration-300
-                    ${isExpanded ? 'ring-2 ring-bro-primary bg-bro-card' : 'hover:bg-white/5'}
+                    ${isExpanded ? 'ring-2 ring-bro-primary bg-base-200' : 'hover:bg-base-content/5'}
                   `}
                 >
                   <div
@@ -158,7 +158,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                     {/* Manager Details */}
                     <div className="flex-grow min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className={`font-bold text-lg truncate ${position === 1 ? 'text-yellow-400' : 'text-white'}`}>
+                        <h3 className={`font-bold text-lg truncate ${position === 1 ? 'text-yellow-400' : 'text-base-content'}`}>
                           {manager.managerName || manager.player_name}
                         </h3>
                         {manager.lastRank && manager.lastRank !== position && (
@@ -182,7 +182,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                       )}
                       <div>
                         <div className="text-xs text-bro-muted uppercase">GW</div>
-                        <div className="font-bold text-white text-lg">{manager.gameweekPoints || manager.event_total || 0}</div>
+                        <div className="font-bold text-base-content text-lg">{manager.gameweekPoints || manager.event_total || 0}</div>
                       </div>
                       <div>
                         <div className="text-xs text-bro-muted uppercase">Total</div>
@@ -214,18 +214,18 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="bg-black/20 border-t border-white/5"
+                        className="bg-base-300/50 border-t border-base-content/5"
                       >
                         <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="p-3 rounded-lg bg-white/5 text-center">
+                          <div className="p-3 rounded-lg bg-base-content/5 text-center">
                             <div className="text-xs text-bro-muted mb-1">GW Points</div>
-                            <div className="font-bold text-white text-lg">{manager.gameweekPoints || 0}</div>
+                            <div className="font-bold text-base-content text-lg">{manager.gameweekPoints || 0}</div>
                           </div>
-                          <div className="p-3 rounded-lg bg-white/5 text-center">
+                          <div className="p-3 rounded-lg bg-base-content/5 text-center">
                             <div className="text-xs text-bro-muted mb-1">Overall Rank</div>
-                            <div className="font-bold text-white text-lg">#{manager.overallRank?.toLocaleString() || '-'}</div>
+                            <div className="font-bold text-base-content text-lg">#{manager.overallRank?.toLocaleString() || '-'}</div>
                           </div>
-                          <div className="p-3 rounded-lg bg-white/5 text-center">
+                          <div className="p-3 rounded-lg bg-base-content/5 text-center">
                             <div className="text-xs text-bro-muted mb-1">Prizes Won</div>
                             <div className="font-bold text-green-400 text-lg">৳{manager.totalPrizesWon}</div>
                           </div>

@@ -24,7 +24,7 @@ const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
     : currentYear;
 
   return (
-    <footer className="relative mt-20 border-t border-white/10 bg-bro-dark pt-16 pb-8 overflow-hidden">
+    <footer className="relative mt-20 border-t border-base-content/10 bg-base-200 pt-16 pb-8 overflow-hidden">
       {/* Background Elements */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none">
         <div className="absolute top-0 left-1/4 w-64 h-64 bg-bro-primary/5 rounded-full blur-3xl"></div>

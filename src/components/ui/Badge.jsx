@@ -2,7 +2,7 @@ import React from 'react';
 
 const Badge = ({ children, variant = 'default', className, ...props }) => {
     const variants = {
-        default: "bg-bro-card text-bro-text border border-white/10",
+        default: "bg-base-200 text-base-content border border-base-content/10",
         primary: "bg-bro-primary/20 text-bro-primary border border-bro-primary/20",
         secondary: "bg-bro-secondary/20 text-bro-secondary border border-bro-secondary/20",
         accent: "bg-bro-accent/20 text-bro-accent border border-bro-accent/20",

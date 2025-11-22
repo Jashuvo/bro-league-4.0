@@ -54,6 +54,22 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
     }));
   }, [gameweekTable, selectedGameweek]);
 
+  const gameweekStats = useMemo(() => {
+    if (gameweekData.length === 0) return {};
+    const netScores = gameweekData.map(m => m.netPoints);
+    const rawScores = gameweekData.map(m => m.rawPoints);
+    const penalties = gameweekData.map(m => m.transfersCost).filter(p => p > 0);
+
+    return {
+      highest: Math.max(...netScores),
+      highestRaw: Math.max(...rawScores),
+      average: Math.round(netScores.reduce((sum, score) => sum + score, 0) / netScores.length),
+      totalPenalties: penalties.reduce((sum, penalty) => sum + penalty, 0),
+      managersWithPenalties: penalties.length,
+      totalManagers: gameweekData.length
+    };
+  }, [gameweekData]);
+
   const weeklyStats = useMemo(() => {
     if (!gameweekTable.length) return {};
 
@@ -156,17 +172,17 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
       </Card>
 
       {/* Gameweek Navigation */}
-      <div className="flex items-center justify-between bg-bro-card p-4 rounded-xl border border-white/5">
+      <div className="flex items-center justify-between bg-base-200 p-4 rounded-xl border border-base-content/5">
         <button
           onClick={() => setSelectedGameweek(Math.max(1, selectedGameweek - 1))}
           disabled={selectedGameweek <= 1}
-          className="p-2 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white"
+          className="p-2 rounded-lg hover:bg-base-content/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base-content"
         >
           <ChevronLeft size={24} />
         </button>
 
         <div className="text-center">
-          <div className="font-bold text-xl text-white">Gameweek {selectedGameweek}</div>
+          <div className="font-bold text-xl text-base-content">Gameweek {selectedGameweek}</div>
           <div className="text-sm text-bro-muted">
             {selectedGameweekStatus === 'completed' && '✅ Completed'}
             {selectedGameweekStatus === 'current' && '🔄 Current'}
@@ -177,7 +193,7 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
         <button
           onClick={() => setSelectedGameweek(Math.min(38, selectedGameweek + 1))}
           disabled={selectedGameweek >= 38}
-          className="p-2 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white"
+          className="p-2 rounded-lg hover:bg-base-content/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base-content"
         >
           <ChevronRight size={24} />
         </button>
@@ -203,7 +219,7 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
                 transition={{ delay: index * 0.05 }}
               >
                 <Card
-                  className={`p-0 overflow-hidden transition-all duration-300 ${expandedRow === (manager.id || manager.entry) ? 'ring-2 ring-bro-primary' : 'hover:bg-white/5'}`}
+                  className={`p-0 overflow-hidden transition-all duration-300 ${expandedRow === (manager.id || manager.entry) ? 'ring-2 ring-bro-primary' : 'hover:bg-base-content/5'}`}
                 >
                   <div
                     className="p-4 flex items-center gap-4 cursor-pointer"
@@ -215,7 +231,7 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
 
                     <div className="flex-grow min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className={`font-bold text-lg truncate ${position === 1 ? 'text-yellow-400' : 'text-white'}`}>
+                        <h3 className={`font-bold text-lg truncate ${position === 1 ? 'text-yellow-400' : 'text-base-content'}`}>
                           {manager.managerName || manager.name}
                         </h3>
                         {position <= 3 && getPositionIcon(position)}
@@ -240,22 +256,22 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="bg-black/20 border-t border-white/5 p-4"
+                        className="bg-base-300/50 border-t border-base-content/5 p-4"
                       >
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                          <div className="bg-white/5 rounded-lg p-2 text-center border border-white/5">
+                          <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
                             <div className="text-xs text-bro-muted">Raw Points</div>
-                            <div className="font-bold text-white">{manager.rawPoints}</div>
+                            <div className="font-bold text-base-content">{manager.rawPoints}</div>
                           </div>
-                          <div className="bg-white/5 rounded-lg p-2 text-center border border-white/5">
+                          <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
                             <div className="text-xs text-bro-muted">Penalty</div>
                             <div className="font-bold text-red-400">-{manager.transfersCost}</div>
                           </div>
-                          <div className="bg-white/5 rounded-lg p-2 text-center border border-white/5">
+                          <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
                             <div className="text-xs text-bro-muted">GW Rank</div>
                             <div className="font-bold text-purple-400">#{position}</div>
                           </div>
-                          <div className="bg-white/5 rounded-lg p-2 text-center border border-white/5">
+                          <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
                             <div className="text-xs text-bro-muted">Overall Rank</div>
                             <div className="font-bold text-blue-400">#{manager.overallRank?.toLocaleString() || 'N/A'}</div>
                           </div>

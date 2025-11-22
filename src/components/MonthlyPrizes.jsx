@@ -116,7 +116,7 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, 
     return (
       <div className="space-y-4">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-20 bg-bro-card/50 rounded-xl animate-pulse"></div>
+          <div key={i} className="h-20 bg-base-200/50 rounded-xl animate-pulse"></div>
         ))}
       </div>
     );
@@ -176,7 +176,7 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, 
                   flex flex-col items-center justify-center p-3 rounded-xl min-w-[100px] transition-all duration-300 border
                   ${isSelected
                     ? 'bg-bro-primary text-white border-bro-primary shadow-lg scale-105'
-                    : 'bg-bro-card hover:bg-white/5 border-white/5 text-bro-muted hover:text-white'
+                    : 'bg-base-200 hover:bg-base-content/5 border-base-content/5 text-base-content/60 hover:text-base-content'
                   }
                 `}
               >
