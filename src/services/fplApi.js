@@ -21,7 +21,7 @@ class FPLApiService {
       success,
       timestamp: Date.now()
     });
-    
+
     // Keep only last 50 metrics
     if (this.performanceMetrics.length > 50) {
       this.performanceMetrics.shift();
@@ -30,11 +30,11 @@ class FPLApiService {
 
   getAveragePerformance() {
     if (this.performanceMetrics.length === 0) return null;
-    
+
     const recentMetrics = this.performanceMetrics.slice(-10);
     const avgDuration = recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length;
     const successRate = recentMetrics.filter(m => m.success).length / recentMetrics.length;
-    
+
     return {
       averageDuration: Math.round(avgDuration),
       successRate: Math.round(successRate * 100),
@@ -51,7 +51,7 @@ class FPLApiService {
   setCache(key, data, ttlMinutes = 2) {
     this.cache.set(key, data);
     this.cacheExpiry.set(key, Date.now() + (ttlMinutes * 60 * 1000));
-    
+
     // Log cache status
     console.log(`💾 Cached ${key} for ${ttlMinutes} minutes`);
   }
@@ -61,7 +61,7 @@ class FPLApiService {
       console.log(`✅ Cache hit for ${key}`);
       return this.cache.get(key);
     }
-    
+
     // Clean expired cache
     this.cache.delete(key);
     this.cacheExpiry.delete(key);
@@ -76,7 +76,7 @@ class FPLApiService {
           this.requestQueue.push(execute);
           return;
         }
-        
+
         this.activeRequests++;
         try {
           const result = await fn();
@@ -89,7 +89,7 @@ class FPLApiService {
           if (next) next();
         }
       };
-      
+
       execute();
     });
   }
@@ -98,12 +98,12 @@ class FPLApiService {
   async fetchWithRetry(url, options = {}, retries = 2) {
     const timeout = options.timeout || 30000;
     const startTime = performance.now();
-    
+
     for (let i = 0; i <= retries; i++) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
-        
+
         const response = await fetch(url, {
           ...options,
           signal: controller.signal,
@@ -112,11 +112,11 @@ class FPLApiService {
             ...options.headers
           }
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         const duration = performance.now() - startTime;
-        
+
         if (!response.ok) {
           if (i < retries) {
             console.log(`⚠️ Retry ${i + 1}/${retries} for ${url}`);
@@ -125,22 +125,22 @@ class FPLApiService {
           }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         this.trackPerformance(url, duration, true);
         return response;
-        
+
       } catch (error) {
         const duration = performance.now() - startTime;
-        
+
         if (error.name === 'AbortError') {
           console.error(`⏱️ Request timeout after ${timeout}ms`);
         }
-        
+
         if (i === retries) {
           this.trackPerformance(url, duration, false);
           throw error;
         }
-        
+
         console.log(`⚠️ Retry ${i + 1}/${retries} after error: ${error.message}`);
         await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
       }
@@ -150,7 +150,7 @@ class FPLApiService {
   // Get complete league data (primary method)
   async getCompleteLeagueData(forceRefresh = false) {
     const cacheKey = `complete_league_${this.leagueId}`;
-    
+
     // Check cache first
     if (!forceRefresh) {
       const cached = this.getCache(cacheKey);
@@ -163,7 +163,7 @@ class FPLApiService {
       try {
         console.log(`🚀 Fetching complete league ${this.leagueId} data...`);
         const startTime = performance.now();
-        
+
         const url = `${this.apiBaseUrl}/league-complete?leagueId=${this.leagueId}${forceRefresh ? '&force=true' : ''}`;
         const response = await this.fetchWithRetry(url, {
           method: 'GET',
@@ -171,37 +171,37 @@ class FPLApiService {
         });
 
         const result = await response.json();
-        
+
         if (!result.success) {
           throw new Error(result.error || 'API returned error');
         }
 
         const endTime = performance.now();
         const loadTime = Math.round(endTime - startTime);
-        
+
         console.log(`✅ Complete data loaded in ${loadTime}ms`);
-        
+
         // Log cache status
         if (result.data.fromCache) {
           console.log(`📦 Data served from server cache (age: ${Math.round(result.data.cacheAge / 1000)}s)`);
         } else {
           console.log(`🌐 Fresh data fetched from FPL API`);
         }
-        
+
         // Add client-side performance metrics
         result.data.clientMetrics = {
           loadTime,
           performanceStats: this.getAveragePerformance()
         };
-        
+
         // Cache for 2 minutes (matching server cache)
         this.setCache(cacheKey, result.data, 2);
-        
+
         return result.data;
 
       } catch (error) {
         console.error('❌ Error fetching complete league data:', error);
-        
+
         // Try to return stale cache if available
         const staleCache = this.cache.get(cacheKey);
         if (staleCache) {
@@ -210,7 +210,7 @@ class FPLApiService {
           staleCache.error = error.message;
           return staleCache;
         }
-        
+
         // Return fallback data
         return this.getFallbackData();
       }
@@ -230,7 +230,7 @@ class FPLApiService {
       });
 
       const result = await response.json();
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Bootstrap API error');
       }
@@ -260,7 +260,7 @@ class FPLApiService {
         );
 
         const result = await response.json();
-        
+
         if (!result.success) {
           throw new Error(result.error || 'History API error');
         }
@@ -289,14 +289,14 @@ class FPLApiService {
     return this.queueRequest(async () => {
       try {
         console.log(`⚽ Fetching team picks for manager ${managerId}, GW${eventId}...`)
-        
+
         const response = await this.fetchWithRetry(
           `${this.apiBaseUrl}/team-picks?managerId=${managerId}&eventId=${eventId}`,
           { timeout: 10000 }
         )
 
         const result = await response.json()
-        
+
         if (!result.success) {
           throw new Error(result.error || 'Team picks API error')
         }
@@ -312,13 +312,45 @@ class FPLApiService {
     })
   }
 
+  // Get live league stats
+  async getLiveLeagueStats(gameweekId) {
+    const cacheKey = `live_stats_${this.leagueId}_${gameweekId}`;
+    const cached = this.getCache(cacheKey);
+    if (cached) return cached;
+
+    return this.queueRequest(async () => {
+      try {
+        console.log(`🔴 Fetching live stats for GW${gameweekId}...`);
+        const response = await this.fetchWithRetry(
+          `${this.apiBaseUrl}/live-stats?leagueId=${this.leagueId}&gameweek=${gameweekId}`,
+          { timeout: 20000 }
+        );
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Live stats API error');
+        }
+
+        console.log(`✅ Live stats loaded for GW${gameweekId}`);
+        // Cache for 1 minute only as it's live data
+        this.setCache(cacheKey, result, 1);
+        return result;
+
+      } catch (error) {
+        console.error('❌ Error fetching live stats:', error);
+        return null;
+      }
+    });
+  }
+
   // Main initialization method
   async initializeWithAuth() {
     console.log('🔐 Initializing FPL API...');
-    
+
     try {
       const completeData = await this.getCompleteLeagueData();
-      
+
       if (completeData.authenticated) {
         console.log('✅ Authentication successful');
         this.isAuthenticated = true;
@@ -358,7 +390,7 @@ class FPLApiService {
   getCacheStatus() {
     const validCaches = [];
     const expiredCaches = [];
-    
+
     this.cacheExpiry.forEach((expiry, key) => {
       if (Date.now() < expiry) {
         validCaches.push({
@@ -369,7 +401,7 @@ class FPLApiService {
         expiredCaches.push(key);
       }
     });
-    
+
     return {
       validCaches,
       expiredCaches,

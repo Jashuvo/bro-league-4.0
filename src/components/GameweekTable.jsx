@@ -6,10 +6,12 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
+import LivePointsTable from './LivePointsTable';
 
 const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = false, bootstrap = {} }) => {
   const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek);
   const [expandedRow, setExpandedRow] = useState(null);
+  const [showLivePoints, setShowLivePoints] = useState(false);
 
   const toggleRowExpansion = (managerId) => {
     setExpandedRow(expandedRow === managerId ? null : managerId);
@@ -143,13 +145,27 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
             </div>
           </div>
 
-          <Badge
-            variant={selectedGameweekStatus === 'completed' ? 'success' : selectedGameweekStatus === 'current' ? 'primary' : 'warning'}
-            className="px-4 py-2 text-sm bg-white/20 border-white/20 text-white backdrop-blur-md"
-          >
-            <Target size={16} className="mr-2" />
-            {selectedGameweekStatus === 'completed' ? 'Completed' : selectedGameweekStatus === 'current' ? 'Live' : 'Upcoming'}
-          </Badge>
+          <div className="flex items-center gap-3">
+            {selectedGameweekStatus === 'current' && (
+              <button
+                onClick={() => setShowLivePoints(!showLivePoints)}
+                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${showLivePoints
+                  ? 'bg-white text-purple-600 shadow-lg'
+                  : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
+              >
+                <Target size={16} />
+                {showLivePoints ? 'Show Normal' : 'Live Points'}
+              </button>
+            )}
+
+            <Badge
+              variant={selectedGameweekStatus === 'completed' ? 'success' : selectedGameweekStatus === 'current' ? 'primary' : 'warning'}
+              className="px-4 py-2 text-sm bg-white/20 border-white/20 text-white backdrop-blur-md"
+            >
+              {selectedGameweekStatus === 'completed' ? 'Completed' : selectedGameweekStatus === 'current' ? 'Live' : 'Upcoming'}
+            </Badge>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
@@ -201,95 +217,101 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
 
       {/* Main Table Content */}
       <div className="space-y-3">
-        {!gameweekData || gameweekData.length === 0 ? (
-          <div className="p-12 text-center text-bro-muted">
-            <Calendar className="w-16 h-16 mx-auto mb-4 opacity-20" />
-            <p className="text-lg">No data available for Gameweek {selectedGameweek}</p>
-          </div>
+        {showLivePoints && selectedGameweekStatus === 'current' ? (
+          <LivePointsTable gameweek={selectedGameweek} />
         ) : (
-          gameweekData.map((manager, index) => {
-            const position = manager.currentGWRank;
-            const prize = position === 1 && selectedGameweekStatus === 'completed' ? 30 : 0;
+          <>
+            {!gameweekData || gameweekData.length === 0 ? (
+              <div className="p-12 text-center text-bro-muted">
+                <Calendar className="w-16 h-16 mx-auto mb-4 opacity-20" />
+                <p className="text-lg">No data available for Gameweek {selectedGameweek}</p>
+              </div>
+            ) : (
+              gameweekData.map((manager, index) => {
+                const position = manager.currentGWRank;
+                const prize = position === 1 && selectedGameweekStatus === 'completed' ? 30 : 0;
 
-            return (
-              <motion.div
-                key={manager.id || manager.entry}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card
-                  className={`p-0 overflow-hidden transition-all duration-300 ${expandedRow === (manager.id || manager.entry) ? 'ring-2 ring-bro-primary' : 'hover:bg-base-content/5'}`}
-                >
-                  <div
-                    className="p-4 flex items-center gap-4 cursor-pointer"
-                    onClick={() => toggleRowExpansion(manager.id || manager.entry)}
+                return (
+                  <motion.div
+                    key={manager.id || manager.entry}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
                   >
-                    <div className="flex-shrink-0 w-8 flex justify-center">
-                      {getPositionIcon(position)}
-                    </div>
-
-                    <div className="flex-grow min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className={`font-bold text-lg truncate ${position === 1 ? 'text-yellow-400' : 'text-base-content'}`}>
-                          {manager.managerName || manager.name}
-                        </h3>
-                        {position <= 3 && getPositionIcon(position)}
-                      </div>
-                      <p className="text-bro-muted text-sm truncate">{manager.teamName || manager.entry_name}</p>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="font-bold text-xl text-bro-primary">{manager.netPoints}</div>
-                      <div className="text-xs text-bro-muted">Net</div>
-                    </div>
-
-                    <ChevronRight
-                      className={`text-bro-muted transition-transform duration-300 ${expandedRow === (manager.id || manager.entry) ? 'rotate-90' : ''}`}
-                      size={20}
-                    />
-                  </div>
-
-                  <AnimatePresence>
-                    {expandedRow === (manager.id || manager.entry) && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="bg-base-300/50 border-t border-base-content/5 p-4"
+                    <Card
+                      className={`p-0 overflow-hidden transition-all duration-300 ${expandedRow === (manager.id || manager.entry) ? 'ring-2 ring-bro-primary' : 'hover:bg-base-content/5'}`}
+                    >
+                      <div
+                        className="p-4 flex items-center gap-4 cursor-pointer"
+                        onClick={() => toggleRowExpansion(manager.id || manager.entry)}
                       >
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                          <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
-                            <div className="text-xs text-bro-muted">Raw Points</div>
-                            <div className="font-bold text-base-content">{manager.rawPoints}</div>
-                          </div>
-                          <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
-                            <div className="text-xs text-bro-muted">Penalty</div>
-                            <div className="font-bold text-red-400">-{manager.transfersCost}</div>
-                          </div>
-                          <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
-                            <div className="text-xs text-bro-muted">GW Rank</div>
-                            <div className="font-bold text-purple-400">#{position}</div>
-                          </div>
-                          <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
-                            <div className="text-xs text-bro-muted">Overall Rank</div>
-                            <div className="font-bold text-blue-400">#{manager.overallRank?.toLocaleString() || 'N/A'}</div>
-                          </div>
+                        <div className="flex-shrink-0 w-8 flex justify-center">
+                          {getPositionIcon(position)}
                         </div>
 
-                        {prize > 0 && (
-                          <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2 text-green-400">
-                            <Trophy size={18} />
-                            <span className="font-bold">Weekly Winner - ৳{prize} Prize!</span>
+                        <div className="flex-grow min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className={`font-bold text-lg truncate ${position === 1 ? 'text-yellow-400' : 'text-base-content'}`}>
+                              {manager.managerName || manager.name}
+                            </h3>
+                            {position <= 3 && getPositionIcon(position)}
                           </div>
+                          <p className="text-bro-muted text-sm truncate">{manager.teamName || manager.entry_name}</p>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="font-bold text-xl text-bro-primary">{manager.netPoints}</div>
+                          <div className="text-xs text-bro-muted">Net</div>
+                        </div>
+
+                        <ChevronRight
+                          className={`text-bro-muted transition-transform duration-300 ${expandedRow === (manager.id || manager.entry) ? 'rotate-90' : ''}`}
+                          size={20}
+                        />
+                      </div>
+
+                      <AnimatePresence>
+                        {expandedRow === (manager.id || manager.entry) && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="bg-base-300/50 border-t border-base-content/5 p-4"
+                          >
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                              <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
+                                <div className="text-xs text-bro-muted">Raw Points</div>
+                                <div className="font-bold text-base-content">{manager.rawPoints}</div>
+                              </div>
+                              <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
+                                <div className="text-xs text-bro-muted">Penalty</div>
+                                <div className="font-bold text-red-400">-{manager.transfersCost}</div>
+                              </div>
+                              <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
+                                <div className="text-xs text-bro-muted">GW Rank</div>
+                                <div className="font-bold text-purple-400">#{position}</div>
+                              </div>
+                              <div className="bg-base-content/5 rounded-lg p-2 text-center border border-base-content/5">
+                                <div className="text-xs text-bro-muted">Overall Rank</div>
+                                <div className="font-bold text-blue-400">#{manager.overallRank?.toLocaleString() || 'N/A'}</div>
+                              </div>
+                            </div>
+
+                            {prize > 0 && (
+                              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2 text-green-400">
+                                <Trophy size={18} />
+                                <span className="font-bold">Weekly Winner - ৳{prize} Prize!</span>
+                              </div>
+                            )}
+                          </motion.div>
                         )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </Card>
-              </motion.div>
-            );
-          })
+                      </AnimatePresence>
+                    </Card>
+                  </motion.div>
+                );
+              })
+            )}
+          </>
         )}
       </div>
     </motion.div>
