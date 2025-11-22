@@ -29,6 +29,9 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         const response = await fetch(`/api/team-picks?managerId=${managerId}&eventId=${currentGameweek}`);
 
         if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('Team picks are not available for this gameweek yet.');
+          }
           throw new Error(`Failed to fetch team data: ${response.status}`);
         }
 

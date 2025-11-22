@@ -15,40 +15,45 @@ export default async function handler(req, res) {
   }
 
   const { managerId, eventId } = req.query;
-  
+
   if (!managerId || !eventId) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Manager ID and Event ID are required' 
+    return res.status(400).json({
+      success: false,
+      error: 'Manager ID and Event ID are required'
     });
   }
 
   try {
     console.log(`⚽ Fetching team picks for manager ${managerId}, GW${eventId}...`);
-    
+
+    const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
     // Fetch team picks for specific gameweek
     const picksResponse = await fetch(
       `https://fantasy.premierleague.com/api/entry/${managerId}/event/${eventId}/picks/`,
       {
         headers: {
-          'User-Agent': 'BRO-League-4.0/1.0',
+          'User-Agent': userAgent,
           'Accept': 'application/json',
         },
       }
     );
 
     if (!picksResponse.ok) {
+      if (picksResponse.status === 404) {
+        return res.status(404).json({ error: 'Picks not found for this gameweek' });
+      }
       throw new Error(`FPL Picks API responded with status: ${picksResponse.status}`);
     }
 
     const picksData = await picksResponse.json();
-    
+
     // Fetch bootstrap data to get player information
     const bootstrapResponse = await fetch(
       'https://fantasy.premierleague.com/api/bootstrap-static/',
       {
         headers: {
-          'User-Agent': 'BRO-League-4.0/1.0',
+          'User-Agent': userAgent,
           'Accept': 'application/json',
         },
       }
@@ -59,11 +64,11 @@ export default async function handler(req, res) {
     }
 
     const bootstrapData = await bootstrapResponse.json();
-    
+
     // Create player lookup maps
     const playersMap = new Map();
     const teamsMap = new Map();
-    
+
     // Process bootstrap elements (players)
     if (bootstrapData.elements && Array.isArray(bootstrapData.elements)) {
       bootstrapData.elements.forEach(player => {
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
         });
       });
     }
-    
+
     // Process bootstrap teams
     if (bootstrapData.teams && Array.isArray(bootstrapData.teams)) {
       bootstrapData.teams.forEach(team => {
@@ -95,31 +100,31 @@ export default async function handler(req, res) {
         });
       });
     }
-    
+
     // Map position types
     const positionTypes = {
       1: 'GKP',
-      2: 'DEF', 
+      2: 'DEF',
       3: 'MID',
       4: 'FWD'
     };
-    
+
     // Process picks data with enhanced player information
     const enrichedPicks = [];
-    
+
     if (picksData.picks && Array.isArray(picksData.picks)) {
       picksData.picks.forEach(pick => {
         const playerInfo = playersMap.get(pick.element) || {};
         const teamInfo = teamsMap.get(playerInfo.team) || {};
-        
+
         // Calculate actual points with multipliers
         let finalPoints = playerInfo.eventPoints || 0;
-        
+
         // Apply captain/vice-captain multiplier
         if (pick.multiplier && pick.multiplier > 1) {
           finalPoints *= pick.multiplier;
         }
-        
+
         const enrichedPick = {
           id: pick.element || 0,
           position: pick.position || 0,
@@ -139,15 +144,15 @@ export default async function handler(req, res) {
           status: playerInfo.status || 'a',
           chanceOfPlaying: playerInfo.chanceOfPlaying || 100
         };
-        
+
         enrichedPicks.push(enrichedPick);
       });
     }
-    
+
     // Separate starting XI and bench
     const startingXI = enrichedPicks.slice(0, 11);
     const bench = enrichedPicks.slice(11, 15);
-    
+
     // Get formation from starting XI
     const formation = {
       gkp: startingXI.filter(p => p.positionType === 'GKP').length,
@@ -155,12 +160,12 @@ export default async function handler(req, res) {
       mid: startingXI.filter(p => p.positionType === 'MID').length,
       fwd: startingXI.filter(p => p.positionType === 'FWD').length
     };
-    
+
     const formationString = `${formation.def}-${formation.mid}-${formation.fwd}`;
-    
+
     // Process entry history
     const entryHistory = picksData.entry_history || {};
-    
+
     // Build response
     const responseData = {
       managerId: parseInt(managerId),
@@ -191,10 +196,10 @@ export default async function handler(req, res) {
     console.log(`✅ Team picks processed for manager ${managerId}, GW${eventId}`);
     console.log(`📊 Points sample: ${startingXI.slice(0, 3).map(p => `${p.name}:${p.points}`).join(', ')}`);
     console.log(`⚡ Bootstrap players found: ${playersMap.size}, teams: ${teamsMap.size}`);
-    
+
     // Set cache headers
     res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=300');
-    
+
     return res.status(200).json({
       success: true,
       data: responseData,
@@ -207,7 +212,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Error fetching team picks:', error);
-    
+
     return res.status(500).json({
       success: false,
       error: 'Failed to fetch team picks data',
