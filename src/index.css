@@ -20,7 +20,7 @@
   }
 
   body {
-    @apply bg-bro-dark text-bro-text min-h-screen selection:bg-bro-primary selection:text-white overflow-x-hidden;
+    @apply bg-base-100 text-base-content min-h-screen selection:bg-primary selection:text-white overflow-x-hidden;
   }
 
   h1,

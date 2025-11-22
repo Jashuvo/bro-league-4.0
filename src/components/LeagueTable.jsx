@@ -172,6 +172,14 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
 
                     {/* Points (Desktop) */}
                     <div className="hidden md:flex items-center gap-8 text-right">
+                      {manager.totalPrizesWon > 0 && (
+                        <div className="flex flex-col items-end">
+                          <div className="text-xs text-bro-muted uppercase">Won</div>
+                          <div className="font-bold text-green-400 text-lg flex items-center gap-1">
+                            <Trophy size={14} /> ৳{manager.totalPrizesWon}
+                          </div>
+                        </div>
+                      )}
                       <div>
                         <div className="text-xs text-bro-muted uppercase">GW</div>
                         <div className="font-bold text-white text-lg">{manager.gameweekPoints || manager.event_total || 0}</div>
@@ -185,7 +193,12 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                     {/* Points (Mobile) */}
                     <div className="md:hidden text-right">
                       <div className="font-bold text-bro-primary text-lg">{manager.totalPoints || manager.total || 0}</div>
-                      <div className="text-xs text-bro-muted">pts</div>
+                      {manager.totalPrizesWon > 0 && (
+                        <div className="text-xs font-bold text-green-400 flex items-center justify-end gap-1 mt-0.5">
+                          <Trophy size={10} /> ৳{manager.totalPrizesWon}
+                        </div>
+                      )}
+                      {!manager.totalPrizesWon && <div className="text-xs text-bro-muted">pts</div>}
                     </div>
 
                     <ChevronRight

@@ -29,9 +29,8 @@ function AppContent() {
 
   const tabs = [
     { id: 'standings', name: 'League Table', icon: '🏆', shortName: 'Table' },
-    { id: 'gameweek', name: 'Gameweek History', icon: '📊', shortName: 'History' },
+    { id: 'gameweek', name: 'Weekly Results', icon: '⚡', shortName: 'Results' },
     { id: 'monthly', name: 'Monthly Prizes', icon: '📅', shortName: 'Monthly' },
-    { id: 'weekly', name: 'Weekly Prizes', icon: '⚡', shortName: 'Weekly' },
     { id: 'prizes', name: 'Prize Distribution', icon: '💰', shortName: 'Prizes' }
   ];
 
@@ -128,14 +127,6 @@ function AppContent() {
       case 'monthly':
         return (
           <MonthlyPrizes
-            gameweekTable={gameweekTable}
-            gameweekInfo={gameweekInfo}
-            loading={loading}
-          />
-        );
-      case 'weekly':
-        return (
-          <WeeklyPrizes
             gameweekTable={gameweekTable}
             gameweekInfo={gameweekInfo}
             loading={loading}

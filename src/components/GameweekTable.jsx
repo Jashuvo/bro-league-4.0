@@ -54,21 +54,40 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
     }));
   }, [gameweekTable, selectedGameweek]);
 
-  const gameweekStats = useMemo(() => {
-    if (gameweekData.length === 0) return {};
-    const netScores = gameweekData.map(m => m.netPoints);
-    const rawScores = gameweekData.map(m => m.rawPoints);
-    const penalties = gameweekData.map(m => m.transfersCost).filter(p => p > 0);
+  const weeklyStats = useMemo(() => {
+    if (!gameweekTable.length) return {};
+
+    // Calculate stats across all gameweeks
+    const completedWeeks = gameweekTable.filter(gw => {
+      const gwData = bootstrap?.gameweeks?.find(g => g.id === gw.gameweek);
+      return gwData?.finished;
+    });
+
+    const totalPrizesAwarded = completedWeeks.length * 30;
+
+    // Find highest score across all weeks
+    let highestScore = 0;
+    let highestScorer = '';
+
+    gameweekTable.forEach(gw => {
+      if (gw.managers) {
+        gw.managers.forEach(m => {
+          const net = (m.gameweekPoints || m.points || 0) - (m.transfersCost || 0);
+          if (net > highestScore) {
+            highestScore = net;
+            highestScorer = m.managerName || m.name;
+          }
+        });
+      }
+    });
 
     return {
-      highest: Math.max(...netScores),
-      highestRaw: Math.max(...rawScores),
-      average: Math.round(netScores.reduce((sum, score) => sum + score, 0) / netScores.length),
-      totalPenalties: penalties.reduce((sum, penalty) => sum + penalty, 0),
-      managersWithPenalties: penalties.length,
-      totalManagers: gameweekData.length
+      completedWeeks: completedWeeks.length,
+      totalPrizesAwarded,
+      highestScore,
+      highestScorer
     };
-  }, [gameweekData]);
+  }, [gameweekTable, bootstrap]);
 
   const getPositionIcon = (position) => {
     if (position === 1) return <Crown className="text-yellow-400 fill-yellow-400" size={20} />;
@@ -117,14 +136,23 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
           </Badge>
         </div>
 
-        {gameweekStats.highest && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-            <StatBox value={gameweekStats.highest} label="Highest Net" />
-            <StatBox value={gameweekStats.average} label="Average" />
-            <StatBox value={`-${gameweekStats.totalPenalties}`} label="Penalties" />
-            <StatBox value={gameweekStats.totalManagers} label="Managers" />
-          </div>
-        )}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+          {/* Current GW Stats */}
+          {gameweekStats.highest && (
+            <>
+              <StatBox value={gameweekStats.highest} label="GW Highest" />
+              <StatBox value={gameweekStats.average} label="GW Average" />
+            </>
+          )}
+
+          {/* Overall Weekly Stats */}
+          {weeklyStats.totalPrizesAwarded !== undefined && (
+            <>
+              <StatBox value={`৳${weeklyStats.totalPrizesAwarded}`} label="Total Prizes" />
+              <StatBox value={weeklyStats.completedWeeks} label="Weeks Done" />
+            </>
+          )}
+        </div>
       </Card>
 
       {/* Gameweek Navigation */}
