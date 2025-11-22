@@ -1,16 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, ChevronRight, Users, ArrowRight, Target } from 'lucide-react';
+import { Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, ChevronRight, Users, ArrowRight, Target, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeamView from './TeamView';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
 import LiveTotalPointsTable from './LiveTotalPointsTable';
+import PrizeBreakdown from './PrizeBreakdown';
 
 const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [showLivePoints, setShowLivePoints] = useState(false);
+  const [selectedPrizeManager, setSelectedPrizeManager] = useState(null);
 
   // Calculate total prizes won (Logic preserved)
   const calculateTotalPrizesWon = (managerId) => {
@@ -66,6 +68,81 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
       }
     });
     return totalWon;
+  };
+
+  // Calculate detailed prize breakdown for a manager
+  const calculatePrizeBreakdown = (managerId) => {
+    const currentGW = gameweekInfo.current || 3;
+    const weeklyWins = [];
+    const monthlyWins = [];
+
+    if (gameweekTable.length === 0) {
+      return { weeklyWins, monthlyWins, totalPrizes: 0 };
+    }
+
+    const getNetPoints = (manager) => {
+      const rawPoints = manager.gameweekPoints || manager.points || 0;
+      const transfersCost = manager.transfersCost || manager.event_transfers_cost || manager.transferCost || manager.transfers_cost || manager.penalty || manager.hit || 0;
+      return rawPoints - transfersCost;
+    };
+
+    // Weekly Prizes - Only count FINISHED gameweeks
+    for (let gw = 1; gw < currentGW; gw++) {
+      const gameweekData = gameweekTable.find(g => g.gameweek === gw);
+      if (!gameweekData?.managers) continue;
+      const sortedManagers = [...gameweekData.managers]
+        .filter(m => (m.gameweekPoints || m.points || 0) > 0)
+        .sort((a, b) => getNetPoints(b) - getNetPoints(a));
+      const managerRank = sortedManagers.findIndex(m => m.id === managerId) + 1;
+      if (managerRank === 1) {
+        const winnerData = sortedManagers[0];
+        weeklyWins.push({
+          gameweek: gw,
+          points: getNetPoints(winnerData),
+          prize: 30
+        });
+      }
+    }
+
+    // Monthly Prizes
+    const monthlyGameweeks = {
+      1: { start: 1, end: 4 }, 2: { start: 5, end: 8 }, 3: { start: 9, end: 12 },
+      4: { start: 13, end: 16 }, 5: { start: 17, end: 20 }, 6: { start: 21, end: 24 },
+      7: { start: 25, end: 28 }, 8: { start: 29, end: 32 }, 9: { start: 33, end: 38 }
+    };
+    const regularPrizes = [350, 250, 150];
+    const finalMonthPrizes = [500, 400, 250];
+
+    Object.entries(monthlyGameweeks).forEach(([monthNum, month]) => {
+      if (currentGW >= month.end) {
+        const allMonthlyScores = gameweekTable
+          .filter(gw => gw.gameweek >= month.start && gw.gameweek <= month.end)
+          .reduce((scores, gw) => {
+            gw.managers?.forEach(manager => {
+              if (!scores[manager.id]) scores[manager.id] = 0;
+              scores[manager.id] += getNetPoints(manager);
+            });
+            return scores;
+          }, {});
+        const sortedMonthly = Object.entries(allMonthlyScores).sort((a, b) => b[1] - a[1]);
+        const monthlyRank = sortedMonthly.findIndex(([id]) => id == managerId) + 1;
+        if (monthlyRank >= 1 && monthlyRank <= 3) {
+          const isFinalMonth = parseInt(monthNum) === 9;
+          const prizes = isFinalMonth ? finalMonthPrizes : regularPrizes;
+          monthlyWins.push({
+            month: parseInt(monthNum),
+            position: monthlyRank,
+            points: allMonthlyScores[managerId],
+            prize: prizes[monthlyRank - 1]
+          });
+        }
+      }
+    });
+
+    const totalPrizes = weeklyWins.reduce((sum, w) => sum + w.prize, 0) +
+      monthlyWins.reduce((sum, w) => sum + w.prize, 0);
+
+    return { weeklyWins, monthlyWins, totalPrizes };
   };
 
   const enhancedStandings = useMemo(() => {
@@ -239,20 +316,40 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                           exit={{ height: 0, opacity: 0 }}
                           className="bg-base-300/50 border-t border-base-content/5"
                         >
-                          <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="p-3 rounded-lg bg-base-content/5 text-center">
-                              <div className="text-xs text-bro-muted mb-1">GW Points</div>
-                              <div className="font-bold text-base-content text-lg">{manager.gameweekPoints || 0}</div>
+                          <div className="p-4 space-y-4">
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              <div className="p-3 rounded-lg bg-base-content/5 text-center">
+                                <div className="text-xs text-bro-muted mb-1">GW Points</div>
+                                <div className="font-bold text-base-content text-lg">{manager.gameweekPoints || 0}</div>
+                              </div>
+                              <div className="p-3 rounded-lg bg-base-content/5 text-center">
+                                <div className="text-xs text-bro-muted mb-1">Overall Rank</div>
+                                <div className="font-bold text-base-content text-lg">#{manager.overallRank?.toLocaleString() || '-'}</div>
+                              </div>
+                              <div className="p-3 rounded-lg bg-base-content/5 text-center">
+                                <div className="text-xs text-bro-muted mb-1">Prizes Won</div>
+                                <div className="font-bold text-green-400 text-lg">৳{manager.totalPrizesWon}</div>
+                              </div>
                             </div>
-                            <div className="p-3 rounded-lg bg-base-content/5 text-center">
-                              <div className="text-xs text-bro-muted mb-1">Overall Rank</div>
-                              <div className="font-bold text-base-content text-lg">#{manager.overallRank?.toLocaleString() || '-'}</div>
-                            </div>
-                            <div className="p-3 rounded-lg bg-base-content/5 text-center">
-                              <div className="text-xs text-bro-muted mb-1">Prizes Won</div>
-                              <div className="font-bold text-green-400 text-lg">৳{manager.totalPrizesWon}</div>
-                            </div>
-                            <div className="flex items-center">
+
+                            {/* Action Buttons */}
+                            <div className={`grid gap-3 ${manager.totalPrizesWon > 0 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                              {manager.totalPrizesWon > 0 && (
+                                <Button
+                                  variant="secondary"
+                                  className="w-full justify-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedPrizeManager({
+                                      ...manager,
+                                      prizeData: calculatePrizeBreakdown(manager.id || manager.entry)
+                                    });
+                                  }}
+                                >
+                                  <DollarSign size={16} className="mr-2" /> Prize Breakdown
+                                </Button>
+                              )}
                               <Button
                                 variant="primary"
                                 className="w-full justify-center"
@@ -283,6 +380,15 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
           teamName={selectedTeam.teamName}
           gameweekInfo={gameweekInfo}
           onClose={() => setSelectedTeam(null)}
+        />
+      )}
+
+      {selectedPrizeManager && (
+        <PrizeBreakdown
+          managerName={selectedPrizeManager.managerName || selectedPrizeManager.player_name}
+          teamName={selectedPrizeManager.teamName || selectedPrizeManager.entry_name}
+          prizeData={selectedPrizeManager.prizeData}
+          onClose={() => setSelectedPrizeManager(null)}
         />
       )}
     </>
