@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import fplApi from './services/fplApi';
 import { ThemeProvider } from './context/ThemeContext';
 
-import StickyHeader from './components/StickyHeader';
+import Layout from './components/Layout';
 import CompactHero from './components/CompactHero';
 import TabNavigation from './components/TabNavigation';
 import LeagueTable from './components/LeagueTable';
@@ -12,7 +12,6 @@ import WeeklyPrizes from './components/WeeklyPrizes';
 import PrizeDistribution from './components/PrizeDistribution';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
-import Footer from './components/Footer';
 
 function AppContent() {
   const [standings, setStandings] = useState([]);
@@ -160,15 +159,16 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 transition-colors duration-300">
-      <StickyHeader
-        authStatus={authStatus}
-        isRefreshing={isRefreshing}
-        onRefresh={handleRefresh}
-        performanceInfo={performanceInfo}
-        lastUpdated={lastUpdated}
-      />
-
+    <Layout
+      authStatus={authStatus}
+      isRefreshing={isRefreshing}
+      onRefresh={handleRefresh}
+      performanceInfo={performanceInfo}
+      lastUpdated={lastUpdated}
+      gameweekInfo={gameweekInfo}
+      standings={standings}
+      bootstrap={bootstrap}
+    >
       <CompactHero
         standings={standings}
         gameweekInfo={gameweekInfo}
@@ -191,19 +191,12 @@ function AppContent() {
               onRetry={() => loadData(true)}
             />
           )}
-          <div className="animate-fade-in-up">
+          <div className="animate-fade-in">
             {renderTabContent()}
           </div>
         </div>
       </div>
-
-      <Footer
-        gameweekInfo={gameweekInfo}
-        standings={standings}
-        authStatus={authStatus}
-        bootstrap={bootstrap}
-      />
-    </div>
+    </Layout>
   );
 }
 

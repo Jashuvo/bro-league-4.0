@@ -1,10 +1,10 @@
-// src/components/MonthlyPrizes.jsx - Updated with Theme Support & Animations
 import React, { useState, useMemo } from 'react';
 import {
-  Calendar, Trophy, Crown, Medal, Award, Zap, Target, TrendingUp, Clock,
-  DollarSign, ChevronRight, Users, Star, Gift
+  Calendar, Trophy, Crown, Medal, Award, Gift, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Card from './ui/Card';
+import Badge from './ui/Badge';
 
 const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, loading = false }) => {
   const currentGW = gameweekInfo.current || 3;
@@ -26,42 +26,27 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, 
     return months.find(m => currentGW >= m.gameweeks[0] && currentGW <= m.gameweeks[m.gameweeks.length - 1])?.id || 1;
   });
 
-  // Toggle row expansion
   const toggleRowExpansion = (managerId) => {
     setExpandedRow(expandedRow === managerId ? null : managerId);
   };
 
-  // Position styling
-  const getPositionStyling = (position) => {
-    if (position === 1) return 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 shadow-lg shadow-yellow-500/20';
-    if (position === 2) return 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-900 shadow-lg shadow-gray-500/20';
-    if (position === 3) return 'bg-gradient-to-r from-orange-400 to-orange-500 text-orange-900 shadow-lg shadow-orange-500/20';
-    if (position <= 5) return 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md shadow-green-500/20';
-    if (position <= 10) return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/20';
-    return 'bg-base-300 text-base-content border border-base-content/10';
-  };
-
-  // Position icons
   const getPositionIcon = (position) => {
-    if (position === 1) return <Crown className="text-yellow-900" size={16} />;
-    if (position === 2) return <Medal className="text-gray-900" size={16} />;
-    if (position === 3) return <Award className="text-orange-900" size={16} />;
-    return null;
+    if (position === 1) return <Crown className="text-yellow-400 fill-yellow-400" size={20} />;
+    if (position === 2) return <Medal className="text-gray-300 fill-gray-300" size={20} />;
+    if (position === 3) return <Award className="text-orange-400 fill-orange-400" size={20} />;
+    return <span className="font-bold text-bro-muted w-5 text-center">{position}</span>;
   };
 
-  // Calculate monthly standings
   const monthlyStandings = useMemo(() => {
     const selectedMonthData = months.find(m => m.id === selectedMonth);
     if (!selectedMonthData || !gameweekTable.length) return [];
 
-    // Get gameweeks for this month
     const monthGameweeks = gameweekTable.filter(gw =>
       selectedMonthData.gameweeks.includes(gw.gameweek)
     );
 
     if (monthGameweeks.length === 0) return [];
 
-    // Calculate total points for each manager across the month
     const managerTotals = {};
 
     monthGameweeks.forEach(gw => {
@@ -94,7 +79,6 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, 
       }
     });
 
-    // Convert to array and sort by total points
     return Object.values(managerTotals)
       .sort((a, b) => b.totalPoints - a.totalPoints)
       .map((manager, index) => ({
@@ -105,13 +89,10 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, 
       }));
   }, [gameweekTable, selectedMonth, months]);
 
-  // Calculate month stats
   const monthStats = useMemo(() => {
     if (monthlyStandings.length === 0) return {};
-
     const allPoints = monthlyStandings.map(m => m.totalPoints);
     const totalPrizes = months.find(m => m.id === selectedMonth)?.prizes.reduce((sum, prize) => sum + prize, 0) || 0;
-
     return {
       highest: Math.max(...allPoints),
       average: Math.round(allPoints.reduce((sum, points) => sum + points, 0) / allPoints.length),
@@ -120,11 +101,9 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, 
     };
   }, [monthlyStandings, selectedMonth, months]);
 
-  // Get month status
   const getMonthStatus = (month) => {
     const completedGWs = month.gameweeks.filter(gw => gw < currentGW).length;
     const totalGWs = month.gameweeks.length;
-
     if (completedGWs === totalGWs) return 'completed';
     if (completedGWs > 0) return 'active';
     return 'upcoming';
@@ -135,262 +114,175 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, 
 
   if (loading) {
     return (
-      <div className="bg-base-100 rounded-xl shadow-lg border border-base-content/10 overflow-hidden">
-        <div className="p-8">
-          <div className="animate-pulse space-y-4">
-            {Array(5).map((_, i) => (
-              <div key={i} className="h-16 bg-base-200 rounded"></div>
-            ))}
-          </div>
-        </div>
+      <div className="space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-20 bg-bro-card/50 rounded-xl animate-pulse"></div>
+        ))}
       </div>
     );
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="bg-base-100 rounded-xl shadow-lg border border-base-content/10 overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-6"
     >
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-              <Calendar size={24} />
+      {/* Header Card */}
+      <Card className="bg-gradient-to-r from-green-600 to-teal-600 border-none">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-white">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
+              <Calendar size={32} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">Monthly Competitions</h2>
-              <p className="text-purple-100">
+              <h2 className="text-3xl font-display font-bold">Monthly Competitions</h2>
+              <p className="text-white/80 text-lg">
                 {selectedMonthData?.name} • GW {selectedMonthData?.gameweeks[0]}-{selectedMonthData?.gameweeks[selectedMonthData.gameweeks.length - 1]}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-full backdrop-blur-sm">
-            <Gift size={16} />
-            <span className="text-sm">
-              {monthStatus === 'completed' ? 'Complete' :
-                monthStatus === 'active' ? 'Active' : 'Upcoming'}
-            </span>
-          </div>
+          <Badge
+            variant={monthStatus === 'completed' ? 'success' : monthStatus === 'active' ? 'primary' : 'warning'}
+            className="px-4 py-2 text-sm bg-white/20 border-white/20 text-white backdrop-blur-md"
+          >
+            <Gift size={16} className="mr-2" />
+            {monthStatus === 'completed' ? 'Complete' : monthStatus === 'active' ? 'Active' : 'Upcoming'}
+          </Badge>
         </div>
 
-        {/* Quick Stats */}
         {monthStats.highest && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-              <div className="text-2xl font-bold">{monthStats.highest}</div>
-              <div className="text-sm opacity-80">Highest Total</div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-              <div className="text-2xl font-bold">{monthStats.average}</div>
-              <div className="text-sm opacity-80">Average</div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-              <div className="text-2xl font-bold">৳{monthStats.totalPrizes}</div>
-              <div className="text-sm opacity-80">Total Prizes</div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-              <div className="text-2xl font-bold">{monthStats.participants}</div>
-              <div className="text-sm opacity-80">Participants</div>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            <StatBox value={monthStats.highest} label="Highest Total" />
+            <StatBox value={monthStats.average} label="Average" />
+            <StatBox value={`৳${monthStats.totalPrizes}`} label="Total Prizes" />
+            <StatBox value={monthStats.participants} label="Participants" />
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Month Navigation */}
-      <div className="p-4 border-b border-base-content/10 bg-base-200/50">
-        <div className="grid grid-cols-3 md:grid-cols-9 gap-2">
+      <div className="overflow-x-auto pb-2">
+        <div className="flex gap-2 min-w-max">
           {months.map(month => {
             const status = getMonthStatus(month);
+            const isSelected = selectedMonth === month.id;
             return (
               <button
                 key={month.id}
                 onClick={() => setSelectedMonth(month.id)}
                 className={`
-                  p-2 rounded-lg text-xs font-medium transition-all text-center
-                  ${selectedMonth === month.id
-                    ? 'bg-purple-600 text-white shadow-lg scale-105'
-                    : status === 'completed'
-                      ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20 border border-green-500/20'
-                      : status === 'active'
-                        ? 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border border-blue-500/20'
-                        : 'bg-base-100 text-base-content/60 hover:bg-base-200 border border-base-content/5'
+                  flex flex-col items-center justify-center p-3 rounded-xl min-w-[100px] transition-all duration-300 border
+                  ${isSelected
+                    ? 'bg-bro-primary text-white border-bro-primary shadow-lg scale-105'
+                    : 'bg-bro-card hover:bg-white/5 border-white/5 text-bro-muted hover:text-white'
                   }
                 `}
               >
-                <div className="font-semibold">{month.name.replace(' ', '\n')}</div>
-                <div className="text-xs mt-1 opacity-80">GW {month.gameweeks[0]}-{month.gameweeks[month.gameweeks.length - 1]}</div>
-                {status === 'completed' && <div className="text-xs mt-1">✅</div>}
-                {status === 'active' && <div className="text-xs mt-1">🔄</div>}
+                <span className="font-bold text-sm">{month.name}</span>
+                <span className="text-[10px] opacity-70 mt-1">GW {month.gameweeks[0]}-{month.gameweeks[month.gameweeks.length - 1]}</span>
+                <div className="mt-1">
+                  {status === 'completed' && '✅'}
+                  {status === 'active' && '🔄'}
+                  {status === 'upcoming' && '⏳'}
+                </div>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Main Table Content */}
-      <div className="overflow-x-auto">
+      {/* Standings List */}
+      <div className="space-y-3">
         {!monthlyStandings || monthlyStandings.length === 0 ? (
-          <div className="p-12 text-center text-base-content/50">
+          <div className="p-12 text-center text-bro-muted">
             <Calendar className="w-16 h-16 mx-auto mb-4 opacity-20" />
             <p className="text-lg">No data available for {selectedMonthData?.name}</p>
           </div>
         ) : (
-          <div className="divide-y divide-base-content/5">
-            {monthlyStandings.map((manager, index) => {
-              const position = manager.position;
-
-              return (
-                <motion.div
-                  key={manager.id}
-                  className="hover:bg-base-200/50 transition-colors"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
+          monthlyStandings.map((manager, index) => (
+            <motion.div
+              key={manager.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card
+                className={`p-0 overflow-hidden transition-all duration-300 ${expandedRow === manager.id ? 'ring-2 ring-bro-primary' : 'hover:bg-white/5'}`}
+              >
+                <div
+                  className="p-4 flex items-center gap-4 cursor-pointer"
+                  onClick={() => toggleRowExpansion(manager.id)}
                 >
-                  {/* Main Row */}
-                  <div
-                    className="p-4 cursor-pointer flex items-center justify-between"
-                    onClick={() => toggleRowExpansion(manager.id)}
-                  >
-                    <div className="flex items-center gap-4 flex-1">
-                      {/* Position */}
-                      <div className={`
-                        w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm
-                        ${getPositionStyling(position)}
-                      `}>
-                        {getPositionIcon(position) || position}
-                      </div>
-
-                      {/* Manager Info */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-base-content text-lg">
-                            {manager.name}
-                          </h3>
-                          {position <= 3 && (
-                            <div className="flex">
-                              {getPositionIcon(position)}
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-sm text-base-content/60">
-                          {manager.teamName}
-                        </p>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-base-content/50">
-                          <span>Avg: {manager.averagePoints} pts</span>
-                          <span>•</span>
-                          <span>GWs Played: {manager.gameweeksPlayed}</span>
-                          {manager.prize > 0 && (
-                            <>
-                              <span>•</span>
-                              <span className="text-green-500 font-semibold">৳{manager.prize} Prize!</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Points Display */}
-                      <div className="text-right">
-                        <div className="flex items-center gap-4">
-                          {/* Total Points */}
-                          <div className="text-center">
-                            <div className="text-xl font-bold text-purple-500">
-                              {manager.totalPoints}
-                            </div>
-                            <div className="text-xs text-base-content/50">Total</div>
-                          </div>
-
-                          {/* Average */}
-                          <div className="text-center">
-                            <div className="text-lg font-bold text-blue-500">
-                              {manager.averagePoints}
-                            </div>
-                            <div className="text-xs text-base-content/50">Avg</div>
-                          </div>
-
-                          {/* Expand Arrow */}
-                          <div className="ml-2">
-                            <ChevronRight
-                              className={`text-base-content/30 transition-transform ${expandedRow === manager.id ? 'rotate-90' : ''
-                                }`}
-                              size={20}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="flex-shrink-0 w-8 flex justify-center">
+                    {getPositionIcon(manager.position)}
                   </div>
 
-                  {/* Expanded Row */}
-                  <AnimatePresence>
-                    {expandedRow === manager.id && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="px-4 overflow-hidden bg-base-200/30 border-t border-base-content/5"
-                      >
-                        <div className="py-4">
-                          <h4 className="font-semibold text-base-content mb-3">Gameweek Breakdown</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {manager.details.map((detail, index) => (
-                              <div key={index} className="bg-base-100 rounded-lg p-3 shadow-sm border border-base-content/5">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium text-base-content">GW {detail.gameweek}</span>
-                                  <span className="font-bold text-purple-500">{detail.points}</span>
-                                </div>
-                                <div className="text-xs text-base-content/50 mt-1">
-                                  {detail.rawPoints} raw - {detail.transfersCost} penalty
-                                </div>
-                              </div>
-                            ))}
+                  <div className="flex-grow min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className={`font-bold text-lg truncate ${manager.position <= 3 ? 'text-white' : 'text-bro-text'}`}>
+                        {manager.name}
+                      </h3>
+                      {manager.position <= 3 && getPositionIcon(manager.position)}
+                    </div>
+                    <p className="text-bro-muted text-sm truncate">{manager.teamName}</p>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="font-bold text-xl text-bro-primary">{manager.totalPoints}</div>
+                    <div className="text-xs text-bro-muted">Total</div>
+                  </div>
+
+                  <ChevronRight
+                    className={`text-bro-muted transition-transform duration-300 ${expandedRow === manager.id ? 'rotate-90' : ''}`}
+                    size={20}
+                  />
+                </div>
+
+                <AnimatePresence>
+                  {expandedRow === manager.id && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="bg-black/20 border-t border-white/5 p-4"
+                    >
+                      <h4 className="font-bold text-white mb-3 text-sm uppercase tracking-wider">Gameweek Breakdown</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        {manager.details.map((detail, idx) => (
+                          <div key={idx} className="bg-white/5 rounded-lg p-2 text-center border border-white/5">
+                            <div className="text-xs text-bro-muted">GW {detail.gameweek}</div>
+                            <div className="font-bold text-white">{detail.points}</div>
                           </div>
+                        ))}
+                      </div>
 
-                          {manager.prize > 0 && (
-                            <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                              <div className="flex items-center gap-2 text-green-600">
-                                <Trophy size={16} />
-                                <span className="font-semibold">
-                                  {position === 1 ? '🥇' : position === 2 ? '🥈' : '🥉'}
-                                  {position === 1 ? ' Monthly Champion' : position === 2 ? ' Runner-up' : ' Third Place'} - ৳{manager.prize} Prize!
-                                </span>
-                              </div>
-                            </div>
-                          )}
+                      {manager.prize > 0 && (
+                        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2 text-green-400">
+                          <Trophy size={18} />
+                          <span className="font-bold">
+                            {manager.position === 1 ? 'Monthly Champion' : manager.position === 2 ? 'Runner-up' : 'Third Place'} - ৳{manager.prize} Prize!
+                          </span>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Card>
+            </motion.div>
+          ))
         )}
-      </div>
-
-      {/* Footer */}
-      <div className="bg-base-200 border-t border-base-content/10 p-4">
-        <div className="text-center text-sm text-base-content/60">
-          <div className="flex items-center justify-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span>
-              Monthly rankings based on cumulative net points across all gameweeks • Last updated: {new Date().toLocaleString('en-US', {
-                timeZone: 'Asia/Dhaka',
-                dateStyle: 'medium',
-                timeStyle: 'short'
-              })} (BD)
-            </span>
-          </div>
-        </div>
       </div>
     </motion.div>
   );
 };
+
+const StatBox = ({ value, label }) => (
+  <div className="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm border border-white/10">
+    <div className="text-xl font-bold text-white">{value}</div>
+    <div className="text-xs font-medium text-white/80">{label}</div>
+  </div>
+);
 
 export default MonthlyPrizes;

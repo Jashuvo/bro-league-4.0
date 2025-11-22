@@ -8,15 +8,24 @@ export default {
   theme: {
     extend: {
       colors: {
-        'bro-primary': '#38003c',
-        'bro-secondary': '#00ff87',
-        'bro-accent': '#ff6b35',
-        'bro-dark': '#1a1a1a',
-        'bro-card': '#2a2a2a',
+        'bro-primary': '#4f46e5', // Indigo-600 - Deep, premium primary
+        'bro-secondary': '#10b981', // Emerald-500 - Vibrant but refined green
+        'bro-accent': '#f43f5e', // Rose-500 - Modern, energetic accent
+        'bro-dark': '#0f172a', // Slate-900 - Rich, deep background
+        'bro-card': '#1e293b', // Slate-800 - Slightly lighter for cards
+        'bro-text': '#f8fafc', // Slate-50 - Crisp white text
+        'bro-muted': '#94a3b8', // Slate-400 - Muted text
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'system-ui', 'sans-serif'], // For headings
       },
       animation: {
-        'fade-in': 'fadeIn 0.5s ease-out',
-        'slide-up': 'slideUp 0.5s ease-out',
+        'fade-in': 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'slide-down': 'slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'scale-in': 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
       },
       keyframes: {
         fadeIn: {
@@ -27,6 +36,18 @@ export default {
           '0%': { transform: 'translateY(20px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
+        slideDown: {
+          '0%': { transform: 'translateY(-20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        scaleIn: {
+          '0%': { transform: 'scale(0.95)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'hero-pattern': "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
       },
     },
   },
@@ -36,18 +57,19 @@ export default {
       {
         light: {
           ...require("daisyui/src/theming/themes")["light"],
-          primary: "#38003c",
-          secondary: "#00ff87",
-          accent: "#ff6b35",
+          primary: "#4f46e5",
+          secondary: "#10b981",
+          accent: "#f43f5e",
         },
         dark: {
           ...require("daisyui/src/theming/themes")["dark"],
-          primary: "#38003c",
-          secondary: "#00ff87",
-          accent: "#ff6b35",
-          "base-100": "#1a1a1a",
-          "base-200": "#2a2a2a",
-          "base-300": "#3a3a3a",
+          primary: "#4f46e5",
+          secondary: "#10b981",
+          accent: "#f43f5e",
+          "base-100": "#0f172a",
+          "base-200": "#1e293b",
+          "base-300": "#334155",
+          "base-content": "#f8fafc",
         },
       },
     ],

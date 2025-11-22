@@ -1,7 +1,9 @@
-// TeamView.jsx - PREMIUM UI VERSION
 import React, { useState, useEffect } from 'react';
-import { Users, X, AlertCircle, Crown, Star, Shirt, ChevronRight } from 'lucide-react';
+import { Users, X, AlertCircle, Shirt } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Card from './ui/Card';
+import Badge from './ui/Badge';
+import Button from './ui/Button';
 
 const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) => {
   const [teamData, setTeamData] = useState(null);
@@ -174,14 +176,14 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         </div>
 
         {/* Info Box */}
-        <div className="bg-base-300/90 backdrop-blur-sm rounded-md overflow-hidden shadow-lg w-full max-w-[72px] border border-base-content/10">
-          <div className="bg-base-content/10 px-1 py-0.5 text-center">
-            <p className="text-[10px] font-bold text-base-content truncate leading-tight">
+        <div className="bg-bro-card/90 backdrop-blur-sm rounded-md overflow-hidden shadow-lg w-full max-w-[72px] border border-white/10">
+          <div className="bg-white/10 px-1 py-0.5 text-center">
+            <p className="text-[10px] font-bold text-white truncate leading-tight">
               {player.name}
             </p>
           </div>
-          <div className="bg-base-100 px-1 py-0.5 text-center flex items-center justify-center gap-1">
-            <span className="text-xs font-extrabold text-base-content">{points}</span>
+          <div className="bg-bro-dark px-1 py-0.5 text-center flex items-center justify-center gap-1">
+            <span className="text-xs font-extrabold text-white">{points}</span>
           </div>
         </div>
       </motion.div>
@@ -190,14 +192,14 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-base-100 rounded-2xl p-8 flex flex-col items-center shadow-2xl"
+          className="bg-bro-card rounded-2xl p-8 flex flex-col items-center shadow-2xl border border-white/10"
         >
-          <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-base-content font-medium">Scouting team...</p>
+          <div className="w-10 h-10 border-4 border-bro-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-white font-medium">Scouting team...</p>
         </motion.div>
       </div>
     );
@@ -205,39 +207,40 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
   if (error) {
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-base-100 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl"
+          className="bg-bro-card rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl border border-white/10"
         >
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="text-red-600" size={24} />
+          <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="text-red-500" size={24} />
           </div>
-          <h3 className="text-lg font-bold text-base-content mb-2">Unable to Load Team</h3>
-          <p className="text-base-content/70 text-sm mb-6">{error}</p>
-          <button
+          <h3 className="text-lg font-bold text-white mb-2">Unable to Load Team</h3>
+          <p className="text-bro-muted text-sm mb-6">{error}</p>
+          <Button
+            variant="primary"
             onClick={onClose}
-            className="w-full py-2.5 bg-base-content text-base-100 rounded-xl font-medium hover:opacity-90 transition-opacity"
+            className="w-full justify-center"
           >
             Close
-          </button>
+          </Button>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 md:p-6">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 md:p-6">
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 50 }}
-        className="bg-base-100 rounded-3xl w-full max-w-lg h-[85vh] md:h-[800px] flex flex-col shadow-2xl overflow-hidden"
+        className="bg-bro-dark rounded-3xl w-full max-w-lg h-[85vh] md:h-[800px] flex flex-col shadow-2xl overflow-hidden border border-white/10"
       >
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-700 to-indigo-800 p-4 text-white shrink-0 relative overflow-hidden">
+        <div className="bg-gradient-to-r from-bro-primary to-bro-secondary p-4 text-white shrink-0 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Users size={100} />
           </div>
@@ -245,17 +248,17 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           <div className="relative z-10 flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                <Badge variant="default" className="bg-white/20 text-white border-none">
                   GW {currentGameweek}
-                </span>
+                </Badge>
                 {teamData?.activeChip && (
-                  <span className="bg-yellow-400/90 text-yellow-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                  <Badge variant="warning" className="bg-yellow-400/90 text-yellow-900 border-none">
                     {teamData.activeChip}
-                  </span>
+                  </Badge>
                 )}
               </div>
               <h2 className="text-xl font-bold leading-tight">{managerName}</h2>
-              <p className="text-purple-200 text-sm font-medium">{teamName}</p>
+              <p className="text-white/80 text-sm font-medium">{teamName}</p>
             </div>
             <button
               onClick={onClose}
@@ -268,28 +271,28 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           {/* Stats Summary */}
           <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/10">
             <div>
-              <div className="text-purple-200 text-xs">Points</div>
+              <div className="text-white/60 text-xs">Points</div>
               <div className="text-xl font-bold">{teamData?.entryHistory?.points || 0}</div>
             </div>
             <div>
-              <div className="text-purple-200 text-xs">Rank</div>
+              <div className="text-white/60 text-xs">Rank</div>
               <div className="text-xl font-bold">#{teamData?.entryHistory?.rank?.toLocaleString() || '-'}</div>
             </div>
             <div>
-              <div className="text-purple-200 text-xs">Total</div>
+              <div className="text-white/60 text-xs">Total</div>
               <div className="text-xl font-bold">{teamData?.entryHistory?.totalPoints?.toLocaleString() || 0}</div>
             </div>
           </div>
         </div>
 
         {/* View Toggle */}
-        <div className="p-2 bg-base-200 border-b border-base-content/10 shrink-0">
-          <div className="flex bg-base-300 p-1 rounded-xl">
+        <div className="p-2 bg-bro-card border-b border-white/5 shrink-0">
+          <div className="flex bg-black/20 p-1 rounded-xl">
             <button
               onClick={() => setViewMode('pitch')}
               className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${viewMode === 'pitch'
-                ? 'bg-base-100 text-purple-600 shadow-sm'
-                : 'text-base-content/60 hover:text-base-content'
+                ? 'bg-bro-primary text-white shadow-sm'
+                : 'text-bro-muted hover:text-white'
                 }`}
             >
               Pitch View
@@ -297,8 +300,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             <button
               onClick={() => setViewMode('list')}
               className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${viewMode === 'list'
-                ? 'bg-base-100 text-purple-600 shadow-sm'
-                : 'text-base-content/60 hover:text-base-content'
+                ? 'bg-bro-primary text-white shadow-sm'
+                : 'text-bro-muted hover:text-white'
                 }`}
             >
               List View
@@ -307,23 +310,23 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto bg-base-200/50 relative">
+        <div className="flex-1 overflow-y-auto bg-bro-dark relative">
           {viewMode === 'pitch' ? (
             <div className="min-h-full flex flex-col">
               {/* Pitch Container */}
               <div className="relative flex-1 m-2 mb-0">
                 {/* Pitch Background */}
-                <div className="absolute inset-0 bg-gradient-to-b from-green-600 to-green-700 rounded-t-2xl border-x-2 border-t-2 border-white/20 shadow-inner overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-b from-green-800 to-green-900 rounded-t-2xl border-x-2 border-t-2 border-white/10 shadow-inner overflow-hidden">
                   {/* Grass Pattern */}
                   <div className="absolute inset-0 opacity-10"
                     style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 20px, #000 20px, #000 40px)' }}>
                   </div>
 
                   {/* Pitch Lines */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-16 border-b-2 border-x-2 border-white/30 rounded-b-lg"></div>
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-16 border-t-2 border-x-2 border-white/30 rounded-t-lg"></div>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/30 rounded-full"></div>
-                  <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/30"></div>
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-16 border-b-2 border-x-2 border-white/20 rounded-b-lg"></div>
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-16 border-t-2 border-x-2 border-white/20 rounded-t-lg"></div>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/20 rounded-full"></div>
+                  <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/20"></div>
                 </div>
 
                 {/* Players on Pitch */}
@@ -341,8 +344,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               </div>
 
               {/* Bench Section */}
-              <div className="bg-base-100 border-t border-base-content/10 p-4 pb-8 z-10">
-                <div className="text-xs font-bold text-base-content/40 uppercase tracking-wider mb-3 text-center">Substitutes</div>
+              <div className="bg-bro-card border-t border-white/5 p-4 pb-8 z-10">
+                <div className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 text-center">Substitutes</div>
                 <div className="flex justify-center gap-2 overflow-x-auto pb-2">
                   {teamData?.bench?.map((player) => (
                     <PitchPlayer key={player.id} player={player} isBench={true} />
@@ -355,8 +358,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             <div className="p-4 space-y-6 pb-10">
               {/* Starting XI List */}
               <div>
-                <h3 className="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3 ml-1">Starting XI</h3>
-                <div className="bg-base-100 rounded-xl shadow-sm border border-base-content/10 overflow-hidden">
+                <h3 className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 ml-1">Starting XI</h3>
+                <div className="bg-bro-card rounded-xl shadow-sm border border-white/5 overflow-hidden">
                   {teamData?.startingXI?.map((player, idx) => (
                     <motion.div
                       key={player.id}
@@ -364,34 +367,34 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
                       className={`
-                        flex items-center justify-between p-3 hover:bg-base-200/50 transition-colors
-                        ${idx !== teamData.startingXI.length - 1 ? 'border-b border-base-content/5' : ''}
+                        flex items-center justify-between p-3 hover:bg-white/5 transition-colors
+                        ${idx !== teamData.startingXI.length - 1 ? 'border-b border-white/5' : ''}
                       `}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`
                           w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold
-                          ${player.positionType === 'GK' ? 'bg-yellow-500' :
-                            player.positionType === 'DEF' ? 'bg-blue-500' :
-                              player.positionType === 'MID' ? 'bg-green-500' : 'bg-red-500'}
+                          ${player.positionType === 'GK' ? 'bg-yellow-600' :
+                            player.positionType === 'DEF' ? 'bg-blue-600' :
+                              player.positionType === 'MID' ? 'bg-green-600' : 'bg-red-600'}
                         `}>
                           {player.positionType}
                         </div>
                         <div>
-                          <div className="font-semibold text-base-content text-sm flex items-center gap-1.5">
+                          <div className="font-semibold text-white text-sm flex items-center gap-1.5">
                             {player.name}
-                            {player.isCaptain && <span className="bg-black text-white text-[9px] px-1 rounded">C</span>}
-                            {player.isViceCaptain && <span className="bg-base-300 text-base-content text-[9px] px-1 rounded">V</span>}
+                            {player.isCaptain && <span className="bg-bro-primary text-white text-[9px] px-1 rounded">C</span>}
+                            {player.isViceCaptain && <span className="bg-bro-muted text-white text-[9px] px-1 rounded">V</span>}
                           </div>
-                          <div className="text-xs text-base-content/60 flex items-center gap-2">
+                          <div className="text-xs text-bro-muted flex items-center gap-2">
                             <span>{player.team}</span>
                             {player.isInjured && <span className="text-red-500 font-medium">Injured</span>}
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-base-content">{player.points * (player.multiplier || 1)}</div>
-                        <div className="text-[10px] text-base-content/40">pts</div>
+                        <div className="font-bold text-white">{player.points * (player.multiplier || 1)}</div>
+                        <div className="text-[10px] text-bro-muted">pts</div>
                       </div>
                     </motion.div>
                   ))}
@@ -400,8 +403,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
               {/* Bench List */}
               <div>
-                <h3 className="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3 ml-1">Bench</h3>
-                <div className="bg-base-100 rounded-xl shadow-sm border border-base-content/10 overflow-hidden opacity-75">
+                <h3 className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 ml-1">Bench</h3>
+                <div className="bg-bro-card rounded-xl shadow-sm border border-white/5 overflow-hidden opacity-75">
                   {teamData?.bench?.map((player, idx) => (
                     <motion.div
                       key={player.id}
@@ -409,22 +412,22 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: (idx + 11) * 0.05 }}
                       className={`
-                        flex items-center justify-between p-3 hover:bg-base-200/50 transition-colors
-                        ${idx !== teamData.bench.length - 1 ? 'border-b border-base-content/5' : ''}
+                        flex items-center justify-between p-3 hover:bg-white/5 transition-colors
+                        ${idx !== teamData.bench.length - 1 ? 'border-b border-white/5' : ''}
                       `}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-base-300 flex items-center justify-center text-base-content/60 text-xs font-bold">
+                        <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-bro-muted text-xs font-bold">
                           {player.positionType}
                         </div>
                         <div>
-                          <div className="font-semibold text-base-content text-sm">{player.name}</div>
-                          <div className="text-xs text-base-content/60">{player.team}</div>
+                          <div className="font-semibold text-white text-sm">{player.name}</div>
+                          <div className="text-xs text-bro-muted">{player.team}</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-base-content">{player.points}</div>
-                        <div className="text-[10px] text-base-content/40">pts</div>
+                        <div className="font-bold text-white">{player.points}</div>
+                        <div className="text-[10px] text-bro-muted">pts</div>
                       </div>
                     </motion.div>
                   ))}

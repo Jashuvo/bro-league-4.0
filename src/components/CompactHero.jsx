@@ -1,5 +1,8 @@
 import React from 'react';
-import { Trophy, Users, Calendar, Target, Crown, TrendingUp, Zap } from 'lucide-react';
+import { Trophy, Users, Calendar, Target, Crown, Zap, Clock } from 'lucide-react';
+import { motion } from 'framer-motion';
+import Card from './ui/Card';
+import Badge from './ui/Badge';
 
 const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstrap }) => {
   const totalPrizePool = import.meta.env.VITE_TOTAL_PRIZE_POOL || 12000;
@@ -17,135 +20,161 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
     ?.sort((a, b) => b.gameweekPoints - a.gameweekPoints)
     ?.slice(0, 3) || [];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  };
+
   return (
-    <div className="relative bg-gradient-to-br from-primary via-secondary/20 to-accent/20 overflow-hidden pt-20 pb-8 transition-colors duration-300">
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '40px 40px'
-        }}></div>
+    <div className="relative overflow-hidden bg-bro-dark pt-12 pb-8">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
+          <div className="absolute top-10 left-10 w-72 h-72 bg-bro-primary/10 rounded-full blur-3xl animate-pulse-slow"></div>
+          <div className="absolute bottom-10 right-10 w-96 h-96 bg-bro-secondary/10 rounded-full blur-3xl animate-pulse-slow delay-1000"></div>
+        </div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-20"></div>
       </div>
 
-      <div className="absolute top-20 left-4 w-12 h-12 bg-yellow-400/10 rounded-full blur-xl"></div>
-      <div className="absolute bottom-4 right-4 w-16 h-16 bg-blue-400/10 rounded-full blur-xl"></div>
-
-      <div className="relative container mx-auto px-4">
-        <div className="text-center mb-6">
-          <div className="flex justify-center mb-3">
-            <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-xl animate-bounce-slow">
-                <Crown className="text-white" size={24} />
-              </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
-                <Trophy size={8} className="text-white" />
-              </div>
+      <div className="container mx-auto px-4 relative z-10">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="flex flex-col items-center"
+        >
+          {/* League Title */}
+          <motion.div variants={itemVariants} className="text-center mb-8">
+            <div className="inline-flex items-center justify-center p-3 mb-4 bg-gradient-to-br from-bro-primary to-bro-secondary rounded-2xl shadow-lg shadow-bro-primary/25">
+              <Crown className="text-white" size={32} />
             </div>
-          </div>
+            <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-2 tracking-tight">
+              {leagueName}
+            </h1>
+            <p className="text-bro-muted text-lg">Fantasy Premier League Championship</p>
+          </motion.div>
 
-          <h1 className="text-2xl md:text-3xl font-bold text-base-content mb-2">
-            {leagueName.split(' ').slice(0, 2).join(' ')}{' '}
-            <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-              {leagueName.split(' ').slice(2).join(' ')}
-            </span>
-          </h1>
+          {/* Main Stats Grid */}
+          <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl mb-8">
+            <StatCard
+              icon={Users}
+              value={totalManagers}
+              label="Managers"
+              color="text-green-400"
+              bgColor="bg-green-500/10"
+            />
+            <StatCard
+              icon={Calendar}
+              value={`GW ${gameweekInfo?.current || '-'}`}
+              label="Current"
+              color="text-blue-400"
+              bgColor="bg-blue-500/10"
+            />
+            <StatCard
+              icon={Target}
+              value={gameweeksLeft}
+              label="GWs Left"
+              color="text-purple-400"
+              bgColor="bg-purple-500/10"
+            />
+            <StatCard
+              icon={Trophy}
+              value={`৳${(totalPrizePool / 1000).toFixed(0)}K`}
+              label="Prize Pool"
+              color="text-yellow-400"
+              bgColor="bg-yellow-500/10"
+            />
+          </motion.div>
 
-          <p className="text-base-content/80 text-sm mb-4">Fantasy Premier League Championship</p>
-
-          {currentLeader && authStatus?.authenticated && (
-            <div className="bg-base-100/30 backdrop-blur-md border border-base-content/10 rounded-xl p-3 mb-4 mx-auto max-w-sm shadow-lg">
-              <div className="flex items-center justify-center gap-2 text-base-content">
-                <Crown className="text-yellow-400" size={16} />
-                <span className="font-medium text-sm">Current Leader</span>
-              </div>
-              <div className="text-yellow-400 font-bold text-lg">{currentLeader.managerName}</div>
-              <div className="text-base-content/80 text-sm">{currentLeader.totalPoints} pts</div>
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-base-100/30 backdrop-blur-md border border-base-content/10 rounded-xl p-3 text-center hover:bg-base-100/50 transition-all duration-300 shadow-sm hover:shadow-md group">
-            <div className="flex justify-center mb-2">
-              <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Users className="text-green-400" size={16} />
-              </div>
-            </div>
-            <div className="text-green-400 text-lg font-bold">{totalManagers}</div>
-            <div className="text-base-content/70 text-xs">Managers</div>
-          </div>
-
-          <div className="bg-base-100/30 backdrop-blur-md border border-base-content/10 rounded-xl p-3 text-center hover:bg-base-100/50 transition-all duration-300 shadow-sm hover:shadow-md group">
-            <div className="flex justify-center mb-2">
-              <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Calendar className="text-blue-400" size={16} />
-              </div>
-            </div>
-            <div className="text-blue-400 text-lg font-bold">GW {gameweekInfo?.current || 3}</div>
-            <div className="text-base-content/70 text-xs">Current</div>
-          </div>
-
-          <div className="bg-base-100/30 backdrop-blur-md border border-base-content/10 rounded-xl p-3 text-center hover:bg-base-100/50 transition-all duration-300 shadow-sm hover:shadow-md group">
-            <div className="flex justify-center mb-2">
-              <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Target className="text-purple-400" size={16} />
-              </div>
-            </div>
-            <div className="text-purple-400 text-lg font-bold">{gameweeksLeft}</div>
-            <div className="text-base-content/70 text-xs">Left</div>
-          </div>
-
-          <div className="bg-base-100/30 backdrop-blur-md border border-base-content/10 rounded-xl p-3 text-center hover:bg-base-100/50 transition-all duration-300 shadow-sm hover:shadow-md group">
-            <div className="flex justify-center mb-2">
-              <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Trophy className="text-yellow-400" size={16} />
-              </div>
-            </div>
-            <div className="text-yellow-400 text-lg font-bold">৳{(totalPrizePool / 1000).toFixed(0)}K</div>
-            <div className="text-base-content/70 text-xs">Prize Pool</div>
-          </div>
-        </div>
-
-        {nextDeadline && (
-          <div className="bg-base-100/20 backdrop-blur-md border border-base-content/10 rounded-xl p-4 mb-4 shadow-sm">
-            <div className="text-center">
-              <div className="text-base-content font-medium text-sm mb-1">Next Deadline</div>
-              <div className="text-yellow-400 font-bold">
-                {nextDeadline.toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {topPerformers.length > 0 && authStatus?.authenticated && (
-          <div className="bg-base-100/20 backdrop-blur-md border border-base-content/10 rounded-xl p-4 shadow-sm">
-            <h3 className="text-base-content font-bold text-center mb-3 flex items-center justify-center gap-2 text-sm">
-              <Zap className="text-yellow-400" size={16} />
-              This Gameweek's Heroes
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              {topPerformers.map((manager, index) => (
-                <div key={manager.id} className="bg-base-100/30 rounded-lg p-2 text-center hover:scale-105 transition-transform">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    {index === 0 && <Crown className="text-yellow-400" size={10} />}
-                    {index === 1 && <div className="w-2 h-2 bg-gray-400 rounded-full" />}
-                    {index === 2 && <div className="w-2 h-2 bg-orange-400 rounded-full" />}
-                    <span className="text-base-content font-medium text-xs truncate">{manager.managerName}</span>
-                  </div>
-                  <div className="text-yellow-400 font-bold text-sm">{manager.gameweekPoints} pts</div>
+          {/* Leader & Deadline Section */}
+          <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
+            {/* Current Leader */}
+            {currentLeader && (
+              <Card className="flex items-center justify-between p-4 border-l-4 border-l-yellow-400">
+                <div>
+                  <div className="text-bro-muted text-xs uppercase tracking-wider font-bold mb-1">Current Leader</div>
+                  <div className="text-white font-bold text-lg">{currentLeader.managerName}</div>
+                  <div className="text-yellow-400 text-sm font-medium">{currentLeader.totalPoints} pts</div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+                <div className="w-12 h-12 rounded-full bg-yellow-400/10 flex items-center justify-center">
+                  <Crown className="text-yellow-400" size={24} />
+                </div>
+              </Card>
+            )}
+
+            {/* Next Deadline */}
+            {nextDeadline && (
+              <Card className="flex items-center justify-between p-4 border-l-4 border-l-bro-primary">
+                <div>
+                  <div className="text-bro-muted text-xs uppercase tracking-wider font-bold mb-1">Next Deadline</div>
+                  <div className="text-white font-bold text-lg">
+                    {nextDeadline.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  </div>
+                  <div className="text-bro-primary text-sm font-medium">
+                    {nextDeadline.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-bro-primary/10 flex items-center justify-center">
+                  <Clock className="text-bro-primary" size={24} />
+                </div>
+              </Card>
+            )}
+          </motion.div>
+
+          {/* Top Performers */}
+          {topPerformers.length > 0 && authStatus?.authenticated && (
+            <motion.div variants={itemVariants} className="w-full max-w-4xl mt-8">
+              <div className="flex items-center gap-2 mb-4">
+                <Zap className="text-yellow-400" size={18} />
+                <h3 className="text-white font-bold">Gameweek Heroes</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {topPerformers.map((manager, index) => (
+                  <Card key={manager.id} className="flex items-center gap-3 p-3 hover:bg-white/10 transition-colors">
+                    <div className={`
+                      w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm
+                      ${index === 0 ? 'bg-yellow-400 text-yellow-900' :
+                        index === 1 ? 'bg-gray-300 text-gray-900' :
+                          'bg-orange-400 text-orange-900'}
+                    `}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-medium truncate">{manager.managerName}</div>
+                      <div className="text-bro-muted text-xs">{manager.teamName}</div>
+                    </div>
+                    <Badge variant="success">
+                      {manager.gameweekPoints} pts
+                    </Badge>
+                  </Card>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
       </div>
     </div>
   );
 };
+
+const StatCard = ({ icon: Icon, value, label, color, bgColor }) => (
+  <Card className="flex flex-col items-center justify-center p-4 text-center hover:scale-105 transition-transform duration-300">
+    <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center mb-2`}>
+      <Icon className={color} size={20} />
+    </div>
+    <div className={`text-xl font-bold ${color}`}>{value}</div>
+    <div className="text-bro-muted text-xs font-medium uppercase tracking-wide">{label}</div>
+  </Card>
+);
 
 export default CompactHero;

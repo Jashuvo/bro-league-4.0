@@ -1,47 +1,33 @@
-// src/components/WeeklyPrizes.jsx - Updated with Theme Support & Animations
 import React, { useState, useMemo } from 'react';
 import {
-  Zap, Trophy, Crown, Medal, Award, Calendar, Target, TrendingUp, Clock,
-  DollarSign, ChevronRight, Users, Star, Gift, ChevronLeft
+  Zap, Trophy, Crown, Medal, Award, ChevronRight, ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Card from './ui/Card';
+import Badge from './ui/Badge';
 
 const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }) => {
   const currentGW = gameweekInfo.current || 3;
   const [selectedGameweek, setSelectedGameweek] = useState(currentGW);
   const [expandedRow, setExpandedRow] = useState(null);
 
-  // Toggle row expansion
   const toggleRowExpansion = (managerId) => {
     setExpandedRow(expandedRow === managerId ? null : managerId);
   };
 
-  // Position styling
-  const getPositionStyling = (position) => {
-    if (position === 1) return 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 shadow-lg shadow-yellow-500/20';
-    if (position === 2) return 'bg-gradient-to-r from-gray-300 to-gray-400 text-gray-900 shadow-lg shadow-gray-500/20';
-    if (position === 3) return 'bg-gradient-to-r from-orange-400 to-orange-500 text-orange-900 shadow-lg shadow-orange-500/20';
-    if (position <= 5) return 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md shadow-green-500/20';
-    if (position <= 10) return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/20';
-    return 'bg-base-300 text-base-content border border-base-content/10';
-  };
-
-  // Position icons
   const getPositionIcon = (position) => {
-    if (position === 1) return <Crown className="text-yellow-900" size={16} />;
-    if (position === 2) return <Medal className="text-gray-900" size={16} />;
-    if (position === 3) return <Award className="text-orange-900" size={16} />;
-    return null;
+    if (position === 1) return <Crown className="text-yellow-400 fill-yellow-400" size={20} />;
+    if (position === 2) return <Medal className="text-gray-300 fill-gray-300" size={20} />;
+    if (position === 3) return <Award className="text-orange-400 fill-orange-400" size={20} />;
+    return <span className="font-bold text-bro-muted w-5 text-center">{position}</span>;
   };
 
-  // Get gameweek status
   const getGameweekStatus = (gameweekId) => {
     if (gameweekId < currentGW) return 'completed';
     if (gameweekId === currentGW) return 'current';
     return 'upcoming';
   };
 
-  // Calculate weekly winners with enhanced data
   const weeklyWinners = useMemo(() => {
     if (!gameweekTable.length) return [];
 
@@ -49,18 +35,11 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
       .map(gw => {
         if (!gw.managers || gw.managers.length === 0) return null;
 
-        // Apply transfer cost deduction BEFORE sorting
         const managersWithNetPoints = gw.managers
           .filter(m => m.points > 0)
           .map(manager => {
             const rawPoints = manager.gameweekPoints || manager.points || 0;
-            const transfersCost = manager.transfersCost ||
-              manager.event_transfers_cost ||
-              manager.transferCost ||
-              manager.transfers_cost ||
-              manager.penalty ||
-              manager.hit ||
-              0;
+            const transfersCost = manager.transfersCost || manager.event_transfers_cost || manager.transferCost || manager.transfers_cost || manager.penalty || manager.hit || 0;
             const netPoints = rawPoints - transfersCost;
 
             return {
@@ -75,7 +54,6 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
 
         if (managersWithNetPoints.length === 0) return null;
 
-        // Add rankings
         const rankedManagers = managersWithNetPoints.map((manager, index) => ({
           ...manager,
           position: index + 1,
@@ -93,17 +71,14 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
         };
       })
       .filter(Boolean)
-      .reverse(); // Show most recent first
+      .reverse();
   }, [gameweekTable, currentGW]);
 
-  // Get selected gameweek data
   const selectedGameweekData = weeklyWinners.find(w => w.gameweek === selectedGameweek);
 
-  // Calculate overall weekly stats
   const weeklyStats = useMemo(() => {
     const completedWeeks = weeklyWinners.filter(w => w.status === 'completed');
     if (completedWeeks.length === 0) return {};
-
     const totalPrizesAwarded = completedWeeks.length * 30;
     const allHighScores = completedWeeks.map(w => w.highestPoints);
     const averageWinningScore = Math.round(allHighScores.reduce((sum, score) => sum + score, 0) / allHighScores.length);
@@ -119,313 +94,175 @@ const WeeklyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }
 
   if (loading) {
     return (
-      <div className="bg-base-100 rounded-xl shadow-lg border border-base-content/10 overflow-hidden">
-        <div className="p-8">
-          <div className="animate-pulse space-y-4">
-            {Array(5).map((_, i) => (
-              <div key={i} className="h-16 bg-base-200 rounded"></div>
-            ))}
-          </div>
-        </div>
+      <div className="space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-20 bg-bro-card/50 rounded-xl animate-pulse"></div>
+        ))}
       </div>
     );
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="bg-base-100 rounded-xl shadow-lg border border-base-content/10 overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-6"
     >
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-              <Zap size={24} />
+      {/* Header Card */}
+      <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 border-none">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-white">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
+              <Zap size={32} />
             </div>
             <div>
-              <h2 className="text-2xl font-bold">Weekly Competitions</h2>
-              <p className="text-purple-100">
+              <h2 className="text-3xl font-display font-bold">Weekly Competitions</h2>
+              <p className="text-white/80 text-lg">
                 GW {selectedGameweek} • ৳30 Weekly Prize
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-full backdrop-blur-sm">
-            <Trophy size={16} />
-            <span className="text-sm">
-              {selectedGameweekData?.status === 'completed' ? 'Winner Declared' :
-                selectedGameweekData?.status === 'current' ? 'Live Competition' : 'Upcoming'}
-            </span>
-          </div>
+          <Badge
+            variant={selectedGameweekData?.status === 'completed' ? 'success' : selectedGameweekData?.status === 'current' ? 'primary' : 'warning'}
+            className="px-4 py-2 text-sm bg-white/20 border-white/20 text-white backdrop-blur-md"
+          >
+            <Trophy size={16} className="mr-2" />
+            {selectedGameweekData?.status === 'completed' ? 'Winner Declared' : selectedGameweekData?.status === 'current' ? 'Live Competition' : 'Upcoming'}
+          </Badge>
         </div>
 
-        {/* Quick Stats */}
         {weeklyStats.completedWeeks && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-              <div className="text-xl font-bold">{weeklyStats.completedWeeks}</div>
-              <div className="text-sm opacity-80">Completed</div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-              <div className="text-xl font-bold">৳{weeklyStats.totalPrizesAwarded}</div>
-              <div className="text-sm opacity-80">Prizes Awarded</div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-              <div className="text-xl font-bold">{weeklyStats.averageWinningScore}</div>
-              <div className="text-sm opacity-80">Avg Winning Score</div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-4 text-center backdrop-blur-sm border border-white/10">
-              <div className="text-xl font-bold">{weeklyStats.highestWinningScore}</div>
-              <div className="text-sm opacity-80">Highest Win</div>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            <StatBox value={weeklyStats.completedWeeks} label="Completed" />
+            <StatBox value={`৳${weeklyStats.totalPrizesAwarded}`} label="Prizes Awarded" />
+            <StatBox value={weeklyStats.averageWinningScore} label="Avg Winning Score" />
+            <StatBox value={weeklyStats.highestWinningScore} label="Highest Win" />
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Gameweek Navigation */}
-      <div className="p-4 border-b border-base-content/10 bg-base-200/50">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setSelectedGameweek(Math.max(1, selectedGameweek - 1))}
-            disabled={selectedGameweek <= 1}
-            className="flex items-center gap-2 px-3 py-2 bg-base-100 border border-base-content/10 rounded-lg hover:bg-base-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base-content"
-          >
-            <ChevronLeft size={16} />
-            <span className="hidden sm:inline">Previous</span>
-          </button>
+      <div className="flex items-center justify-between bg-bro-card p-4 rounded-xl border border-white/5">
+        <button
+          onClick={() => setSelectedGameweek(Math.max(1, selectedGameweek - 1))}
+          disabled={selectedGameweek <= 1}
+          className="p-2 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white"
+        >
+          <ChevronLeft size={24} />
+        </button>
 
-          <div className="text-center">
-            <div className="font-bold text-lg text-base-content">Gameweek {selectedGameweek}</div>
-            <div className="text-sm text-base-content/60">
-              {selectedGameweekData?.status === 'completed' && `✅ Winner: ${selectedGameweekData.winner?.managerName || selectedGameweekData.winner?.name}`}
-              {selectedGameweekData?.status === 'current' && '🔄 Live Competition'}
-              {selectedGameweekData?.status === 'upcoming' && '⏳ Upcoming Competition'}
-            </div>
-          </div>
-
-          <button
-            onClick={() => setSelectedGameweek(Math.min(38, selectedGameweek + 1))}
-            disabled={selectedGameweek >= 38}
-            className="flex items-center gap-2 px-3 py-2 bg-base-100 border border-base-content/10 rounded-lg hover:bg-base-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base-content"
-          >
-            <span className="hidden sm:inline">Next</span>
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Weekly Overview Cards */}
-      <div className="p-4 border-b border-base-content/10 bg-base-200/30">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Winner Card */}
-          {selectedGameweekData?.winner && (
-            <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 border border-yellow-500/20 rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg shadow-yellow-500/20">
-                  <Crown className="text-white" size={20} />
-                </div>
-                <div>
-                  <div className="font-bold text-base-content">{selectedGameweekData.winner.managerName || selectedGameweekData.winner.name}</div>
-                  <div className="text-sm text-base-content/60">{selectedGameweekData.winner.netPoints} points</div>
-                  {selectedGameweekData.status === 'completed' && (
-                    <div className="text-xs text-green-500 font-semibold">৳30 Prize Winner!</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Stats Card */}
-          {selectedGameweekData && (
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-500">{selectedGameweekData.totalManagers}</div>
-                <div className="text-sm text-base-content/70">Participants</div>
-                <div className="text-xs text-base-content/50 mt-1">Avg: {selectedGameweekData.averagePoints} pts</div>
-              </div>
-            </div>
-          )}
-
-          {/* Competition Info */}
-          <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-500">৳30</div>
-              <div className="text-sm text-base-content/70">Weekly Prize</div>
-              <div className="text-xs text-base-content/50 mt-1">Highest net score wins</div>
-            </div>
+        <div className="text-center">
+          <div className="font-bold text-xl text-white">Gameweek {selectedGameweek}</div>
+          <div className="text-sm text-bro-muted">
+            {selectedGameweekData?.status === 'completed' && `✅ Winner: ${selectedGameweekData.winner?.managerName || selectedGameweekData.winner?.name}`}
+            {selectedGameweekData?.status === 'current' && '🔄 Live Competition'}
+            {selectedGameweekData?.status === 'upcoming' && '⏳ Upcoming Competition'}
           </div>
         </div>
+
+        <button
+          onClick={() => setSelectedGameweek(Math.min(38, selectedGameweek + 1))}
+          disabled={selectedGameweek >= 38}
+          className="p-2 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-white"
+        >
+          <ChevronRight size={24} />
+        </button>
       </div>
 
-      {/* Main Table Content */}
-      <div className="overflow-x-auto">
+      {/* Standings List */}
+      <div className="space-y-3">
         {!selectedGameweekData || !selectedGameweekData.managers.length ? (
-          <div className="p-12 text-center text-base-content/50">
+          <div className="p-12 text-center text-bro-muted">
             <Zap className="w-16 h-16 mx-auto mb-4 opacity-20" />
             <p className="text-lg">No data available for Gameweek {selectedGameweek}</p>
           </div>
         ) : (
-          <div className="divide-y divide-base-content/5">
-            {selectedGameweekData.managers.slice(0, 10).map((manager, index) => { // Show top 10
-              const position = manager.position;
-
-              return (
-                <motion.div
-                  key={manager.id || manager.entry}
-                  className="hover:bg-base-200/50 transition-colors"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
+          selectedGameweekData.managers.slice(0, 10).map((manager, index) => (
+            <motion.div
+              key={manager.id || manager.entry}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <Card
+                className={`p-0 overflow-hidden transition-all duration-300 ${expandedRow === (manager.id || manager.entry) ? 'ring-2 ring-bro-primary' : 'hover:bg-white/5'}`}
+              >
+                <div
+                  className="p-4 flex items-center gap-4 cursor-pointer"
+                  onClick={() => toggleRowExpansion(manager.id || manager.entry)}
                 >
-                  {/* Main Row */}
-                  <div
-                    className="p-4 cursor-pointer flex items-center justify-between"
-                    onClick={() => toggleRowExpansion(manager.id || manager.entry)}
-                  >
-                    <div className="flex items-center gap-4 flex-1">
-                      {/* Position */}
-                      <div className={`
-                        w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm
-                        ${getPositionStyling(position)}
-                      `}>
-                        {getPositionIcon(position) || position}
-                      </div>
-
-                      {/* Manager Info */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-base-content text-lg">
-                            {manager.managerName || manager.name}
-                          </h3>
-                          {position <= 3 && (
-                            <div className="flex">
-                              {getPositionIcon(position)}
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-sm text-base-content/60">
-                          {manager.teamName || manager.entry_name}
-                        </p>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-base-content/50">
-                          <span>Weekly Rank: #{position}</span>
-                          {manager.prize > 0 && (
-                            <>
-                              <span>•</span>
-                              <span className="text-green-500 font-semibold">৳{manager.prize} Winner!</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Points Display */}
-                      <div className="text-right">
-                        <div className="flex items-center gap-4">
-                          {/* Raw Points */}
-                          <div className="text-center">
-                            <div className="text-lg font-bold text-blue-500">
-                              {manager.rawPoints}
-                            </div>
-                            <div className="text-xs text-base-content/50">Raw</div>
-                          </div>
-
-                          {/* Penalties */}
-                          <div className="text-center">
-                            <div className={`text-lg font-bold ${manager.transfersCost > 0 ? 'text-red-500' : 'text-base-content/30'
-                              }`}>
-                              -{manager.transfersCost}
-                            </div>
-                            <div className="text-xs text-base-content/50">Penalty</div>
-                          </div>
-
-                          {/* Net Points */}
-                          <div className="text-center">
-                            <div className={`text-xl font-bold ${position === 1 ? 'text-yellow-500' : 'text-purple-500'
-                              }`}>
-                              {manager.netPoints}
-                            </div>
-                            <div className="text-xs text-base-content/50">Net</div>
-                          </div>
-
-                          {/* Expand Arrow */}
-                          <div className="ml-2">
-                            <ChevronRight
-                              className={`text-base-content/30 transition-transform ${expandedRow === (manager.id || manager.entry) ? 'rotate-90' : ''
-                                }`}
-                              size={20}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="flex-shrink-0 w-8 flex justify-center">
+                    {getPositionIcon(manager.position)}
                   </div>
 
-                  {/* Expanded Row */}
-                  <AnimatePresence>
-                    {expandedRow === (manager.id || manager.entry) && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="px-4 overflow-hidden bg-base-200/30 border-t border-base-content/5"
-                      >
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4">
-                          <div className="bg-base-100 rounded-lg p-3 text-center shadow-sm border border-base-content/5">
-                            <div className="text-lg font-bold text-purple-500">#{position}</div>
-                            <div className="text-xs text-base-content/60">Weekly Rank</div>
-                          </div>
-                          <div className="bg-base-100 rounded-lg p-3 text-center shadow-sm border border-base-content/5">
-                            <div className="text-lg font-bold text-blue-500">{manager.rawPoints}</div>
-                            <div className="text-xs text-base-content/60">Raw Points</div>
-                          </div>
-                          <div className="bg-base-100 rounded-lg p-3 text-center shadow-sm border border-base-content/5">
-                            <div className="text-lg font-bold text-red-500">{manager.transfersCost}</div>
-                            <div className="text-xs text-base-content/60">Transfer Cost</div>
-                          </div>
-                          <div className="bg-base-100 rounded-lg p-3 text-center shadow-sm border border-base-content/5">
-                            <div className="text-lg font-bold text-green-500">{manager.netPoints}</div>
-                            <div className="text-xs text-base-content/60">Final Score</div>
-                          </div>
+                  <div className="flex-grow min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className={`font-bold text-lg truncate ${manager.position === 1 ? 'text-yellow-400' : 'text-white'}`}>
+                        {manager.managerName || manager.name}
+                      </h3>
+                      {manager.position <= 3 && getPositionIcon(manager.position)}
+                    </div>
+                    <p className="text-bro-muted text-sm truncate">{manager.teamName || manager.entry_name}</p>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="font-bold text-xl text-bro-primary">{manager.netPoints}</div>
+                    <div className="text-xs text-bro-muted">Net Points</div>
+                  </div>
+
+                  <ChevronRight
+                    className={`text-bro-muted transition-transform duration-300 ${expandedRow === (manager.id || manager.entry) ? 'rotate-90' : ''}`}
+                    size={20}
+                  />
+                </div>
+
+                <AnimatePresence>
+                  {expandedRow === (manager.id || manager.entry) && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="bg-black/20 border-t border-white/5 p-4"
+                    >
+                      <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div className="bg-white/5 rounded-lg p-2 text-center border border-white/5">
+                          <div className="text-xs text-bro-muted">Raw Points</div>
+                          <div className="font-bold text-white">{manager.rawPoints}</div>
                         </div>
+                        <div className="bg-white/5 rounded-lg p-2 text-center border border-white/5">
+                          <div className="text-xs text-bro-muted">Penalty</div>
+                          <div className="font-bold text-red-400">-{manager.transfersCost}</div>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 text-center border border-white/5">
+                          <div className="text-xs text-bro-muted">Net Score</div>
+                          <div className="font-bold text-green-400">{manager.netPoints}</div>
+                        </div>
+                      </div>
 
-                        {manager.prize > 0 && (
-                          <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                            <div className="flex items-center gap-2 text-yellow-600">
-                              <Crown size={16} />
-                              <span className="font-semibold">🏆 Weekly Champion - ৳{manager.prize} Prize Winner!</span>
-                            </div>
-                          </div>
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </div>
+                      {manager.prize > 0 && (
+                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-center gap-2 text-yellow-400">
+                          <Crown size={18} />
+                          <span className="font-bold">Weekly Champion - ৳{manager.prize} Prize Winner!</span>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Card>
+            </motion.div>
+          ))
         )}
-      </div>
-
-      {/* Footer */}
-      <div className="bg-base-200 border-t border-base-content/10 p-4">
-        <div className="text-center text-sm text-base-content/60">
-          <div className="flex items-center justify-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span>
-              Weekly winners determined by highest net score (raw points - transfer penalties) • Last updated: {new Date().toLocaleString('en-US', {
-                timeZone: 'Asia/Dhaka',
-                dateStyle: 'medium',
-                timeStyle: 'short'
-              })} (BD)
-            </span>
-          </div>
-        </div>
       </div>
     </motion.div>
   );
 };
+
+const StatBox = ({ value, label }) => (
+  <div className="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm border border-white/10">
+    <div className="text-xl font-bold text-white">{value}</div>
+    <div className="text-xs font-medium text-white/80">{label}</div>
+  </div>
+);
 
 export default WeeklyPrizes;
