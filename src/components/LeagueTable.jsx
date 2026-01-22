@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, ChevronRight, Users, ArrowRight, Target, DollarSign } from 'lucide-react';
+import { Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, ChevronRight, Users, ArrowRight, Target, DollarSign, UserX, UserCheck, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeamView from './TeamView';
 import Card from './ui/Card';
@@ -7,12 +7,15 @@ import Badge from './ui/Badge';
 import Button from './ui/Button';
 import LiveTotalPointsTable from './LiveTotalPointsTable';
 import PrizeBreakdown from './PrizeBreakdown';
+import { useExclusion } from '../context/ExclusionContext';
 
 const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [showLivePoints, setShowLivePoints] = useState(false);
   const [selectedPrizeManager, setSelectedPrizeManager] = useState(null);
+  const [showExclusionSettings, setShowExclusionSettings] = useState(false);
+  const { excludeTeam, includeTeam, excludedTeamIds, clearExclusions } = useExclusion();
 
   // Calculate total prizes won (Logic preserved)
   const calculateTotalPrizesWon = (managerId) => {
@@ -197,6 +200,19 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
           </div>
 
           <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+            {excludedTeamIds.length > 0 && (
+              <button
+                onClick={() => setShowExclusionSettings(!showExclusionSettings)}
+                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${showExclusionSettings
+                  ? 'bg-red-500 text-white shadow-lg'
+                  : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
+                  }`}
+              >
+                <Settings size={16} />
+                {excludedTeamIds.length} Excluded
+              </button>
+            )}
+
             {gameweekInfo?.current && (
               <button
                 onClick={() => setShowLivePoints(!showLivePoints)}
@@ -224,6 +240,52 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
             )}
           </div>
         </div>
+
+        {/* Exclusion Settings Panel */}
+        <AnimatePresence>
+          {showExclusionSettings && excludedTeamIds.length > 0 && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="mb-6 overflow-hidden"
+            >
+              <Card className="border-red-500/20 bg-red-500/5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-red-400 flex items-center gap-2">
+                    <UserX size={20} /> Excluded Teams
+                  </h3>
+                  <button
+                    onClick={clearExclusions}
+                    className="text-xs font-bold text-red-400 hover:underline"
+                  >
+                    Clear All
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {excludedTeamIds.map(id => (
+                    <div
+                      key={id}
+                      className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-sm text-red-300"
+                    >
+                      <span>ID: {id}</span>
+                      <button
+                        onClick={() => includeTeam(id)}
+                        className="p-1 hover:bg-red-500/20 rounded-full transition-colors"
+                        title="Restore Team"
+                      >
+                        <UserCheck size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-4 text-xs text-bro-muted">
+                  These teams are completely excluded from all rankings, statistics, and prize calculations.
+                </p>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Table/List */}
         <div className="space-y-3">
@@ -349,7 +411,20 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                             </div>
 
                             {/* Action Buttons */}
-                            <div className={`grid gap-3 ${manager.totalPrizesWon > 0 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                            <div className={`grid gap-3 ${manager.totalPrizesWon > 0 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+                              <Button
+                                variant="secondary"
+                                className="w-full justify-center text-red-400 hover:bg-red-500/10 border-red-500/20"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm(`Exclude ${manager.managerName || manager.player_name} from all calculations?`)) {
+                                    excludeTeam(manager.id || manager.entry);
+                                  }
+                                }}
+                              >
+                                <UserX size={16} className="mr-2" /> Exclude
+                              </Button>
+
                               {manager.totalPrizesWon > 0 && (
                                 <Button
                                   variant="secondary"
