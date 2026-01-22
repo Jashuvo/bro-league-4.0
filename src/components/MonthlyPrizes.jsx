@@ -64,16 +64,17 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, 
             };
           }
 
-          const netPoints = (manager.gameweekPoints || manager.points || 0) -
-            (manager.transfersCost || manager.event_transfers_cost || 0);
+          const rawPoints = manager.gameweekPoints || manager.points || 0;
+          const transfersCost = manager.transfersCost || manager.event_transfers_cost || manager.transferCost || 0;
+          const netPoints = rawPoints - transfersCost;
 
           managerTotals[managerId].totalPoints += netPoints;
           managerTotals[managerId].gameweeksPlayed++;
           managerTotals[managerId].details.push({
             gameweek: gw.gameweek,
             points: netPoints,
-            rawPoints: manager.gameweekPoints || manager.points || 0,
-            transfersCost: manager.transfersCost || manager.event_transfers_cost || 0
+            rawPoints: rawPoints,
+            transfersCost: transfersCost
           });
         });
       }
@@ -102,7 +103,8 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, 
   }, [monthlyStandings, selectedMonth, months]);
 
   const getMonthStatus = (month) => {
-    const completedGWs = month.gameweeks.filter(gw => gw < currentGW).length;
+    const lastCompletedGW = gameweekInfo.isFinished ? currentGW : currentGW - 1;
+    const completedGWs = month.gameweeks.filter(gw => gw <= lastCompletedGW).length;
     const totalGWs = month.gameweeks.length;
     if (completedGWs === totalGWs) return 'completed';
     if (completedGWs > 0) return 'active';
@@ -253,7 +255,12 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, 
                         {manager.details.map((detail, idx) => (
                           <div key={idx} className="bg-white/5 rounded-lg p-2 text-center border border-white/5">
                             <div className="text-xs text-bro-muted">GW {detail.gameweek}</div>
-                            <div className="font-bold text-white">{detail.points}</div>
+                            <div className="font-bold text-white">
+                              {detail.points}
+                              {detail.transfersCost > 0 && (
+                                <span className="text-xs text-red-400 ml-1">(-{detail.transfersCost})</span>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>

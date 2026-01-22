@@ -21,8 +21,12 @@ const Hero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstrap }) =
   
   // Get top performers this gameweek
   const topPerformers = standings
-    .filter(m => m.gameweekPoints > 0)
-    .sort((a, b) => b.gameweekPoints - a.gameweekPoints)
+    .filter(m => (m.gameweekPoints || 0) - (m.gameweekHits || 0) > 0)
+    .sort((a, b) => {
+      const netA = (a.gameweekPoints || 0) - (a.gameweekHits || 0);
+      const netB = (b.gameweekPoints || 0) - (b.gameweekHits || 0);
+      return netB - netA;
+    })
     .slice(0, 3)
   
   return (
@@ -195,7 +199,13 @@ const Hero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstrap }) =
                     {index === 2 && <Award className="text-orange-400" size={12} />}
                     <span className="text-white font-medium text-sm">{manager.managerName}</span>
                   </div>
-                  <div className="text-yellow-400 font-bold">{manager.gameweekPoints} pts</div>
+                  <div className="text-yellow-400 font-bold">
+                    {(manager.gameweekPoints || 0) - (manager.gameweekHits || 0)}
+                    {(manager.gameweekHits || 0) > 0 && (
+                      <span className="text-xs text-red-400 ml-1">(-{manager.gameweekHits})</span>
+                    )}
+                    <span className="ml-1 text-xs opacity-80">pts</span>
+                  </div>
                 </div>
               ))}
             </div>

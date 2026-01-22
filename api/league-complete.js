@@ -257,6 +257,9 @@ export default async function handler(req, res) {
 
       const teamName = entry.managerData?.teamName || entry.entry_name || 'Unknown Team';
       
+      // Get current gameweek hits
+      const currentGWHits = entry.historyData?.currentSeason?.find(h => h.event === currentGameweek)?.event_transfers_cost || 0;
+
       // Calculate form (last 5 gameweeks)
       let form = 'N/A';
       let avgPoints = 0;
@@ -275,6 +278,7 @@ export default async function handler(req, res) {
         teamName: teamName,
         totalPoints: entry.total,
         gameweekPoints: entry.event_total || 0,
+        gameweekHits: currentGWHits,
         rank: entry.rank,
         lastRank: entry.last_rank,
         rankChange: (entry.last_rank || entry.rank) - entry.rank,
