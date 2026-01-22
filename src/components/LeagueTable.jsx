@@ -27,8 +27,9 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
       return rawPoints - transfersCost;
     };
 
-    // Weekly Prizes - Only count FINISHED gameweeks (not current ongoing one)
-    for (let gw = 1; gw < currentGW; gw++) {
+    // Weekly Prizes - Only count FINISHED gameweeks
+    const lastCompletedGW = gameweekInfo.isFinished ? currentGW : currentGW - 1;
+    for (let gw = 1; gw <= lastCompletedGW; gw++) {
       const gameweekData = gameweekTable.find(g => g.gameweek === gw);
       if (!gameweekData?.managers) continue;
       const sortedManagers = [...gameweekData.managers]
@@ -48,7 +49,8 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
     const finalMonthPrizes = [500, 400, 250];
 
     Object.entries(monthlyGameweeks).forEach(([monthNum, month]) => {
-      if (currentGW >= month.end) {
+      const isMonthFinished = currentGW > month.end || (currentGW === month.end && gameweekInfo.isFinished);
+      if (isMonthFinished) {
         const allMonthlyScores = gameweekTable
           .filter(gw => gw.gameweek >= month.start && gw.gameweek <= month.end)
           .reduce((scores, gw) => {
@@ -87,7 +89,8 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
     };
 
     // Weekly Prizes - Only count FINISHED gameweeks
-    for (let gw = 1; gw < currentGW; gw++) {
+    const lastCompletedGW = gameweekInfo.isFinished ? currentGW : currentGW - 1;
+    for (let gw = 1; gw <= lastCompletedGW; gw++) {
       const gameweekData = gameweekTable.find(g => g.gameweek === gw);
       if (!gameweekData?.managers) continue;
       const sortedManagers = [...gameweekData.managers]
@@ -114,7 +117,8 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
     const finalMonthPrizes = [500, 400, 250];
 
     Object.entries(monthlyGameweeks).forEach(([monthNum, month]) => {
-      if (currentGW >= month.end) {
+      const isMonthFinished = currentGW > month.end || (currentGW === month.end && gameweekInfo.isFinished);
+      if (isMonthFinished) {
         const allMonthlyScores = gameweekTable
           .filter(gw => gw.gameweek >= month.start && gw.gameweek <= month.end)
           .reduce((scores, gw) => {

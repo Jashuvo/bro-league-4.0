@@ -103,7 +103,8 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, 
   }, [monthlyStandings, selectedMonth, months]);
 
   const getMonthStatus = (month) => {
-    const completedGWs = month.gameweeks.filter(gw => gw < currentGW).length;
+    const lastCompletedGW = gameweekInfo.isFinished ? currentGW : currentGW - 1;
+    const completedGWs = month.gameweeks.filter(gw => gw <= lastCompletedGW).length;
     const totalGWs = month.gameweeks.length;
     if (completedGWs === totalGWs) return 'completed';
     if (completedGWs > 0) return 'active';

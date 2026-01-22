@@ -63,9 +63,12 @@ function AppContent() {
 
       if (result.bootstrap) {
         setBootstrap(result.bootstrap);
+        const currentGW = result.bootstrap.currentGameweek || 3;
+        const currentGWData = result.bootstrap.gameweeks?.find(gw => gw.id === currentGW);
         setGameweekInfo({
-          current: result.bootstrap.currentGameweek || 3,
-          total: result.bootstrap.totalGameweeks || 38
+          current: currentGW,
+          total: result.bootstrap.totalGameweeks || 38,
+          isFinished: currentGWData?.finished || false
         });
       }
 
