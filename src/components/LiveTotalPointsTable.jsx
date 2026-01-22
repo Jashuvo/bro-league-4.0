@@ -167,7 +167,10 @@ const LiveTotalPointsTable = ({ standings = [], gameweek }) => {
                                         {manager.liveTotalPoints}
                                     </div>
                                     <div className="text-xs text-bro-muted">
-                                        +{manager.liveGWPoints} GW
+                                         {manager.liveGWPoints} GW
+                                         {manager.liveManager?.transferCost > 0 && (
+                                             <span className="text-red-400 ml-1">(-{manager.liveManager.transferCost})</span>
+                                         )}
                                     </div>
                                 </div>
                             </Card>

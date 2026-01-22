@@ -264,7 +264,12 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
                           </div>
 
                           <div className="text-right">
-                            <div className="font-bold text-xl text-bro-primary">{manager.netPoints}</div>
+                            <div className="font-bold text-xl text-bro-primary">
+                              {manager.netPoints}
+                              {manager.transfersCost > 0 && (
+                                <span className="text-xs text-red-400 ml-1">(-{manager.transfersCost})</span>
+                              )}
+                            </div>
                             <div className="text-xs text-bro-muted">Net</div>
                           </div>
 
