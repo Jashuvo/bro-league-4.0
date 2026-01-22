@@ -16,8 +16,12 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
   const nextDeadline = nextGameweekData?.deadline_time ? new Date(nextGameweekData.deadline_time) : null;
 
   const topPerformers = standings
-    ?.filter(m => m.gameweekPoints > 0)
-    ?.sort((a, b) => b.gameweekPoints - a.gameweekPoints)
+    ?.filter(m => (m.gameweekPoints || 0) - (m.gameweekHits || 0) > 0)
+    ?.sort((a, b) => {
+      const netA = (a.gameweekPoints || 0) - (a.gameweekHits || 0);
+      const netB = (b.gameweekPoints || 0) - (b.gameweekHits || 0);
+      return netB - netA;
+    })
     ?.slice(0, 3) || [];
 
   const containerVariants = {
@@ -154,7 +158,11 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
                       <div className="text-bro-muted text-xs">{manager.teamName}</div>
                     </div>
                     <Badge variant="success">
-                      {manager.gameweekPoints} pts
+                      {(manager.gameweekPoints || 0) - (manager.gameweekHits || 0)}
+                      {(manager.gameweekHits || 0) > 0 && (
+                        <span className="text-[10px] ml-1 opacity-80">(-{manager.gameweekHits})</span>
+                      )}
+                      <span className="ml-1">pts</span>
                     </Badge>
                   </Card>
                 ))}
