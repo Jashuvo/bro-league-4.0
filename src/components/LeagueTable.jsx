@@ -273,6 +273,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                         onClick={() => includeTeam(id)}
                         className="p-1 hover:bg-red-500/20 rounded-full transition-colors"
                         title="Restore Team"
+                        aria-label={`Restore Team ${id}`}
                       >
                         <UserCheck size={14} />
                       </button>
@@ -313,8 +314,18 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                   `}
                   >
                     <div
-                      className="p-4 flex items-center gap-4 cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isExpanded}
+                      aria-controls={`details-${manager.id || manager.entry}`}
+                      className="p-4 flex items-center gap-4 cursor-pointer focus:outline-none focus:bg-base-content/5"
                       onClick={() => toggleRowExpansion(manager.id || manager.entry)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggleRowExpansion(manager.id || manager.entry);
+                        }
+                      }}
                     >
                       {/* Rank */}
                       <div className="flex-shrink-0 w-8 flex justify-center">
@@ -388,6 +399,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                     <AnimatePresence>
                       {isExpanded && (
                         <motion.div
+                          id={`details-${manager.id || manager.entry}`}
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}

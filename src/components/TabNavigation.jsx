@@ -18,6 +18,7 @@ const TabNavigation = ({ tabs, activeTab, onTabChange }) => {
                 onClick={() => onTabChange(tab.id)}
                 onMouseEnter={() => setHoveredTab(tab.id)}
                 onMouseLeave={() => setHoveredTab(null)}
+                aria-label={tab.name}
                 className={`
                   relative z-10 flex-1 px-2 md:px-4 py-2.5 text-sm font-medium rounded-lg
                   transition-colors duration-200 ease-out flex items-center justify-center gap-2

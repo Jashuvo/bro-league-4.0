@@ -196,6 +196,7 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
           <button
             onClick={() => setSelectedGameweek(Math.max(1, selectedGameweek - 1))}
             disabled={selectedGameweek <= 1}
+            aria-label="Previous Gameweek"
             className="p-2 rounded-lg hover:bg-base-content/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base-content"
           >
             <ChevronLeft size={24} />
@@ -213,6 +214,7 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
           <button
             onClick={() => setSelectedGameweek(Math.min(38, selectedGameweek + 1))}
             disabled={selectedGameweek >= 38}
+            aria-label="Next Gameweek"
             className="p-2 rounded-lg hover:bg-base-content/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base-content"
           >
             <ChevronRight size={24} />

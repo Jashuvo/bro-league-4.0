@@ -68,6 +68,7 @@ const StickyHeader = ({
 
               <button
                 onClick={toggleTheme}
+                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
                 className="p-2 rounded-lg text-bro-muted hover:text-base-content hover:bg-base-content/5 transition-colors"
               >
                 {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
@@ -95,6 +96,8 @@ const StickyHeader = ({
               </button>
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={isMobileMenuOpen}
                 className="p-2 text-base-content"
               >
                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}

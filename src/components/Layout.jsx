@@ -1,6 +1,7 @@
 import React from 'react';
 import StickyHeader from './StickyHeader';
 import Footer from './Footer';
+import SkipToContent from './ui/SkipToContent';
 import { motion } from 'framer-motion';
 
 const Layout = ({
@@ -16,6 +17,7 @@ const Layout = ({
 }) => {
     return (
         <div className="min-h-screen bg-base-100 text-base-content transition-colors duration-300 flex flex-col">
+            <SkipToContent />
             <StickyHeader
                 authStatus={authStatus}
                 isRefreshing={isRefreshing}
@@ -25,6 +27,7 @@ const Layout = ({
             />
 
             <motion.main
+                id="main-content"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}

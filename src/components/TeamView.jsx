@@ -265,6 +265,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             </div>
             <button
               onClick={onClose}
+              aria-label="Close team view"
               className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
             >
               <X size={18} />
