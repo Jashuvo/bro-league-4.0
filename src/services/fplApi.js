@@ -1,9 +1,20 @@
 // src/services/fplApi.js - Optimized FPL API Service with Enhanced Error Handling
+import { leagueConfig } from '../data/leagueData';
 
 class FPLApiService {
   constructor() {
     this.isAuthenticated = false;
-    this.leagueId = import.meta.env.VITE_FPL_LEAGUE_ID || '1858389';
+    // No fallback league ID on purpose: silently defaulting to an old
+    // season's league here is exactly how this app used to keep showing
+    // last year's standings after a rollover nobody noticed.
+    this.leagueId = import.meta.env.VITE_FPL_LEAGUE_ID || null;
+    if (!this.leagueId) {
+      console.error(
+        '❌ VITE_FPL_LEAGUE_ID is not set. Set it in .env.local (and in ' +
+        "your Vercel project's environment variables) to this season's " +
+        'FPL classic league ID — the app has no league to load without it.'
+      );
+    }
     this.apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
     this.cache = new Map();
     this.cacheExpiry = new Map();
@@ -149,6 +160,10 @@ class FPLApiService {
 
   // Get complete league data (primary method)
   async getCompleteLeagueData(forceRefresh = false) {
+    if (!this.leagueId) {
+      return this.getFallbackData('VITE_FPL_LEAGUE_ID is not configured — nothing to load.');
+    }
+
     const cacheKey = `complete_league_${this.leagueId}`;
 
     // Check cache first
@@ -411,21 +426,21 @@ class FPLApiService {
   }
 
   // Fallback data
-  getFallbackData() {
+  getFallbackData(errorMessage = 'Using fallback data due to connection issues') {
     return {
       authenticated: false,
       bootstrap: this.getFallbackBootstrap(),
-      league: { name: 'BRO League 4.0' },
+      league: { name: leagueConfig.name },
       standings: [],
       gameweekTable: [],
       leagueStats: {},
-      error: 'Using fallback data due to connection issues'
+      error: errorMessage
     };
   }
 
   getFallbackBootstrap() {
     return {
-      currentGameweek: 3,
+      currentGameweek: 1,
       totalGameweeks: 38,
       gameweeks: [],
       teams: [],

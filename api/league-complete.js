@@ -1,4 +1,5 @@
 // api/league-complete.js - Fixed version that works with or without Redis/KV
+import { fetchWithRetry, setCorsHeaders, ConcurrencyLimiter } from './_lib/helpers.js';
 
 // Try to import KV, but don't fail if it's not available
 let kv = null;
@@ -10,72 +11,9 @@ try {
   console.log('⚠️ Redis/KV not available, running without cache');
 }
 
-// Helper function for fetch with timeout and retry
-async function fetchWithRetry(url, options = {}, retries = 2) {
-  const timeout = options.timeout || 10000;
-  
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-      
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'BRO-League-4.0/1.0',
-          'Accept': 'application/json',
-          ...options.headers
-        }
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok && i < retries) {
-        console.log(`Retry ${i + 1} for ${url}`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-        continue;
-      }
-      
-      return response;
-    } catch (error) {
-      if (i === retries) throw error;
-      console.log(`Retry ${i + 1} after error: ${error.message}`);
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-    }
-  }
-}
-
-// Concurrency limiter
-class ConcurrencyLimiter {
-  constructor(maxConcurrent) {
-    this.maxConcurrent = maxConcurrent;
-    this.running = 0;
-    this.queue = [];
-  }
-
-  async run(fn) {
-    while (this.running >= this.maxConcurrent) {
-      await new Promise(resolve => this.queue.push(resolve));
-    }
-    
-    this.running++;
-    try {
-      return await fn();
-    } finally {
-      this.running--;
-      const resolve = this.queue.shift();
-      if (resolve) resolve();
-    }
-  }
-}
-
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+  setCorsHeaders(res);
+
   // Enable caching headers
   res.setHeader(
     'Cache-Control',
@@ -100,7 +38,13 @@ export default async function handler(req, res) {
     });
   }
 
-  const cacheKey = `fpl:league:${leagueId}:complete`;
+  // Classic league IDs persist across seasons, and the KV TTL below is only
+  // 120s — but on the exact rollover day a fetch error could otherwise still
+  // serve a last-second stale-cache read as if it were this season's data.
+  // Bump CACHE_VERSION whenever the season rolls over (or the cached shape
+  // changes) so an old entry can never satisfy a new-season lookup.
+  const CACHE_VERSION = 'season-2025-26';
+  const cacheKey = `fpl:league:${leagueId}:${CACHE_VERSION}:complete`;
   const startTime = Date.now();
 
   try {
@@ -152,8 +96,10 @@ export default async function handler(req, res) {
     ]);
 
     // Process bootstrap data
-    const currentGameweek = bootstrapData.events?.find(event => event.is_current)?.id || 
-                           bootstrapData.events?.find(event => event.is_previous)?.id || 3;
+    // Pre-season (before GW1's deadline) has neither is_current nor
+    // is_previous set yet — fall back to GW1, not an arbitrary later week.
+    const currentGameweek = bootstrapData.events?.find(event => event.is_current)?.id ||
+                           bootstrapData.events?.find(event => event.is_previous)?.id || 1;
     
     const optimizedBootstrap = {
       currentGameweek,
@@ -172,8 +118,12 @@ export default async function handler(req, res) {
       })) || []
     };
 
-    // Limit to 15 managers for your league
-    const managers = standingsData.standings.results.slice(0, 20);
+    // Cap the manager-detail fan-out so a large league can't blow the
+    // function's time budget — standings above this cut are still counted
+    // in totalManagers below but won't have per-manager history/chips data.
+    const MAX_MANAGERS = 20;
+    const totalManagers = standingsData.standings.results.length;
+    const managers = standingsData.standings.results.slice(0, MAX_MANAGERS);
     
     // Use concurrency limiter for manager data fetching
     const limiter = new ConcurrencyLimiter(3); // Max 3 concurrent requests
@@ -250,7 +200,7 @@ export default async function handler(req, res) {
     const managersWithData = await Promise.all(managerPromises);
 
     // Transform standings with enhanced data
-    const transformedStandings = managersWithData.map((entry, index) => {
+    const transformedStandings = managersWithData.map((entry) => {
       const managerName = entry.managerData 
         ? `${entry.managerData.firstName} ${entry.managerData.lastName}`.trim() || `Manager ${entry.entry}`
         : entry.player_name || `Manager ${entry.entry}`;
@@ -333,20 +283,33 @@ export default async function handler(req, res) {
       }
     }
 
-    // Calculate league statistics
-    const leagueStats = {
+    // Calculate league statistics (guarded against an empty standings list,
+    // which would otherwise turn these into NaN/-Infinity/Infinity and flow
+    // straight into the UI instead of erroring visibly).
+    const managerCount = transformedStandings.length;
+    const leagueStats = managerCount === 0 ? {
+      totalManagers,
+      averageScore: 0,
+      highestTotal: 0,
+      lowestTotal: 0,
+      averageGameweekScore: 0,
+      highestGameweekScore: 0,
+      totalChipsUsed: 0,
+      averageTeamValue: 0
+    } : {
+      totalManagers,
       averageScore: Math.round(
-        transformedStandings.reduce((sum, m) => sum + m.totalPoints, 0) / transformedStandings.length
+        transformedStandings.reduce((sum, m) => sum + m.totalPoints, 0) / managerCount
       ),
       highestTotal: Math.max(...transformedStandings.map(m => m.totalPoints)),
       lowestTotal: Math.min(...transformedStandings.map(m => m.totalPoints)),
       averageGameweekScore: Math.round(
-        transformedStandings.reduce((sum, m) => sum + m.gameweekPoints, 0) / transformedStandings.length
+        transformedStandings.reduce((sum, m) => sum + m.gameweekPoints, 0) / managerCount
       ),
       highestGameweekScore: Math.max(...transformedStandings.map(m => m.gameweekPoints)),
       totalChipsUsed: transformedStandings.reduce((sum, m) => sum + m.chips.length, 0),
       averageTeamValue: Math.round(
-        transformedStandings.reduce((sum, m) => sum + m.teamValue, 0) / transformedStandings.length * 10
+        transformedStandings.reduce((sum, m) => sum + m.teamValue, 0) / managerCount * 10
       ) / 10
     };
 
@@ -376,8 +339,9 @@ export default async function handler(req, res) {
       performance: {
         processingTime: `${processingTime}ms`,
         managersProcessed: transformedStandings.length,
+        managersTruncated: totalManagers > transformedStandings.length,
         gameweeksAnalyzed: gameweekTable.length,
-        dataCompleteness: Math.round(
+        dataCompleteness: transformedStandings.length === 0 ? 0 : Math.round(
           (transformedStandings.filter(m => m.hasData).length / transformedStandings.length) * 100
         ),
         cacheEnabled: !!kv

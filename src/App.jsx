@@ -9,12 +9,15 @@ import LeagueTable from './components/LeagueTable';
 import GameweekTable from './components/GameweekTable';
 import MonthlyPrizes from './components/MonthlyPrizes';
 import PrizeDistribution from './components/PrizeDistribution';
+import ChipTracker from './components/ChipTracker';
+import HeadToHead from './components/HeadToHead';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
+import PWAUpdate from './components/PWAUpdate';
 
 function AppContent() {
   const [standings, setStandings] = useState([]);
-  const [gameweekInfo, setGameweekInfo] = useState({ current: 3, total: 38 });
+  const [gameweekInfo, setGameweekInfo] = useState({ current: 1, total: 38 });
   const [gameweekTable, setGameweekTable] = useState([]);
   const [leagueStats, setLeagueStats] = useState({});
   const [bootstrap, setBootstrap] = useState({});
@@ -30,6 +33,8 @@ function AppContent() {
     { id: 'standings', name: 'League Table', icon: '🏆', shortName: 'Table' },
     { id: 'gameweek', name: 'Weekly Results', icon: '⚡', shortName: 'Results' },
     { id: 'monthly', name: 'Monthly Prizes', icon: '📅', shortName: 'Monthly' },
+    { id: 'chips', name: 'Chip Tracker', icon: '🃏', shortName: 'Chips' },
+    { id: 'h2h', name: 'Head-to-Head', icon: '⚔️', shortName: 'H2H' },
     { id: 'prizes', name: 'Prize Distribution', icon: '💰', shortName: 'Prizes' }
   ];
 
@@ -64,7 +69,7 @@ function AppContent() {
       if (result.bootstrap) {
         setBootstrap(result.bootstrap);
         setGameweekInfo({
-          current: result.bootstrap.currentGameweek || 3,
+          current: result.bootstrap.currentGameweek || 1,
           total: result.bootstrap.totalGameweeks || 38
         });
       }
@@ -131,6 +136,21 @@ function AppContent() {
             loading={loading}
           />
         );
+      case 'chips':
+        return (
+          <ChipTracker
+            standings={standings}
+            loading={loading}
+          />
+        );
+      case 'h2h':
+        return (
+          <HeadToHead
+            standings={standings}
+            gameweekTable={gameweekTable}
+            loading={loading}
+          />
+        );
       case 'prizes':
         return (
           <PrizeDistribution
@@ -193,6 +213,7 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
+      <PWAUpdate />
       <AppContent />
     </ThemeProvider>
   );

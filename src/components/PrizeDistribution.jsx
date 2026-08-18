@@ -1,43 +1,15 @@
 import React, { useMemo } from 'react';
 import {
-  DollarSign, Trophy, Calendar, Zap, Target, Gift, Star, PieChart
+  DollarSign, Trophy, Calendar, Zap, Target, Gift, Star, PieChart, TrendingUp, Activity
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
+import { prizeStructure, grandTotal } from '../data/leagueData';
 
 const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = [] }) => {
-  const currentGW = gameweekInfo.current || 3;
+  const currentGW = gameweekInfo.current || 1;
   const totalGWs = gameweekInfo.total || 38;
-
-  // Prize structure
-  const prizeStructure = {
-    season: {
-      total: 1800,
-      prizes: [
-        { position: 1, amount: 800, emoji: '🥇', color: 'text-yellow-400', label: 'Champion' },
-        { position: 2, amount: 600, emoji: '🥈', color: 'text-gray-300', label: 'Runner-up' },
-        { position: 3, amount: 400, emoji: '🥉', color: 'text-orange-400', label: 'Third Place' }
-      ]
-    },
-    weekly: {
-      perWeek: 30,
-      totalWeeks: 38,
-      total: 1140 // 38 * 30
-    },
-    monthly: {
-      regularMonths: 8,
-      regularPrizes: [350, 250, 150], // per month
-      finalMonth: [500, 400, 250],
-      total: 7150 // (8 * 750) + 1150
-    },
-    souvenirs: {
-      total: 1910,
-      items: ['BRO League Jerseys', 'Certificates', 'Digital Badges', 'Trophy for Champion']
-    }
-  };
-
-  const grandTotal = 12000; // Total entry fees
 
   // Calculate distribution stats
   const distributionStats = useMemo(() => {
@@ -82,6 +54,19 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
       .sort((a, b) => b.wins - a.wins)
       .slice(0, 5);
 
+    // Season awards — reshaped from data already sitting in `standings`
+    // (no extra fetching): who's climbed the most since last gameweek, and
+    // who has the best points-per-gameweek average so far.
+    const biggestRiser = standings.length > 0
+      ? [...standings].sort((a, b) => (b.rankChange || 0) - (a.rankChange || 0))[0]
+      : null;
+
+    const bestAverage = completedGameweeks > 0 && standings.length > 0
+      ? [...standings].sort((a, b) =>
+        (b.totalPoints || 0) / completedGameweeks - (a.totalPoints || 0) / completedGameweeks
+      )[0]
+      : null;
+
     return {
       weeklyDistributed,
       weeklyProgress,
@@ -90,9 +75,11 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
       totalDistributed,
       remainingPrizes,
       completedGameweeks,
-      topWeeklyWinners
+      topWeeklyWinners,
+      biggestRiser: biggestRiser?.rankChange > 0 ? biggestRiser : null,
+      bestAverage: bestAverage ? { ...bestAverage, average: Math.round((bestAverage.totalPoints || 0) / completedGameweeks) } : null
     };
-  }, [gameweekTable, currentGW, totalGWs, grandTotal, prizeStructure]);
+  }, [gameweekTable, standings, currentGW, totalGWs, grandTotal, prizeStructure]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -293,6 +280,50 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
         </motion.div>
       </div>
 
+      {/* Season Awards */}
+      {(distributionStats.topWeeklyWinners[0] || distributionStats.biggestRiser || distributionStats.bestAverage) && (
+        <motion.div variants={itemVariants}>
+          <Card>
+            <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-6">
+              <Trophy className="text-yellow-400" size={24} />
+              Season Awards
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {distributionStats.topWeeklyWinners[0] && (
+                <AwardCard
+                  icon={Star}
+                  color="text-purple-400"
+                  bgColor="bg-purple-500/10"
+                  title="Most Weekly Wins"
+                  name={distributionStats.topWeeklyWinners[0].name}
+                  detail={`${distributionStats.topWeeklyWinners[0].wins} gameweek win${distributionStats.topWeeklyWinners[0].wins !== 1 ? 's' : ''}`}
+                />
+              )}
+              {distributionStats.biggestRiser && (
+                <AwardCard
+                  icon={TrendingUp}
+                  color="text-green-400"
+                  bgColor="bg-green-500/10"
+                  title="Biggest Riser"
+                  name={distributionStats.biggestRiser.managerName || distributionStats.biggestRiser.player_name}
+                  detail={`Up ${distributionStats.biggestRiser.rankChange} place${distributionStats.biggestRiser.rankChange !== 1 ? 's' : ''} since last GW`}
+                />
+              )}
+              {distributionStats.bestAverage && (
+                <AwardCard
+                  icon={Activity}
+                  color="text-blue-400"
+                  bgColor="bg-blue-500/10"
+                  title="Best Average"
+                  name={distributionStats.bestAverage.managerName || distributionStats.bestAverage.player_name}
+                  detail={`${distributionStats.bestAverage.average} pts/GW`}
+                />
+              )}
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Top Weekly Winners */}
       {distributionStats.topWeeklyWinners.length > 0 && (
         <motion.div variants={itemVariants}>
@@ -346,6 +377,19 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
     </motion.div>
   );
 };
+
+const AwardCard = ({ icon: Icon, color, bgColor, title, name, detail }) => (
+  <div className="bg-white/5 rounded-xl p-4 flex items-center gap-3 border border-white/5">
+    <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center flex-shrink-0`}>
+      <Icon className={color} size={20} />
+    </div>
+    <div className="min-w-0">
+      <div className="text-xs text-bro-muted uppercase tracking-wider">{title}</div>
+      <div className="font-bold text-white truncate">{name}</div>
+      <div className={`text-xs ${color}`}>{detail}</div>
+    </div>
+  </div>
+);
 
 const StatBox = ({ value, label, sublabel }) => (
   <div className="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm border border-white/10">

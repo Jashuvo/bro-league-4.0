@@ -1,20 +1,16 @@
 import React from 'react';
 import { Heart, Trophy, Users, Github, Twitter, Instagram } from 'lucide-react';
-import { motion } from 'framer-motion';
 import Badge from './ui/Badge';
+import { leagueConfig } from '../data/leagueData';
 
 const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
-  // Get environment variables
-  const totalParticipants = import.meta.env.VITE_TOTAL_PARTICIPANTS || 15;
-  const entryFee = import.meta.env.VITE_ENTRY_FEE || 800;
-  const totalPrizePool = import.meta.env.VITE_TOTAL_PRIZE_POOL || 12000;
-  const leagueName = import.meta.env.VITE_LEAGUE_NAME || "BRO League 4.0";
+  const { totalParticipants, entryFee, totalPrizePool, name: leagueName } = leagueConfig;
 
   // Calculate actual participants from API data
   const actualParticipants = standings?.length || totalParticipants;
 
   // Get current gameweek from API or fallback to environment/default
-  const currentGameweek = gameweekInfo?.current || 3;
+  const currentGameweek = gameweekInfo?.current || 1;
   const totalGameweeks = gameweekInfo?.total || 38;
 
   // Get current season year from bootstrap data or calculate from current date

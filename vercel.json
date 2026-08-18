@@ -2,6 +2,15 @@
   "functions": {
     "api/**/*.js": {
       "maxDuration": 30
+    },
+    "api/league-complete.js": {
+      "maxDuration": 60
+    },
+    "api/live-stats.js": {
+      "maxDuration": 60
+    },
+    "api/warm-cache.js": {
+      "maxDuration": 60
     }
   },
   "headers": [

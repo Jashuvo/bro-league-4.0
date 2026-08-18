@@ -3,6 +3,7 @@ import { X, Trophy, Calendar, Zap, DollarSign, Award, Medal, Crown } from 'lucid
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
+import { monthlyWindows } from '../data/leagueData';
 
 const PrizeBreakdown = ({ managerName, teamName, prizeData, onClose }) => {
   if (!prizeData) return null;
@@ -10,11 +11,9 @@ const PrizeBreakdown = ({ managerName, teamName, prizeData, onClose }) => {
   const { weeklyWins = [], monthlyWins = [], totalPrizes = 0 } = prizeData;
 
   const getMonthName = (monthNum) => {
-    const monthNames = [
-      'Month 1', 'Month 2', 'Month 3', 'Month 4', 'Month 5',
-      'Month 6', 'Month 7', 'Month 8', 'Month 9 (Final)'
-    ];
-    return monthNames[monthNum - 1] || `Month ${monthNum}`;
+    const month = monthlyWindows.find((w) => w.id === monthNum);
+    if (!month) return `Month ${monthNum}`;
+    return month.isFinal ? `${month.name} (Final)` : month.name;
   };
 
   const getPositionIcon = (position) => {

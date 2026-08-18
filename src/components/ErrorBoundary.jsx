@@ -9,8 +9,11 @@ class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI
-    return { hasError: true };
+    // Update state so the next render shows the fallback UI — capturing
+    // `error` here (not just in componentDidCatch below) means the first
+    // fallback render already has details, instead of needing a second
+    // render once componentDidCatch's setState lands.
+    return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
@@ -47,7 +50,7 @@ class ErrorBoundary extends React.Component {
               </h1>
               
               <p className="text-gray-600 text-center mb-6">
-                The application encountered an unexpected error. Don't worry, your data is safe.
+                The application encountered an unexpected error. Don&rsquo;t worry, your data is safe.
               </p>
               
               {/* Error details (only in development) */}
@@ -68,7 +71,7 @@ class ErrorBoundary extends React.Component {
               <div className="flex gap-4 justify-center">
                 <button
                   onClick={this.handleReset}
-                  className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                  className="flex items-center gap-2 px-6 py-3 bg-bro-primary text-white rounded-lg hover:bg-bro-primary/90 transition-colors font-semibold"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Reload Application

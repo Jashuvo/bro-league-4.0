@@ -7,8 +7,9 @@ import Badge from './ui/Badge';
 import Button from './ui/Button';
 import LiveTotalPointsTable from './LiveTotalPointsTable';
 import PrizeBreakdown from './PrizeBreakdown';
+import { monthlyWindows, prizeStructure } from '../data/leagueData';
 
-const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
+const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [showLivePoints, setShowLivePoints] = useState(false);
@@ -17,7 +18,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
   // Calculate total prizes won (Logic preserved)
   const calculateTotalPrizesWon = (managerId) => {
     let totalWon = 0;
-    const currentGW = gameweekInfo.current || 3;
+    const currentGW = gameweekInfo.current || 1;
 
     if (gameweekTable.length === 0) return 0;
 
@@ -35,19 +36,11 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
         .filter(m => (m.gameweekPoints || m.points || 0) > 0)
         .sort((a, b) => getNetPoints(b) - getNetPoints(a));
       const managerRank = sortedManagers.findIndex(m => m.id === managerId) + 1;
-      if (managerRank === 1) totalWon += 30;
+      if (managerRank === 1) totalWon += prizeStructure.weekly.perWeek;
     }
 
     // Monthly Prizes
-    const monthlyGameweeks = {
-      1: { start: 1, end: 4 }, 2: { start: 5, end: 8 }, 3: { start: 9, end: 12 },
-      4: { start: 13, end: 16 }, 5: { start: 17, end: 20 }, 6: { start: 21, end: 24 },
-      7: { start: 25, end: 28 }, 8: { start: 29, end: 32 }, 9: { start: 33, end: 38 }
-    };
-    const regularPrizes = [350, 250, 150];
-    const finalMonthPrizes = [500, 400, 250];
-
-    Object.entries(monthlyGameweeks).forEach(([monthNum, month]) => {
+    monthlyWindows.forEach((month) => {
       if (currentGW >= month.end) {
         const allMonthlyScores = gameweekTable
           .filter(gw => gw.gameweek >= month.start && gw.gameweek <= month.end)
@@ -61,8 +54,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
         const sortedMonthly = Object.entries(allMonthlyScores).sort((a, b) => b[1] - a[1]);
         const monthlyRank = sortedMonthly.findIndex(([id]) => id == managerId) + 1;
         if (monthlyRank >= 1 && monthlyRank <= 3) {
-          const isFinalMonth = parseInt(monthNum) === 9;
-          const prizes = isFinalMonth ? finalMonthPrizes : regularPrizes;
+          const prizes = month.isFinal ? prizeStructure.monthly.finalMonth : prizeStructure.monthly.regularPrizes;
           totalWon += prizes[monthlyRank - 1];
         }
       }
@@ -72,7 +64,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
 
   // Calculate detailed prize breakdown for a manager
   const calculatePrizeBreakdown = (managerId) => {
-    const currentGW = gameweekInfo.current || 3;
+    const currentGW = gameweekInfo.current || 1;
     const weeklyWins = [];
     const monthlyWins = [];
 
@@ -99,21 +91,13 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
         weeklyWins.push({
           gameweek: gw,
           points: getNetPoints(winnerData),
-          prize: 30
+          prize: prizeStructure.weekly.perWeek
         });
       }
     }
 
     // Monthly Prizes
-    const monthlyGameweeks = {
-      1: { start: 1, end: 4 }, 2: { start: 5, end: 8 }, 3: { start: 9, end: 12 },
-      4: { start: 13, end: 16 }, 5: { start: 17, end: 20 }, 6: { start: 21, end: 24 },
-      7: { start: 25, end: 28 }, 8: { start: 29, end: 32 }, 9: { start: 33, end: 38 }
-    };
-    const regularPrizes = [350, 250, 150];
-    const finalMonthPrizes = [500, 400, 250];
-
-    Object.entries(monthlyGameweeks).forEach(([monthNum, month]) => {
+    monthlyWindows.forEach((month) => {
       if (currentGW >= month.end) {
         const allMonthlyScores = gameweekTable
           .filter(gw => gw.gameweek >= month.start && gw.gameweek <= month.end)
@@ -127,10 +111,9 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
         const sortedMonthly = Object.entries(allMonthlyScores).sort((a, b) => b[1] - a[1]);
         const monthlyRank = sortedMonthly.findIndex(([id]) => id == managerId) + 1;
         if (monthlyRank >= 1 && monthlyRank <= 3) {
-          const isFinalMonth = parseInt(monthNum) === 9;
-          const prizes = isFinalMonth ? finalMonthPrizes : regularPrizes;
+          const prizes = month.isFinal ? prizeStructure.monthly.finalMonth : prizeStructure.monthly.regularPrizes;
           monthlyWins.push({
-            month: parseInt(monthNum),
+            month: month.id,
             position: monthlyRank,
             points: allMonthlyScores[managerId],
             prize: prizes[monthlyRank - 1]
@@ -188,7 +171,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
             </div>
             <div>
               <h2 className="text-2xl font-display font-bold text-base-content">League Standings</h2>
-              <p className="text-bro-muted text-sm">Gameweek {gameweekInfo?.current || 3} • {enhancedStandings.length} Managers</p>
+              <p className="text-bro-muted text-sm">Gameweek {gameweekInfo?.current || 1} • {enhancedStandings.length} Managers</p>
             </div>
           </div>
 
@@ -226,7 +209,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
           {showLivePoints ? (
             <LiveTotalPointsTable
               standings={enhancedStandings}
-              gameweek={gameweekInfo?.current || 3}
+              gameweek={gameweekInfo?.current || 1}
             />
           ) : (
             enhancedStandings.map((manager, index) => {

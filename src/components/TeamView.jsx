@@ -1,17 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Users, X, AlertCircle, Shirt } from 'lucide-react';
+import { Users, X, AlertCircle, Shirt, ArrowLeftRight, History as HistoryIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
+import fplApi from '../services/fplApi';
 
 const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) => {
   const [teamData, setTeamData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('pitch');
+  const [careerHistory, setCareerHistory] = useState(null);
 
-  const currentGameweek = gameweekInfo?.current || 3;
+  const currentGameweek = gameweekInfo?.current || 1;
+
+  useEffect(() => {
+    if (!managerId) return;
+    // Independent of the picks fetch below — a slow/failed history lookup
+    // shouldn't block the pitch/list view, so this doesn't share loading
+    // or error state with it.
+    fplApi.getManagerHistory(managerId).then(setCareerHistory);
+  }, [managerId]);
 
   useEffect(() => {
     const fetchTeamData = async () => {
@@ -137,7 +147,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   };
 
   // Component: Pitch Player Card
-  const PitchPlayer = ({ player, isBench = false }) => {
+  const PitchPlayer = ({ player }) => {
     if (!player) return null;
 
     const isCaptain = player.isCaptain;
@@ -309,12 +319,63 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             >
               List View
             </button>
+            <button
+              onClick={() => setViewMode('history')}
+              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${viewMode === 'history'
+                ? 'bg-bro-primary text-white shadow-sm'
+                : 'text-bro-muted hover:text-white'
+                }`}
+            >
+              Career
+            </button>
           </div>
         </div>
 
+        {/* Automatic Substitutions */}
+        {teamData?.automaticSubs?.length > 0 && (
+          <div className="px-4 pt-3 shrink-0">
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-bro-primary/10 border border-bro-primary/20 text-sm">
+              <ArrowLeftRight size={16} className="text-bro-primary mt-0.5 shrink-0" />
+              <div className="text-base-content">
+                <span className="font-bold">Auto-subs: </span>
+                {teamData.automaticSubs.map((sub, i) => (
+                  <span key={i}>
+                    {sub.playerOut} → {sub.playerIn}{i < teamData.automaticSubs.length - 1 ? ', ' : ''}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto bg-base-100 relative">
-          {viewMode === 'pitch' ? (
+          {viewMode === 'history' ? (
+            <div className="p-4">
+              {!careerHistory || careerHistory.seasonHistory?.length === 0 ? (
+                <div className="text-center py-16 text-bro-muted">
+                  <HistoryIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p>{careerHistory ? 'No previous seasons on record' : 'Loading career history…'}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 ml-1">Past Seasons</h3>
+                  {careerHistory.seasonHistory.map((season) => (
+                    <div
+                      key={season.season}
+                      className="flex items-center justify-between p-3 bg-base-200 rounded-xl border border-base-content/5"
+                    >
+                      <span className="font-semibold text-base-content">{season.season}</span>
+                      <div className="text-right">
+                        <div className="font-bold text-base-content">{season.totalPoints?.toLocaleString()} pts</div>
+                        <div className="text-xs text-bro-muted">Rank #{season.rank?.toLocaleString() || '-'}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : viewMode === 'pitch' ? (
             <div className="min-h-full flex flex-col">
               {/* Pitch Container */}
               <div className="relative flex-1 m-2 mb-0">
@@ -351,7 +412,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                 <div className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 text-center">Substitutes</div>
                 <div className="flex justify-center gap-2 overflow-x-auto pb-2">
                   {teamData?.bench?.map((player) => (
-                    <PitchPlayer key={player.id} player={player} isBench={true} />
+                    <PitchPlayer key={player.id} player={player} />
                   ))}
                 </div>
               </div>

@@ -1,12 +1,12 @@
-import React from 'react';
-import { Trophy, Users, Calendar, Target, Crown, Zap, Clock } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Trophy, Users, Calendar, Target, Crown, Zap, Clock, Rocket } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
+import { leagueConfig } from '../data/leagueData';
 
-const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstrap }) => {
-  const totalPrizePool = import.meta.env.VITE_TOTAL_PRIZE_POOL || 12000;
-  const leagueName = import.meta.env.VITE_LEAGUE_NAME || "BRO League 4.0";
+const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap }) => {
+  const { totalPrizePool, name: leagueName } = leagueConfig;
 
   const totalManagers = standings?.length || 0;
   const gameweeksLeft = gameweekInfo?.total ? gameweekInfo.total - (gameweekInfo.current || 0) : 0;
@@ -14,6 +14,13 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
 
   const nextGameweekData = bootstrap?.gameweeks?.find(gw => gw.id === (gameweekInfo.current + 1));
   const nextDeadline = nextGameweekData?.deadline_time ? new Date(nextGameweekData.deadline_time) : null;
+
+  // Pre-season: GW1 hasn't kicked off yet, so "Current Leader" and "Next
+  // Deadline" (which assumes a GW is already in progress) don't make sense
+  // to show — a countdown to kickoff is more useful.
+  const gw1 = bootstrap?.gameweeks?.find((gw) => gw.id === 1);
+  const kickoffDeadline = gw1?.deadline_time ? new Date(gw1.deadline_time) : null;
+  const isPreSeason = kickoffDeadline ? kickoffDeadline.getTime() > Date.now() : false;
 
   const topPerformers = standings
     ?.filter(m => m.gameweekPoints > 0)
@@ -96,10 +103,17 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
             />
           </motion.div>
 
+          {/* Kickoff Countdown (pre-season only) */}
+          {isPreSeason && (
+            <motion.div variants={itemVariants} className="w-full max-w-4xl mb-8">
+              <KickoffCountdown deadline={kickoffDeadline} />
+            </motion.div>
+          )}
+
           {/* Leader & Deadline Section */}
           <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
             {/* Current Leader */}
-            {currentLeader && (
+            {!isPreSeason && currentLeader && (
               <Card className="flex items-center justify-between p-4 border-l-4 border-l-yellow-400">
                 <div>
                   <div className="text-bro-muted text-xs uppercase tracking-wider font-bold mb-1">Current Leader</div>
@@ -113,7 +127,7 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
             )}
 
             {/* Next Deadline */}
-            {nextDeadline && (
+            {!isPreSeason && nextDeadline && (
               <Card className="flex items-center justify-between p-4 border-l-4 border-l-bro-primary">
                 <div>
                   <div className="text-bro-muted text-xs uppercase tracking-wider font-bold mb-1">Next Deadline</div>
@@ -164,6 +178,54 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, leagueStats, bootstr
         </motion.div>
       </div>
     </div>
+  );
+};
+
+const getCountdownParts = (deadline) => {
+  const diffMs = Math.max(0, deadline.getTime() - Date.now());
+  const totalMinutes = Math.floor(diffMs / 60000);
+  return {
+    days: Math.floor(totalMinutes / (60 * 24)),
+    hours: Math.floor((totalMinutes / 60) % 24),
+    minutes: totalMinutes % 60
+  };
+};
+
+const KickoffCountdown = ({ deadline }) => {
+  const [parts, setParts] = useState(() => getCountdownParts(deadline));
+
+  useEffect(() => {
+    const tick = () => setParts(getCountdownParts(deadline));
+    tick();
+    // Once a minute is plenty — this doesn't need second-level precision.
+    const interval = setInterval(tick, 60000);
+    return () => clearInterval(interval);
+  }, [deadline]);
+
+  return (
+    <Card className="bg-gradient-to-r from-bro-primary to-bro-secondary border-none">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
+            <Rocket size={28} />
+          </div>
+          <div>
+            <div className="text-white/80 text-xs uppercase tracking-wider font-bold">Season kicks off in</div>
+            <div className="text-2xl font-display font-bold">
+              {parts.days}d {parts.hours}h {parts.minutes}m
+            </div>
+          </div>
+        </div>
+        <div className="text-white/80 text-sm text-center sm:text-right">
+          Gameweek 1 deadline
+          <div className="font-bold text-white">
+            {deadline.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
+            {' • '}
+            {deadline.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 };
 

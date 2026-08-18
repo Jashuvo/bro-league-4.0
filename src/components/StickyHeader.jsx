@@ -9,7 +9,6 @@ const StickyHeader = ({
   authStatus,
   isRefreshing,
   onRefresh,
-  performanceInfo,
   lastUpdated
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);

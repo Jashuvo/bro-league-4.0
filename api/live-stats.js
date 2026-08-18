@@ -1,68 +1,7 @@
-import { kv } from '@vercel/kv';
-
-// Helper for fetch with retry
-async function fetchWithRetry(url, options = {}, retries = 2) {
-    const timeout = options.timeout || 10000;
-
-    for (let i = 0; i <= retries; i++) {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-            const response = await fetch(url, {
-                ...options,
-                signal: controller.signal,
-                headers: {
-                    'User-Agent': 'BRO-League-4.0/1.0',
-                    'Accept': 'application/json',
-                    ...options.headers
-                }
-            });
-
-            clearTimeout(timeoutId);
-
-            if (!response.ok && i < retries) {
-                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-                continue;
-            }
-
-            return response;
-        } catch (error) {
-            if (i === retries) throw error;
-            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-        }
-    }
-}
-
-// Concurrency limiter
-class ConcurrencyLimiter {
-    constructor(maxConcurrent) {
-        this.maxConcurrent = maxConcurrent;
-        this.running = 0;
-        this.queue = [];
-    }
-
-    async run(fn) {
-        while (this.running >= this.maxConcurrent) {
-            await new Promise(resolve => this.queue.push(resolve));
-        }
-
-        this.running++;
-        try {
-            return await fn();
-        } finally {
-            this.running--;
-            const resolve = this.queue.shift();
-            if (resolve) resolve();
-        }
-    }
-}
+import { fetchWithRetry, setCorsHeaders, ConcurrencyLimiter } from './_lib/helpers.js';
 
 export default async function handler(req, res) {
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    setCorsHeaders(res);
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -77,7 +16,9 @@ export default async function handler(req, res) {
     try {
         // 1. Fetch League Standings (to get manager IDs)
         const standingsResponse = await fetchWithRetry(
-            `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`
+            `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`,
+            {},
+            1
         );
 
         if (!standingsResponse.ok) {
@@ -85,13 +26,19 @@ export default async function handler(req, res) {
         }
 
         const standingsData = await standingsResponse.json();
-        // Limit to top 50 to avoid timeouts
-        const managers = standingsData.standings.results.slice(0, 50);
+        // Capped well under the 60s function budget: with a 5-wide
+        // concurrency limit and a single-attempt 8s picks fetch per manager,
+        // 30 managers is ~48s worst case. Raise cautiously if this league
+        // ever grows past that.
+        const MAX_MANAGERS = 30;
+        const managers = standingsData.standings.results.slice(0, MAX_MANAGERS);
 
-        // 2. Fetch Live Stats for the Gameweek
-        const liveStatsResponse = await fetchWithRetry(
-            `https://fantasy.premierleague.com/api/event/${gameweek}/live/`
-        );
+        // 2. Fetch Live Stats for the Gameweek + bootstrap (for player names —
+        // the live/ endpoint only returns stats keyed by player ID, no names)
+        const [liveStatsResponse, bootstrapResponse] = await Promise.all([
+            fetchWithRetry(`https://fantasy.premierleague.com/api/event/${gameweek}/live/`, {}, 1),
+            fetchWithRetry('https://fantasy.premierleague.com/api/bootstrap-static/', {}, 1)
+        ]);
 
         if (!liveStatsResponse.ok) {
             throw new Error('Failed to fetch live stats');
@@ -99,6 +46,22 @@ export default async function handler(req, res) {
 
         const liveStatsData = await liveStatsResponse.json();
         const elements = liveStatsData.elements; // Array of player stats
+
+        // Player id -> { name, positionType } lookup, built once and reused
+        // for every manager's picks below. Falls back to an empty map if
+        // bootstrap failed — player names just won't be shown, nothing else
+        // breaks.
+        const playerInfoMap = new Map();
+        if (bootstrapResponse.ok) {
+            const bootstrapData = await bootstrapResponse.json();
+            const positionTypes = { 1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD' };
+            (bootstrapData.elements || []).forEach((el) => {
+                playerInfoMap.set(el.id, {
+                    name: el.web_name,
+                    positionType: positionTypes[el.element_type] || 'UNK'
+                });
+            });
+        }
 
         // Helper to get player stats by ID
         const getPlayerStats = (id) => elements.find(e => e.id === id)?.stats;
@@ -109,8 +72,13 @@ export default async function handler(req, res) {
         const managerPromises = managers.map(manager =>
             limiter.run(async () => {
                 try {
+                    // No retries here on purpose — this is fanned out over
+                    // every manager, so a retry per manager is what turns a
+                    // slow FPL API into a 60s-function timeout.
                     const picksResponse = await fetchWithRetry(
-                        `https://fantasy.premierleague.com/api/entry/${manager.entry}/event/${gameweek}/picks/`
+                        `https://fantasy.premierleague.com/api/entry/${manager.entry}/event/${gameweek}/picks/`,
+                        { timeout: 8000 },
+                        0
                     );
 
                     if (!picksResponse.ok) return null;
@@ -118,28 +86,26 @@ export default async function handler(req, res) {
                     const picksData = await picksResponse.json();
                     const activeChip = picksData.active_chip; // '3xc', 'bboost', 'freehit', 'wildcard'
 
-                    let totalPoints = 0;
-                    let captainId = null;
-                    let viceCaptainId = null;
-                    let captainMultiplier = 1;
-
                     // Calculate points
                     const picksWithPoints = picksData.picks.map(pick => {
                         const stats = getPlayerStats(pick.element);
+                        const playerInfo = playerInfoMap.get(pick.element);
                         let points = stats ? stats.total_points : 0;
 
-                        // Handle Captain/Vice Captain
+                        // Captain's score counts double (multiplier is 2, or
+                        // 3 with Triple Captain) — vice-captain is already
+                        // carried through via the `...pick` spread below.
                         if (pick.is_captain) {
-                            captainId = pick.element;
-                            captainMultiplier = pick.multiplier;
                             points *= pick.multiplier;
-                        } else if (pick.is_vice_captain) {
-                            viceCaptainId = pick.element;
                         }
 
                         return {
                             ...pick,
+                            name: playerInfo?.name || 'Unknown',
+                            positionType: playerInfo?.positionType || 'UNK',
                             points,
+                            bonus: stats?.bonus || 0,
+                            bps: stats?.bps || 0,
                             stats
                         };
                     });

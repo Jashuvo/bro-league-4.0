@@ -1,10 +1,8 @@
 // api/bootstrap.js - Vercel Serverless Function for FPL Bootstrap Data
+import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
 
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setCorsHeaders(res);
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
@@ -17,12 +15,8 @@ export default async function handler(req, res) {
 
   try {
     console.log('🔥 Fetching FPL bootstrap data server-side...');
-    
-    const response = await fetch('https://fantasy.premierleague.com/api/bootstrap-static/', {
-      headers: {
-        'User-Agent': 'BRO-League-4.0/1.0',
-        'Accept': 'application/json',
-      },
+
+    const response = await fetchWithRetry('https://fantasy.premierleague.com/api/bootstrap-static/', {
       timeout: 15000
     });
 
@@ -34,7 +28,11 @@ export default async function handler(req, res) {
     
     // Process and optimize the data
     const optimizedData = {
-      currentGameweek: data.events?.find(event => event.is_current)?.id || 3,
+      // Pre-season (before GW1's deadline) has neither is_current nor
+      // is_previous set yet — fall back to GW1, not an arbitrary later week.
+      currentGameweek: data.events?.find(event => event.is_current)?.id
+        || data.events?.find(event => event.is_previous)?.id
+        || 1,
       totalGameweeks: data.events?.length || 38,
       gameweeks: data.events?.map(gw => ({
         id: gw.id,
