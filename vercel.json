@@ -1,6 +1,15 @@
 {
   "functions": {
-    "api/**/*.js": {
+    "api/bootstrap.js": {
+      "maxDuration": 30
+    },
+    "api/league.js": {
+      "maxDuration": 30
+    },
+    "api/manager-history.js": {
+      "maxDuration": 30
+    },
+    "api/team-picks.js": {
       "maxDuration": 30
     },
     "api/league-complete.js": {
