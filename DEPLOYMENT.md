@@ -26,7 +26,7 @@
 
 3. **Configure Environment Variables** (in Vercel Dashboard):
    ```
-   VITE_FPL_LEAGUE_ID=1858389
+   VITE_FPL_LEAGUE_ID=1278540
    VITE_LEAGUE_NAME=BRO League 4.0
    VITE_TOTAL_PARTICIPANTS=15
    VITE_ENTRY_FEE=800
@@ -90,10 +90,10 @@ Test your deployed API endpoints:
 curl https://your-project.vercel.app/api/bootstrap
 
 # Test league data
-curl https://your-project.vercel.app/api/league?leagueId=1858389
+curl https://your-project.vercel.app/api/league?leagueId=1278540
 
 # Test complete league data (recommended)
-curl https://your-project.vercel.app/api/league-complete?leagueId=1858389
+curl https://your-project.vercel.app/api/league-complete?leagueId=1278540
 ```
 
 ### Monitoring Performance
