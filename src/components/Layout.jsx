@@ -12,7 +12,8 @@ const Layout = ({
     lastUpdated,
     gameweekInfo,
     standings,
-    bootstrap
+    bootstrap,
+    leagueStats
 }) => {
     return (
         <div className="min-h-screen bg-base-100 text-base-content transition-colors duration-300 flex flex-col">
@@ -38,6 +39,7 @@ const Layout = ({
                 standings={standings}
                 authStatus={authStatus}
                 bootstrap={bootstrap}
+                leagueStats={leagueStats}
             />
         </div>
     );

@@ -5,10 +5,13 @@ import Card from './ui/Card';
 import Badge from './ui/Badge';
 import { leagueConfig } from '../data/leagueData';
 
-const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap }) => {
+const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap, leagueStats }) => {
   const { totalPrizePool, name: leagueName } = leagueConfig;
 
-  const totalManagers = standings?.length || 0;
+  // leagueStats.totalManagers is FPL's real headcount (covers the whole
+  // league even beyond the per-manager detail cap); standings.length is
+  // the fallback while that hasn't loaded.
+  const totalManagers = leagueStats?.totalManagers ?? standings?.length ?? 0;
   const gameweeksLeft = gameweekInfo?.total ? gameweekInfo.total - (gameweekInfo.current || 0) : 0;
   const currentLeader = standings?.find(manager => manager.rank === 1);
 
@@ -183,11 +186,12 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap }) => {
 
 const getCountdownParts = (deadline) => {
   const diffMs = Math.max(0, deadline.getTime() - Date.now());
-  const totalMinutes = Math.floor(diffMs / 60000);
+  const totalSeconds = Math.floor(diffMs / 1000);
   return {
-    days: Math.floor(totalMinutes / (60 * 24)),
-    hours: Math.floor((totalMinutes / 60) % 24),
-    minutes: totalMinutes % 60
+    days: Math.floor(totalSeconds / (60 * 60 * 24)),
+    hours: Math.floor((totalSeconds / (60 * 60)) % 24),
+    minutes: Math.floor((totalSeconds / 60) % 60),
+    seconds: totalSeconds % 60
   };
 };
 
@@ -197,8 +201,7 @@ const KickoffCountdown = ({ deadline }) => {
   useEffect(() => {
     const tick = () => setParts(getCountdownParts(deadline));
     tick();
-    // Once a minute is plenty — this doesn't need second-level precision.
-    const interval = setInterval(tick, 60000);
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [deadline]);
 
@@ -211,8 +214,8 @@ const KickoffCountdown = ({ deadline }) => {
           </div>
           <div>
             <div className="text-white/80 text-xs uppercase tracking-wider font-bold">Season kicks off in</div>
-            <div className="text-2xl font-display font-bold">
-              {parts.days}d {parts.hours}h {parts.minutes}m
+            <div className="text-2xl font-display font-bold tabular-nums">
+              {parts.days}d {String(parts.hours).padStart(2, '0')}h {String(parts.minutes).padStart(2, '0')}m {String(parts.seconds).padStart(2, '0')}s
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@
   "name": "bro-league-4.0",
   "private": true,
   "version": "2.0.0",
-  "description": "BRO League 4.0 - Optimized Fantasy Premier League Website with Vercel KV",
+  "description": "BRO League 5 - Optimized Fantasy Premier League Website with Vercel KV",
   "type": "module",
   "scripts": {
     "dev": "vite",

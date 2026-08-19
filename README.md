@@ -1,4 +1,4 @@
-# BRO League 4.0
+# BRO League 5
 
 A live standings site for our private Fantasy Premier League mini-league — league table, weekly results, monthly prize competitions, and full prize-pool breakdown, all pulled straight from the official FPL API.
 
@@ -17,8 +17,7 @@ Copy `.env.local` and set at minimum:
 
 ```
 VITE_FPL_LEAGUE_ID=<this season's classic league ID>
-VITE_LEAGUE_NAME="BRO League 4.0"
-VITE_TOTAL_PARTICIPANTS=15
+VITE_LEAGUE_NAME="BRO League 5"
 VITE_ENTRY_FEE=800
 VITE_TOTAL_PRIZE_POOL=12000
 ```

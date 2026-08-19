@@ -1,21 +1,25 @@
 // src/data/leagueData.js
 //
 // Single source of truth for this season's league identity + prize
-// structure. Every component that needs a participant count, entry fee,
-// prize amount, or monthly-competition gameweek range should import it from
-// here instead of re-declaring its own copy — that's how the four/five
-// independent copies of this data drifted last season.
+// structure. Every component that needs an entry fee, prize amount, or
+// monthly-competition gameweek range should import it from here instead of
+// re-declaring its own copy — that's how the four/five independent copies
+// of this data drifted last season.
+//
+// Participant count is intentionally NOT here — it's live headcount, not
+// season config, so components read it straight from `leagueStats` /
+// `standings` instead of a number that would need updating by hand every
+// time someone joins or leaves.
 //
 // What to update at the start of a new season:
 //   - `leagueConfig.season` below
-//   - VITE_FPL_LEAGUE_ID / VITE_TOTAL_PARTICIPANTS / VITE_ENTRY_FEE /
-//     VITE_TOTAL_PRIZE_POOL in .env.local (and in the Vercel dashboard)
+//   - VITE_FPL_LEAGUE_ID / VITE_ENTRY_FEE / VITE_TOTAL_PRIZE_POOL in
+//     .env.local (and in the Vercel dashboard)
 //   - the prize amounts below, if the league changes how winnings are split
 
 export const leagueConfig = {
-  name: import.meta.env.VITE_LEAGUE_NAME || 'BRO League 4.0',
+  name: import.meta.env.VITE_LEAGUE_NAME || 'BRO League 5',
   season: '2025/26',
-  totalParticipants: Number(import.meta.env.VITE_TOTAL_PARTICIPANTS) || 15,
   entryFee: Number(import.meta.env.VITE_ENTRY_FEE) || 800,
   totalPrizePool: Number(import.meta.env.VITE_TOTAL_PRIZE_POOL) || 12000,
   currency: '৳',

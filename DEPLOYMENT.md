@@ -1,4 +1,4 @@
-# BRO League 4.0 - Deployment Guide
+# BRO League 5 - Deployment Guide
 
 ## 🚀 Vercel Deployment (Recommended)
 
@@ -27,8 +27,7 @@
 3. **Configure Environment Variables** (in Vercel Dashboard):
    ```
    VITE_FPL_LEAGUE_ID=1278540
-   VITE_LEAGUE_NAME=BRO League 4.0
-   VITE_TOTAL_PARTICIPANTS=15
+   VITE_LEAGUE_NAME=BRO League 5
    VITE_ENTRY_FEE=800
    VITE_TOTAL_PRIZE_POOL=12000
    ```

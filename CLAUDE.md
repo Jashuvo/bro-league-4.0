@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-BRO League 4.0 — a React/Vite front end for a private Fantasy Premier League (FPL) mini-league, backed by Vercel serverless functions that proxy and aggregate the public FPL API (which blocks browser CORS). The functions optionally cache responses in Vercel KV (Redis) and gracefully degrade to no-cache mode if KV isn't configured.
+BRO League 5 — a React/Vite front end for a private Fantasy Premier League (FPL) mini-league, backed by Vercel serverless functions that proxy and aggregate the public FPL API (which blocks browser CORS). The functions optionally cache responses in Vercel KV (Redis) and gracefully degrade to no-cache mode if KV isn't configured.
 
 ## Commands
 
@@ -27,7 +27,7 @@ To exercise the serverless functions locally you must use `vercel dev`, not plai
 
 **Two-tier app: static SPA + serverless API proxy.**
 
-- `src/` — React 18 SPA (Vite, Tailwind + daisyUI, framer-motion). No client-side router; a single `activeTab` state in [App.jsx](src/App.jsx) switches between four views (League Table, Weekly Results, Monthly Prizes, Prize Distribution).
+- `src/` — React 18 SPA (Vite, Tailwind + daisyUI, framer-motion). No client-side router; a single `activeTab` state in [App.jsx](src/App.jsx) switches between six views (League Table, Weekly Results, Monthly Prizes, Chip Tracker, Head-to-Head, Prize Distribution).
 - `api/` — Vercel serverless functions (Node, one file = one endpoint) that call `https://fantasy.premierleague.com/api/...` server-side (avoids browser CORS/blocking) and reshape the response for the frontend.
 - The FPL API itself has no auth; "authenticated" in this codebase just means "we successfully reached the live FPL API" vs. falling back to cached/stale/empty data.
 
@@ -53,15 +53,13 @@ KV/Redis is optional everywhere: every API file does a soft `try { await import(
 ### Frontend structure
 
 - [src/App.jsx](src/App.jsx) owns all top-level state (`standings`, `gameweekTable`, `leagueStats`, `bootstrap`, `authStatus`, etc.) and passes it down as props — there's no global store (no Redux/Zustand/Context for data, only `ThemeContext` for light/dark).
-- `src/components/` — one component per tab/section (`LeagueTable`, `GameweekTable`, `MonthlyPrizes`, `PrizeDistribution`, `LivePointsTable`, `LiveTotalPointsTable`, `TeamView`, `PrizeBreakdown`, ...) plus shared chrome (`Layout`, `Header`, `Footer`, `StickyHeader`, `TabNavigation`, `LoadingSpinner`, `ErrorMessage`, `ErrorBoundary`).
+- `src/components/` — one component per tab/section (`LeagueTable`, `GameweekTable`, `MonthlyPrizes`, `ChipTracker`, `HeadToHead`, `PrizeDistribution`, `LivePointsTable`, `LiveTotalPointsTable`, `TeamView`, `PrizeBreakdown`, ...) plus shared chrome (`Layout`, `Footer`, `StickyHeader`, `TabNavigation`, `LoadingSpinner`, `ErrorMessage`, `ErrorBoundary`, `PWAUpdate`).
 - `src/components/ui/` — small generic primitives (`Button`, `Card`, `Badge`); `src/utils/cn.js` wraps `clsx` + `tailwind-merge` for conditional classNames — use it rather than string-concatenating class names.
 - `src/context/ThemeContext.jsx` — light/dark theme, persisted to `localStorage`, driven via `data-theme` attribute (daisyUI) and a `.dark` class (Tailwind `darkMode: 'class'`) applied to `<html>`.
-- `src/data/leagueData.js` — static league configuration (participant count, entry fee, prize pool amounts/breakdown). This is season-specific config, not fetched data; update it when the league's prize structure changes.
+- `src/data/leagueData.js` — static league config (entry fee, prize pool amounts/breakdown, monthly gameweek windows). Participant count is deliberately *not* here — it's live headcount, read from `leagueStats.totalManagers` / `standings.length` in components (`Footer.jsx`, `CompactHero.jsx`), not a hardcoded number. Update this file's prize amounts when the league's prize structure changes.
 
 ### Deployment
 
-Two deployment targets exist in this repo and they are **not equivalent**:
-- **Vercel** (`vercel.json`, see [DEPLOYMENT.md](DEPLOYMENT.md)) — the intended target. Serves both the static build and the `/api/*` functions, so live FPL data works.
-- **GitHub Pages** (`.github/workflows/deploy.yml`, triggers on push to `main`) — static-only. The `/api/*` serverless functions do **not** run there, so the app falls back to cached/fallback data. Be aware of this if the default branch is `main` (current repo default branch per git status is `master`) — don't assume GH Pages deploys have live data.
+Vercel (`vercel.json`, see [DEPLOYMENT.md](DEPLOYMENT.md)) is the only deployment target — it serves both the static build and the `/api/*` functions. A GitHub Pages workflow used to exist but was removed: it could only ever serve a degraded static build with no live API data.
 
-Required env vars (see `.env.local` for the full list) include `VITE_FPL_LEAGUE_ID`, `VITE_LEAGUE_NAME`, `VITE_TOTAL_PARTICIPANTS`, `VITE_ENTRY_FEE`, `VITE_TOTAL_PRIZE_POOL`; KV/Redis credentials are injected automatically by Vercel when a KV store is attached to the project.
+Required env vars (see `.env.local` for the full list) include `VITE_FPL_LEAGUE_ID`, `VITE_LEAGUE_NAME`, `VITE_ENTRY_FEE`, `VITE_TOTAL_PRIZE_POOL`; KV/Redis credentials are injected automatically by Vercel when a KV store is attached to the project. `VITE_FPL_LEAGUE_ID` has no fallback on purpose — unset it and the app fails loudly instead of silently showing a stale league.

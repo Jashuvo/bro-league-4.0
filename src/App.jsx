@@ -178,6 +178,7 @@ function AppContent() {
       gameweekInfo={gameweekInfo}
       standings={standings}
       bootstrap={bootstrap}
+      leagueStats={leagueStats}
     >
       <CompactHero
         standings={standings}

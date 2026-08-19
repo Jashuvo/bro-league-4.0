@@ -5,7 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary.jsx';
 import './index.css';
 
 if (import.meta.env.DEV) {
-  console.log('🚀 BRO League 4.0 - Starting application...');
+  console.log('🚀 BRO League 5 - Starting application...');
 }
 
 // Service worker registration is handled by src/components/PWAUpdate.jsx via

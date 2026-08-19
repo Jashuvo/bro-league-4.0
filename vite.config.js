@@ -14,7 +14,7 @@ export default defineConfig({
       injectRegister: null,
       includeAssets: ['apple-icon-180.png', 'manifest-icon-192.png', 'manifest-icon-512.png'],
       manifest: {
-        name: 'BRO League 4.0',
+        name: 'BRO League 5',
         short_name: 'BRO League',
         description: 'Fantasy Premier League competition with live standings, prizes, and stats',
         // Matches tailwind.config.js's `bro-primary` — the color that

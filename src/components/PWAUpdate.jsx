@@ -102,7 +102,7 @@ export default function PWAUpdate() {
                 <Download size={20} />
               </div>
               <div>
-                <p className="font-semibold text-sm">Install BRO League 4.0</p>
+                <p className="font-semibold text-sm">Install BRO League 5</p>
                 <p className="text-xs opacity-90">Get faster access & offline mode</p>
               </div>
             </div>
