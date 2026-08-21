@@ -51,6 +51,10 @@ export function ExclusionProvider({ children }) {
   );
 }
 
+// Co-locating this hook with its provider is the standard React context
+// pattern; disabling below only affects dev-mode Fast Refresh granularity,
+// not correctness.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useExclusion() {
   const context = useContext(ExclusionContext);
   if (context === undefined) {

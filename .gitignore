@@ -8,9 +8,13 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-#dist
-#dist-ssr
+dist
+dist-ssr
 *.local
+
+# Any dotenv file, including the accidental ".env" (with trailing spaces)
+# that used to be committed here — see git history if you ever need it.
+.env*
 
 # Editor directories and files
 .vscode/*

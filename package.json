@@ -2,12 +2,12 @@
   "name": "bro-league-4.0",
   "private": true,
   "version": "2.0.0",
-  "description": "BRO League 4.0 - Optimized Fantasy Premier League Website with Vercel KV",
+  "description": "BRO League 5 - Optimized Fantasy Premier League Website with Vercel KV",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "vercel-dev": "vercel dev",
     "test-api": "node scripts/test-api.js",
@@ -22,7 +22,6 @@
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "redis": "^5.8.2",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
@@ -53,7 +52,6 @@
     "vercel",
     "serverless",
     "vercel-kv",
-    "redis",
     "edge-functions"
   ],
   "author": "BRO League Team",

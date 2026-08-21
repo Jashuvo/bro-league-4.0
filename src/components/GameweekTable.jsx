@@ -1,18 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import {
   Calendar, Trophy, Crown, Medal, Award, ChevronRight,
-  ChevronLeft, ArrowRight
+  ChevronLeft, Target, ArrowRight, Repeat
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
+import LivePointsTable from './LivePointsTable';
 import TeamView from './TeamView';
 
 const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = false, bootstrap = {} }) => {
   const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek);
   const [expandedRow, setExpandedRow] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [showLivePoints, setShowLivePoints] = useState(false);
 
   const toggleRowExpansion = (managerId) => {
     setExpandedRow(expandedRow === managerId ? null : managerId);
@@ -108,6 +110,33 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
     };
   }, [gameweekTable, bootstrap]);
 
+  // Season-wide transfer activity — reshaped from the per-gameweek
+  // `transfers` figure that's already in gameweekTable, no new fetching.
+  const transferLeaderboard = useMemo(() => {
+    const totals = {};
+    gameweekTable.forEach((gw) => {
+      gw.managers?.forEach((manager) => {
+        const id = manager.id;
+        if (!totals[id]) {
+          totals[id] = {
+            id,
+            name: manager.managerName || manager.name,
+            teamName: manager.teamName,
+            totalTransfers: 0,
+            totalHits: 0
+          };
+        }
+        totals[id].totalTransfers += manager.transfers || 0;
+        totals[id].totalHits += manager.transferCost || 0;
+      });
+    });
+
+    return Object.values(totals)
+      .filter((m) => m.totalTransfers > 0)
+      .sort((a, b) => b.totalTransfers - a.totalTransfers)
+      .slice(0, 5);
+  }, [gameweekTable]);
+
   const getPositionIcon = (position) => {
     if (position === 1) return <Crown className="text-yellow-400 fill-yellow-400" size={20} />;
     if (position === 2) return <Medal className="text-gray-300 fill-gray-300" size={20} />;
@@ -133,7 +162,7 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
         className="space-y-6"
       >
         {/* Header Card */}
-        <Card className="bg-gradient-to-r from-purple-600 to-blue-600 border-none">
+        <Card className="bg-gradient-to-r from-bro-primary to-bro-secondary border-none">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-white">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
@@ -148,6 +177,19 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
             </div>
 
             <div className="flex items-center gap-3">
+              {selectedGameweekStatus === 'current' && (
+                <button
+                  onClick={() => setShowLivePoints(!showLivePoints)}
+                  className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${showLivePoints
+                    ? 'bg-white text-bro-primary shadow-lg'
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                    }`}
+                >
+                  <Target size={16} />
+                  {showLivePoints ? 'Show Normal' : 'Live Points'}
+                </button>
+              )}
+
               <Badge
                 variant={selectedGameweekStatus === 'completed' ? 'success' : selectedGameweekStatus === 'current' ? 'primary' : 'warning'}
                 className="px-4 py-2 text-sm bg-white/20 border-white/20 text-white backdrop-blur-md"
@@ -204,9 +246,40 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
           </button>
         </div>
 
+        {/* Transfer Activity Leaderboard */}
+        {transferLeaderboard.length > 0 && (
+          <Card>
+            <h3 className="text-lg font-bold text-base-content flex items-center gap-2 mb-4">
+              <Repeat className="text-bro-secondary" size={20} />
+              Most Active in the Transfer Market
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {transferLeaderboard.map((manager, index) => (
+                <div key={manager.id} className="bg-base-content/5 rounded-xl p-3 flex items-center justify-between border border-base-content/5">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-7 h-7 rounded-full bg-bro-secondary/20 text-bro-secondary flex items-center justify-center font-bold text-xs flex-shrink-0">
+                      {index + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-base-content truncate">{manager.name}</div>
+                      {manager.totalHits > 0 && (
+                        <div className="text-xs text-red-400">-{manager.totalHits} pts in hits</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-lg font-bold text-bro-secondary flex-shrink-0">{manager.totalTransfers}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
         {/* Main Table Content */}
         <div className="space-y-3">
-          <>
+          {showLivePoints && selectedGameweekStatus === 'current' ? (
+            <LivePointsTable gameweek={selectedGameweek} />
+          ) : (
+            <>
               {!gameweekData || gameweekData.length === 0 ? (
                 <div className="p-12 text-center text-bro-muted">
                   <Calendar className="w-16 h-16 mx-auto mb-4 opacity-20" />
@@ -320,6 +393,7 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
                 })
               )}
             </>
+          )}
         </div>
       </motion.div>
 

@@ -1,10 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { cn } from '../../utils/cn'; // Assuming you have a cn utility or I will create one
-
-// If cn utility doesn't exist, I'll create it in the next step.
-// For now, I'll assume standard clsx/tailwind-merge usage pattern or just use template literals if simple.
-// But for a robust system, cn is better. I'll create it.
+import { cn } from '../../utils/cn';
 
 const Button = ({
     children,
@@ -33,7 +29,7 @@ const Button = ({
     return (
         <motion.button
             whileTap={{ scale: 0.98 }}
-            className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
+            className={cn(baseStyles, variants[variant], sizes[size], className)}
             disabled={isLoading}
             {...props}
         >

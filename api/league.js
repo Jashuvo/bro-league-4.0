@@ -1,10 +1,8 @@
 // api/league.js - Vercel Serverless Function for FPL League Data
+import { fetchWithRetry, setCorsHeaders, ConcurrencyLimiter } from './_lib/helpers.js';
 
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setCorsHeaders(res);
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
@@ -28,15 +26,9 @@ export default async function handler(req, res) {
     console.log(`🏆 Fetching league ${leagueId} data server-side...`);
     
     // Fetch league standings
-    const standingsResponse = await fetch(
+    const standingsResponse = await fetchWithRetry(
       `https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`,
-      {
-        headers: {
-          'User-Agent': 'BRO-League-4.0/1.0',
-          'Accept': 'application/json',
-        },
-        timeout: 15000
-      }
+      { timeout: 15000 }
     );
 
     if (!standingsResponse.ok) {
@@ -44,42 +36,42 @@ export default async function handler(req, res) {
     }
 
     const standingsData = await standingsResponse.json();
-    
-    // Fetch detailed manager data for each entry (parallel requests for better performance)
-    const managerPromises = standingsData.standings.results.map(async (entry) => {
-      try {
-        const managerResponse = await fetch(
-          `https://fantasy.premierleague.com/api/entry/${entry.entry}/`,
-          {
-            headers: {
-              'User-Agent': 'BRO-League-4.0/1.0',
-              'Accept': 'application/json',
-            },
-            timeout: 10000
-          }
-        );
 
-        if (managerResponse.ok) {
-          const managerData = await managerResponse.json();
-          return {
-            ...entry,
-            managerData: {
-              firstName: managerData.player_first_name || '',
-              lastName: managerData.player_last_name || '',
-              teamName: managerData.name || entry.entry_name || 'Unknown Team',
-              region: managerData.player_region_name || '',
-              startedEvent: managerData.started_event || 1,
-              overallRank: managerData.summary_overall_rank || 0
-            }
-          };
-        } else {
+    // Fetch detailed manager data for each entry, capped so a large league
+    // can't fan out into more concurrent requests than the FPL API (and this
+    // function's own time budget) can handle.
+    const limiter = new ConcurrencyLimiter(3);
+    const managerPromises = standingsData.standings.results.map((entry) =>
+      limiter.run(async () => {
+        try {
+          const managerResponse = await fetchWithRetry(
+            `https://fantasy.premierleague.com/api/entry/${entry.entry}/`,
+            { timeout: 8000 },
+            1
+          );
+
+          if (managerResponse.ok) {
+            const managerData = await managerResponse.json();
+            return {
+              ...entry,
+              managerData: {
+                firstName: managerData.player_first_name || '',
+                lastName: managerData.player_last_name || '',
+                teamName: managerData.name || entry.entry_name || 'Unknown Team',
+                region: managerData.player_region_name || '',
+                startedEvent: managerData.started_event || 1,
+                overallRank: managerData.summary_overall_rank || 0
+              }
+            };
+          } else {
+            return entry; // Return original entry if manager data fetch fails
+          }
+        } catch (error) {
+          console.warn(`⚠️ Failed to fetch manager data for entry ${entry.entry}:`, error);
           return entry; // Return original entry if manager data fetch fails
         }
-      } catch (error) {
-        console.warn(`⚠️ Failed to fetch manager data for entry ${entry.entry}:`, error);
-        return entry; // Return original entry if manager data fetch fails
-      }
-    });
+      })
+    );
 
     // Wait for all manager data to be fetched (with timeout)
     const managersWithData = await Promise.allSettled(managerPromises);
@@ -117,12 +109,16 @@ export default async function handler(req, res) {
       };
     });
 
-    // Calculate league statistics
-    const leagueStats = {
-      totalManagers: transformedStandings.length,
-      averageScore: Math.round(transformedStandings.reduce((sum, m) => sum + m.totalPoints, 0) / transformedStandings.length),
+    // Calculate league statistics (guarded against an empty standings list)
+    const managerCount = transformedStandings.length;
+    const leagueStats = managerCount === 0 ? {
+      totalManagers: 0, averageScore: 0, highestTotal: 0, averageGameweek: 0,
+      highestGameweek: 0, veteranManagers: 0, newManagers: 0
+    } : {
+      totalManagers: managerCount,
+      averageScore: Math.round(transformedStandings.reduce((sum, m) => sum + m.totalPoints, 0) / managerCount),
       highestTotal: Math.max(...transformedStandings.map(m => m.totalPoints)),
-      averageGameweek: Math.round(transformedStandings.reduce((sum, m) => sum + m.gameweekPoints, 0) / transformedStandings.length),
+      averageGameweek: Math.round(transformedStandings.reduce((sum, m) => sum + m.gameweekPoints, 0) / managerCount),
       highestGameweek: Math.max(...transformedStandings.map(m => m.gameweekPoints)),
       veteranManagers: transformedStandings.filter(m => m.startedEvent === 1).length,
       newManagers: transformedStandings.filter(m => m.startedEvent > 1).length

@@ -4,17 +4,23 @@ import { useTheme } from '../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from './ui/Button';
 import Badge from './ui/Badge';
+import { leagueConfig } from '../data/leagueData';
 
 const StickyHeader = ({
   authStatus,
   isRefreshing,
   onRefresh,
-  performanceInfo,
   lastUpdated
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+
+  // Split "BRO League 5" into "BRO League" + "5" so the trailing
+  // number/edition can be styled separately, without hardcoding it here.
+  const nameParts = leagueConfig.name.split(' ');
+  const leagueEdition = nameParts.pop();
+  const leagueBaseName = nameParts.join(' ');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,7 +52,7 @@ const StickyHeader = ({
               </div>
               <div className="hidden sm:block">
                 <h1 className="font-display font-bold text-xl tracking-tight text-base-content">
-                  BRO League <span className="text-bro-secondary">4.0</span>
+                  {leagueBaseName} <span className="text-bro-secondary">{leagueEdition}</span>
                 </h1>
               </div>
             </div>

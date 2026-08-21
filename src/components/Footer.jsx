@@ -1,17 +1,17 @@
 import React from 'react';
 import { Heart, Trophy, Users, Github, Twitter, Instagram } from 'lucide-react';
-import { motion } from 'framer-motion';
 import Badge from './ui/Badge';
+import { leagueConfig } from '../data/leagueData';
 
-const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
-  // Get environment variables
-  const totalParticipants = import.meta.env.VITE_TOTAL_PARTICIPANTS || 15;
-  const entryFee = import.meta.env.VITE_ENTRY_FEE || 800;
-  const totalPrizePool = import.meta.env.VITE_TOTAL_PRIZE_POOL || 12000;
-  const leagueName = import.meta.env.VITE_LEAGUE_NAME || "BRO League 4.0";
+const Footer = ({ gameweekInfo, standings, authStatus, bootstrap, leagueStats }) => {
+  const { entryFee, totalPrizePool, name: leagueName } = leagueConfig;
 
-  // Calculate actual participants from API data
-  const actualParticipants = standings?.length || totalParticipants;
+  // Live headcount — leagueStats.totalManagers is FPL's real count (covers
+  // the whole league even if standings itself is capped for performance);
+  // standings.length is the next best thing. No hardcoded number: while
+  // nothing has loaded yet this is null and the UI shows a placeholder
+  // instead of a guessed participant count.
+  const actualParticipants = leagueStats?.totalManagers ?? standings?.length ?? null;
 
   // Get current gameweek from API or fallback to environment/default
   const currentGameweek = gameweekInfo?.current || 1;
@@ -45,7 +45,7 @@ const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
             </div>
             <p className="text-bro-muted leading-relaxed">
               The ultimate Fantasy Premier League competition among friends.
-              <span className="text-white font-medium"> {actualParticipants} bros</span>, one champion, endless memories.
+              <span className="text-white font-medium"> {actualParticipants ?? '–'} bros</span>, one champion, endless memories.
             </p>
             <div className="flex items-center gap-4">
               <SocialLink icon={Github} href="#" />
@@ -78,7 +78,7 @@ const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <div className="flex items-center gap-3 mb-2">
                 <Users className="text-bro-primary" size={18} />
-                <span className="font-medium text-white">{actualParticipants} Participants</span>
+                <span className="font-medium text-white">{actualParticipants ?? '–'} Participants</span>
               </div>
               <div className="text-sm text-bro-muted">
                 Season {seasonYear}/{seasonYear + 1}

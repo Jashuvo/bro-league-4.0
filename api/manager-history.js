@@ -1,10 +1,8 @@
 // api/manager-history.js - Vercel Serverless Function for Manager History Data
+import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
 
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setCorsHeaders(res);
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
@@ -27,15 +25,9 @@ export default async function handler(req, res) {
   try {
     console.log(`📈 Fetching history for manager ${managerId} server-side...`);
     
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `https://fantasy.premierleague.com/api/entry/${managerId}/history/`,
-      {
-        headers: {
-          'User-Agent': 'BRO-League-4.0/1.0',
-          'Accept': 'application/json',
-        },
-        timeout: 15000
-      }
+      { timeout: 15000 }
     );
 
     if (!response.ok) {

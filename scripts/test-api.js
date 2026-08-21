@@ -1,10 +1,16 @@
 // scripts/test-api.js - Test your deployed API routes
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-
 const BASE_URL = process.env.TEST_URL || 'http://localhost:5173';
-const LEAGUE_ID = process.env.VITE_FPL_LEAGUE_ID || '1858389';
+const LEAGUE_ID = process.env.VITE_FPL_LEAGUE_ID;
+
+if (!LEAGUE_ID) {
+  console.error(
+    '❌ VITE_FPL_LEAGUE_ID is not set. Export it (or run via `vercel dev` ' +
+    'with .env.local loaded) before running this script — there is no ' +
+    "fallback to a previous season's league ID anymore."
+  );
+  process.exit(1);
+}
 
 console.log('🧪 Testing FPL API Routes');
 console.log('📍 Base URL:', BASE_URL);

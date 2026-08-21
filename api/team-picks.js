@@ -1,9 +1,8 @@
-// api/team-picks.js - COMPLETE FIXED VERSION 
+// api/team-picks.js - COMPLETE FIXED VERSION
+import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
+
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setCorsHeaders(res);
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
@@ -26,17 +25,11 @@ export default async function handler(req, res) {
   try {
     console.log(`⚽ Fetching team picks for manager ${managerId}, GW${eventId}...`);
 
-    const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
     // Fetch team picks for specific gameweek
-    const picksResponse = await fetch(
+    const picksResponse = await fetchWithRetry(
       `https://fantasy.premierleague.com/api/entry/${managerId}/event/${eventId}/picks/`,
-      {
-        headers: {
-          'User-Agent': userAgent,
-          'Accept': 'application/json',
-        },
-      }
+      { timeout: 10000 },
+      1 // fewer retries — a 404 here (picks not in yet) is a real answer, not a transient failure
     );
 
     if (!picksResponse.ok) {
@@ -49,14 +42,9 @@ export default async function handler(req, res) {
     const picksData = await picksResponse.json();
 
     // Fetch bootstrap data to get player information
-    const bootstrapResponse = await fetch(
+    const bootstrapResponse = await fetchWithRetry(
       'https://fantasy.premierleague.com/api/bootstrap-static/',
-      {
-        headers: {
-          'User-Agent': userAgent,
-          'Accept': 'application/json',
-        },
-      }
+      { timeout: 15000 }
     );
 
     if (!bootstrapResponse.ok) {
@@ -166,12 +154,21 @@ export default async function handler(req, res) {
     // Process entry history
     const entryHistory = picksData.entry_history || {};
 
+    // Enrich automatic substitutions with readable player names — the raw
+    // FPL payload only gives player IDs (element_in/element_out), and the
+    // player lookup we need is already built above for the picks list.
+    const automaticSubs = (picksData.automatic_subs || []).map(sub => ({
+      playerOut: playersMap.get(sub.element_out)?.name || 'Unknown',
+      playerIn: playersMap.get(sub.element_in)?.name || 'Unknown',
+      event: sub.event
+    }));
+
     // Build response
     const responseData = {
       managerId: parseInt(managerId),
       eventId: parseInt(eventId),
       activeChip: picksData.active_chip || null,
-      automaticSubs: picksData.automatic_subs || [],
+      automaticSubs,
       entryHistory: {
         event: entryHistory.event || parseInt(eventId),
         points: entryHistory.points || 0,

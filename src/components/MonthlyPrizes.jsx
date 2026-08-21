@@ -5,22 +5,18 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
+import { monthlyWindows, prizeStructure } from '../data/leagueData';
 
-const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, loading = false }) => {
+const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }) => {
   const currentGW = gameweekInfo.current || 1;
   const [expandedRow, setExpandedRow] = useState(null);
 
-  const months = [
-    { id: 1, name: "Month 1", gameweeks: [1, 2, 3, 4], prizes: [350, 250, 150] },
-    { id: 2, name: "Month 2", gameweeks: [5, 6, 7, 8], prizes: [350, 250, 150] },
-    { id: 3, name: "Month 3", gameweeks: [9, 10, 11, 12], prizes: [350, 250, 150] },
-    { id: 4, name: "Month 4", gameweeks: [13, 14, 15, 16], prizes: [350, 250, 150] },
-    { id: 5, name: "Month 5", gameweeks: [17, 18, 19, 20], prizes: [350, 250, 150] },
-    { id: 6, name: "Month 6", gameweeks: [21, 22, 23, 24], prizes: [350, 250, 150] },
-    { id: 7, name: "Month 7", gameweeks: [25, 26, 27, 28], prizes: [350, 250, 150] },
-    { id: 8, name: "Month 8", gameweeks: [29, 30, 31, 32], prizes: [350, 250, 150] },
-    { id: 9, name: "Final Month", gameweeks: [33, 34, 35, 36, 37, 38], prizes: [500, 400, 250] }
-  ];
+  const months = useMemo(() => monthlyWindows.map((window) => ({
+    id: window.id,
+    name: window.name,
+    gameweeks: Array.from({ length: window.end - window.start + 1 }, (_, i) => window.start + i),
+    prizes: window.isFinal ? prizeStructure.monthly.finalMonth : prizeStructure.monthly.regularPrizes
+  })), []);
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     return months.find(m => currentGW >= m.gameweeks[0] && currentGW <= m.gameweeks[m.gameweeks.length - 1])?.id || 1;

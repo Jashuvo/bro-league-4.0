@@ -10,8 +10,11 @@ import LeagueTable from './components/LeagueTable';
 import GameweekTable from './components/GameweekTable';
 import MonthlyPrizes from './components/MonthlyPrizes';
 import PrizeDistribution from './components/PrizeDistribution';
+import ChipTracker from './components/ChipTracker';
+import HeadToHead from './components/HeadToHead';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
+import PWAUpdate from './components/PWAUpdate';
 
 function AppContent() {
   const { excludedTeamIds } = useExclusion();
@@ -32,6 +35,8 @@ function AppContent() {
     { id: 'standings', name: 'League Table', icon: '🏆', shortName: 'Table' },
     { id: 'gameweek', name: 'Weekly Results', icon: '⚡', shortName: 'Results' },
     { id: 'monthly', name: 'Monthly Prizes', icon: '📅', shortName: 'Monthly' },
+    { id: 'chips', name: 'Chip Tracker', icon: '🃏', shortName: 'Chips' },
+    { id: 'h2h', name: 'Head-to-Head', icon: '⚔️', shortName: 'H2H' },
     { id: 'prizes', name: 'Prize Distribution', icon: '💰', shortName: 'Prizes' }
   ];
 
@@ -187,6 +192,21 @@ function AppContent() {
             loading={loading}
           />
         );
+      case 'chips':
+        return (
+          <ChipTracker
+            standings={filteredStandings}
+            loading={loading}
+          />
+        );
+      case 'h2h':
+        return (
+          <HeadToHead
+            standings={filteredStandings}
+            gameweekTable={filteredGameweekTable}
+            loading={loading}
+          />
+        );
       case 'prizes':
         return (
           <PrizeDistribution
@@ -214,6 +234,7 @@ function AppContent() {
       gameweekInfo={gameweekInfo}
       standings={filteredStandings}
       bootstrap={bootstrap}
+      leagueStats={leagueStats}
     >
       <CompactHero
         standings={filteredStandings}
@@ -250,6 +271,7 @@ function App() {
   return (
     <ThemeProvider>
       <ExclusionProvider>
+        <PWAUpdate />
         <AppContent />
       </ExclusionProvider>
     </ThemeProvider>

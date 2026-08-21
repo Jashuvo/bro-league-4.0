@@ -8,21 +8,33 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'vite.svg'],
+      // We register the service worker ourselves (src/components/PWAUpdate.jsx,
+      // via `virtual:pwa-register`) so we can show an in-app "Update
+      // Available" banner instead of updating silently in the background.
+      injectRegister: null,
+      includeAssets: ['apple-icon-180.png', 'manifest-icon-192.png', 'manifest-icon-512.png'],
       manifest: {
-        name: 'BRO League 4.0',
+        name: 'BRO League 5',
         short_name: 'BRO League',
         description: 'Fantasy Premier League competition with live standings, prizes, and stats',
-        theme_color: '#8b5cf6',
+        // Matches tailwind.config.js's `bro-primary` — the color that
+        // actually drives the UI via daisyUI, not the leftover violet this
+        // used to disagree with.
+        theme_color: '#4f46e5',
         background_color: '#ffffff',
         display: 'standalone',
         scope: '/',
         start_url: '/',
         icons: [
           {
-            src: 'vite.svg',
-            sizes: 'any',
-            type: 'image/svg+xml'
+            src: 'manifest-icon-192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'manifest-icon-512.png',
+            sizes: '512x512',
+            type: 'image/png'
           }
         ]
       },

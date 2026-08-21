@@ -1,4 +1,4 @@
-# BRO League 4.0 - Deployment Guide
+# BRO League 5 - Deployment Guide
 
 ## 🚀 Vercel Deployment (Recommended)
 
@@ -26,9 +26,8 @@
 
 3. **Configure Environment Variables** (in Vercel Dashboard):
    ```
-   VITE_FPL_LEAGUE_ID=1858389
-   VITE_LEAGUE_NAME=BRO League 4.0
-   VITE_TOTAL_PARTICIPANTS=15
+   VITE_FPL_LEAGUE_ID=1278540
+   VITE_LEAGUE_NAME=BRO League 5
    VITE_ENTRY_FEE=800
    VITE_TOTAL_PRIZE_POOL=12000
    ```
@@ -90,10 +89,10 @@ Test your deployed API endpoints:
 curl https://your-project.vercel.app/api/bootstrap
 
 # Test league data
-curl https://your-project.vercel.app/api/league?leagueId=1858389
+curl https://your-project.vercel.app/api/league?leagueId=1278540
 
 # Test complete league data (recommended)
-curl https://your-project.vercel.app/api/league-complete?leagueId=1858389
+curl https://your-project.vercel.app/api/league-complete?leagueId=1278540
 ```
 
 ### Monitoring Performance
@@ -129,14 +128,9 @@ Check your Vercel dashboard for:
 - Monitor Core Web Vitals
 - Optimize images if needed
 
-### GitHub Pages (Not Recommended)
+### Why not GitHub Pages
 
-⚠️ **Important**: GitHub Pages only supports static hosting. The serverless API routes won't work there. If you still want to use GitHub Pages:
-
-1. You'll need to use the old CORS proxy method (unreliable)
-2. Or deploy API routes separately (like on Vercel) and point your frontend there
-
-**Recommendation**: Use Vercel for both frontend and API for the best experience.
+There used to be a GitHub Actions workflow that deployed the static build to GitHub Pages on every push — it's been removed. GitHub Pages only supports static hosting, so the serverless `/api/*` routes this app depends on for live FPL data never worked there anyway (the site would silently fall back to cached/placeholder data). Vercel is the only supported deployment target now.
 
 ### Cost
 

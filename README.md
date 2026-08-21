@@ -1,12 +1,41 @@
-# React + Vite
+# BRO League 5
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A live standings site for our private Fantasy Premier League mini-league — league table, weekly results, monthly prize competitions, and full prize-pool breakdown, all pulled straight from the official FPL API.
 
-Currently, two official plugins are available:
+Built with React + Vite on the frontend and Vercel serverless functions on the backend (the FPL API blocks browser CORS, so requests are proxied server-side and optionally cached in Vercel KV).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Getting started
 
-## Expanding the ESLint configuration
+```bash
+npm install
+npm run vercel-dev   # serves the app AND the /api/* serverless functions
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Plain `npm run dev` also works, but only serves the frontend — `/api/*` routes will 404, so the app falls back to cached/placeholder data. Use `vercel-dev` (or deploy to Vercel) whenever you need real FPL data locally.
+
+Copy `.env.local` and set at minimum:
+
+```
+VITE_FPL_LEAGUE_ID=<this season's classic league ID>
+VITE_LEAGUE_NAME="BRO League 5"
+VITE_ENTRY_FEE=800
+VITE_TOTAL_PRIZE_POOL=12000
+```
+
+`VITE_FPL_LEAGUE_ID` has no fallback on purpose — leaving it unset fails loudly instead of silently showing an old season's league.
+
+Prize-structure specifics (season/monthly/weekly amounts, gameweek windows) live in one place: [`src/data/leagueData.js`](src/data/leagueData.js). Update that file when the prize breakdown changes.
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run vercel-dev` | Local dev with working API routes (recommended) |
+| `npm run dev` | Frontend-only Vite dev server |
+| `npm run build` | Production build to `dist/` |
+| `npm run lint` | ESLint |
+| `npm run test-api` | Hits the deployed/local API routes and reports timing |
+
+## Deployment
+
+Deploy to Vercel — see [DEPLOYMENT.md](DEPLOYMENT.md) for the full walkthrough. GitHub Pages can only serve the static build (no `/api/*` functions), so it isn't a supported target for live data.
