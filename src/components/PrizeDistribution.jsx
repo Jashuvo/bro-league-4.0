@@ -7,7 +7,7 @@ import Card from './ui/Card';
 import Badge from './ui/Badge';
 
 const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = [] }) => {
-  const currentGW = gameweekInfo.current || 3;
+  const currentGW = gameweekInfo.current || 1;
   const totalGWs = gameweekInfo.total || 38;
 
   // Prize structure

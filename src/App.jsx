@@ -16,7 +16,7 @@ import ErrorMessage from './components/ErrorMessage';
 function AppContent() {
   const { excludedTeamIds } = useExclusion();
   const [standings, setStandings] = useState([]);
-  const [gameweekInfo, setGameweekInfo] = useState({ current: 3, total: 38 });
+  const [gameweekInfo, setGameweekInfo] = useState({ current: 1, total: 38 });
   const [gameweekTable, setGameweekTable] = useState([]);
   const [leagueStats, setLeagueStats] = useState({});
   const [bootstrap, setBootstrap] = useState({});
@@ -116,7 +116,7 @@ function AppContent() {
 
       if (result.bootstrap) {
         setBootstrap(result.bootstrap);
-        const currentGW = result.bootstrap.currentGameweek || 3;
+        const currentGW = result.bootstrap.currentGameweek || 1;
         const currentGWData = result.bootstrap.gameweeks?.find(gw => gw.id === currentGW);
         setGameweekInfo({
           current: currentGW,

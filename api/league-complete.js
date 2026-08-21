@@ -152,8 +152,9 @@ export default async function handler(req, res) {
     ]);
 
     // Process bootstrap data
-    const currentGameweek = bootstrapData.events?.find(event => event.is_current)?.id || 
-                           bootstrapData.events?.find(event => event.is_previous)?.id || 3;
+    const currentGameweek = bootstrapData.events?.find(event => event.is_current)?.id ||
+                           bootstrapData.events?.find(event => event.is_next)?.id ||
+                           bootstrapData.events?.find(event => event.is_previous)?.id || 1;
     
     const optimizedBootstrap = {
       currentGameweek,

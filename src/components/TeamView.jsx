@@ -11,7 +11,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('pitch');
 
-  const currentGameweek = gameweekInfo?.current || 3;
+  const currentGameweek = gameweekInfo?.current || 1;
 
   useEffect(() => {
     const fetchTeamData = async () => {

@@ -34,7 +34,8 @@ export default async function handler(req, res) {
     
     // Process and optimize the data
     const optimizedData = {
-      currentGameweek: data.events?.find(event => event.is_current)?.id || 3,
+      currentGameweek: data.events?.find(event => event.is_current)?.id ||
+        data.events?.find(event => event.is_next)?.id || 1,
       totalGameweeks: data.events?.length || 38,
       gameweeks: data.events?.map(gw => ({
         id: gw.id,
