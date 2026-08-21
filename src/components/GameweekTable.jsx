@@ -1,19 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import {
   Calendar, Trophy, Crown, Medal, Award, ChevronRight,
-  ChevronLeft, Target, ArrowRight
+  ChevronLeft, ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
-import LivePointsTable from './LivePointsTable';
 import TeamView from './TeamView';
 
-const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = false, bootstrap = {} }) => {
+const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = false, bootstrap = {} }) => {
   const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek);
   const [expandedRow, setExpandedRow] = useState(null);
-  const [showLivePoints, setShowLivePoints] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
 
   const toggleRowExpansion = (managerId) => {
@@ -150,19 +148,6 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
             </div>
 
             <div className="flex items-center gap-3">
-              {selectedGameweekStatus === 'current' && (
-                <button
-                  onClick={() => setShowLivePoints(!showLivePoints)}
-                  className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${showLivePoints
-                    ? 'bg-white text-purple-600 shadow-lg'
-                    : 'bg-white/20 text-white hover:bg-white/30'
-                    }`}
-                >
-                  <Target size={16} />
-                  {showLivePoints ? 'Show Normal' : 'Live Points'}
-                </button>
-              )}
-
               <Badge
                 variant={selectedGameweekStatus === 'completed' ? 'success' : selectedGameweekStatus === 'current' ? 'primary' : 'warning'}
                 className="px-4 py-2 text-sm bg-white/20 border-white/20 text-white backdrop-blur-md"
@@ -221,10 +206,7 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
 
         {/* Main Table Content */}
         <div className="space-y-3">
-          {showLivePoints && selectedGameweekStatus === 'current' ? (
-            <LivePointsTable gameweek={selectedGameweek} />
-          ) : (
-            <>
+          <>
               {!gameweekData || gameweekData.length === 0 ? (
                 <div className="p-12 text-center text-bro-muted">
                   <Calendar className="w-16 h-16 mx-auto mb-4 opacity-20" />
@@ -338,7 +320,6 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 3, loading = fals
                 })
               )}
             </>
-          )}
         </div>
       </motion.div>
 

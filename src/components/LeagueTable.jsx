@@ -1,18 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, ChevronRight, Users, ArrowRight, Target, DollarSign, UserX, UserCheck, Settings } from 'lucide-react';
+import { Trophy, TrendingUp, TrendingDown, Minus, Crown, Medal, Award, ChevronRight, Users, ArrowRight, DollarSign, UserX, UserCheck, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeamView from './TeamView';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
-import LiveTotalPointsTable from './LiveTotalPointsTable';
 import PrizeBreakdown from './PrizeBreakdown';
 import { useExclusion } from '../context/ExclusionContext';
 
 const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
-  const [showLivePoints, setShowLivePoints] = useState(false);
   const [selectedPrizeManager, setSelectedPrizeManager] = useState(null);
   const [showExclusionSettings, setShowExclusionSettings] = useState(false);
   const { excludeTeam, includeTeam, excludedTeamIds, clearExclusions } = useExclusion();
@@ -20,7 +18,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
   // Calculate total prizes won (Logic preserved)
   const calculateTotalPrizesWon = (managerId) => {
     let totalWon = 0;
-    const currentGW = gameweekInfo.current || 3;
+    const currentGW = gameweekInfo.current || 1;
 
     if (gameweekTable.length === 0) return 0;
 
@@ -77,7 +75,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
 
   // Calculate detailed prize breakdown for a manager
   const calculatePrizeBreakdown = (managerId) => {
-    const currentGW = gameweekInfo.current || 3;
+    const currentGW = gameweekInfo.current || 1;
     const weeklyWins = [];
     const monthlyWins = [];
 
@@ -195,7 +193,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
             </div>
             <div>
               <h2 className="text-2xl font-display font-bold text-base-content">League Standings</h2>
-              <p className="text-bro-muted text-sm">Gameweek {gameweekInfo?.current || 3} • {enhancedStandings.length} Managers</p>
+              <p className="text-bro-muted text-sm">Gameweek {gameweekInfo?.current || 1} • {enhancedStandings.length} Managers</p>
             </div>
           </div>
 
@@ -210,19 +208,6 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
               >
                 <Settings size={16} />
                 {excludedTeamIds.length} Excluded
-              </button>
-            )}
-
-            {gameweekInfo?.current && (
-              <button
-                onClick={() => setShowLivePoints(!showLivePoints)}
-                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${showLivePoints
-                  ? 'bg-bro-primary text-white shadow-lg'
-                  : 'bg-base-content/10 text-base-content hover:bg-base-content/20'
-                  }`}
-              >
-                <Target size={16} />
-                {showLivePoints ? 'Show Normal' : 'Live Points'}
               </button>
             )}
 
@@ -289,12 +274,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
 
         {/* Table/List */}
         <div className="space-y-3">
-          {showLivePoints ? (
-            <LiveTotalPointsTable
-              standings={enhancedStandings}
-              gameweek={gameweekInfo?.current || 3}
-            />
-          ) : (
+          {
             enhancedStandings.map((manager, index) => {
               const position = index + 1;
               const isExpanded = expandedRow === (manager.id || manager.entry);
@@ -398,7 +378,12 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                               <div className="p-3 rounded-lg bg-base-content/5 text-center">
                                 <div className="text-xs text-bro-muted mb-1">GW Points</div>
-                                <div className="font-bold text-base-content text-lg">{manager.gameweekPoints || 0}</div>
+                                <div className="font-bold text-base-content text-lg">
+                                  {(manager.gameweekPoints || manager.event_total || 0) - (manager.gameweekHits || 0)}
+                                  {(manager.gameweekHits || 0) > 0 && (
+                                    <span className="text-xs text-red-400 ml-1">(-{manager.gameweekHits})</span>
+                                  )}
+                                </div>
                               </div>
                               <div className="p-3 rounded-lg bg-base-content/5 text-center">
                                 <div className="text-xs text-bro-muted mb-1">Overall Rank</div>
@@ -458,7 +443,7 @@ const LeagueTable = ({ standings = [], loading = false, authStatus = {}, gamewee
                   </Card>
                 </motion.div>
               );
-            }))
+            })
           }
         </div>
       </motion.div>

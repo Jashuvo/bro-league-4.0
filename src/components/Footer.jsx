@@ -14,7 +14,7 @@ const Footer = ({ gameweekInfo, standings, authStatus, bootstrap }) => {
   const actualParticipants = standings?.length || totalParticipants;
 
   // Get current gameweek from API or fallback to environment/default
-  const currentGameweek = gameweekInfo?.current || 3;
+  const currentGameweek = gameweekInfo?.current || 1;
   const totalGameweeks = gameweekInfo?.total || 38;
 
   // Get current season year from bootstrap data or calculate from current date

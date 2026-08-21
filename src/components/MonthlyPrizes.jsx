@@ -7,7 +7,7 @@ import Card from './ui/Card';
 import Badge from './ui/Badge';
 
 const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, bootstrap = {}, loading = false }) => {
-  const currentGW = gameweekInfo.current || 3;
+  const currentGW = gameweekInfo.current || 1;
   const [expandedRow, setExpandedRow] = useState(null);
 
   const months = [

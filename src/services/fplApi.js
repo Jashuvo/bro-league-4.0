@@ -312,38 +312,6 @@ class FPLApiService {
     })
   }
 
-  // Get live league stats
-  async getLiveLeagueStats(gameweekId) {
-    const cacheKey = `live_stats_${this.leagueId}_${gameweekId}`;
-    const cached = this.getCache(cacheKey);
-    if (cached) return cached;
-
-    return this.queueRequest(async () => {
-      try {
-        console.log(`🔴 Fetching live stats for GW${gameweekId}...`);
-        const response = await this.fetchWithRetry(
-          `${this.apiBaseUrl}/live-stats?leagueId=${this.leagueId}&gameweek=${gameweekId}`,
-          { timeout: 20000 }
-        );
-
-        const result = await response.json();
-
-        if (!result.success) {
-          throw new Error(result.error || 'Live stats API error');
-        }
-
-        console.log(`✅ Live stats loaded for GW${gameweekId}`);
-        // Cache for 1 minute only as it's live data
-        this.setCache(cacheKey, result, 1);
-        return result;
-
-      } catch (error) {
-        console.error('❌ Error fetching live stats:', error);
-        return null;
-      }
-    });
-  }
-
   // Main initialization method
   async initializeWithAuth() {
     console.log('🔐 Initializing FPL API...');
