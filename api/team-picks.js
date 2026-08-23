@@ -41,23 +41,42 @@ export default async function handler(req, res) {
 
     const picksData = await picksResponse.json();
 
-    // Fetch bootstrap data to get player information
-    const bootstrapResponse = await fetchWithRetry(
-      'https://fantasy.premierleague.com/api/bootstrap-static/',
-      { timeout: 15000 }
-    );
+    // Fetch bootstrap data (player names/positions/teams — season-level
+    // metadata) and this gameweek's live stats (actual points for THIS
+    // event) in parallel. Player points must come from event/{id}/live/,
+    // never from bootstrap-static's elements[].event_points: that field
+    // only ever reflects whatever gameweek FPL currently considers
+    // "current" — it reads as 0 for every player once viewing any other
+    // gameweek (a past one, or the current one after FPL's is_current
+    // pointer has already rolled over to the next event but this app's
+    // own state hasn't caught up yet), which is exactly the "every
+    // player shows 0 but the team total is correct" bug this used to have.
+    const [bootstrapResponse, liveResponse] = await Promise.all([
+      fetchWithRetry('https://fantasy.premierleague.com/api/bootstrap-static/', { timeout: 15000 }),
+      fetchWithRetry(`https://fantasy.premierleague.com/api/event/${eventId}/live/`, { timeout: 15000 }, 1)
+    ]);
 
     if (!bootstrapResponse.ok) {
       throw new Error(`FPL Bootstrap API responded with status: ${bootstrapResponse.status}`);
     }
 
     const bootstrapData = await bootstrapResponse.json();
+    // A live/ 404 (gameweek far enough in the future that FPL has no row
+    // for it yet) shouldn't fail the whole request — every player just
+    // scores 0, same as before a gameweek's matches kick off.
+    const liveData = liveResponse.ok ? await liveResponse.json() : { elements: [] };
+
+    // Live per-player stats for this exact gameweek, keyed by player id.
+    const liveStatsMap = new Map();
+    (liveData.elements || []).forEach((el) => {
+      liveStatsMap.set(el.id, el.stats || {});
+    });
 
     // Create player lookup maps
     const playersMap = new Map();
     const teamsMap = new Map();
 
-    // Process bootstrap elements (players)
+    // Process bootstrap elements (players) — metadata only, no points.
     if (bootstrapData.elements && Array.isArray(bootstrapData.elements)) {
       bootstrapData.elements.forEach(player => {
         playersMap.set(player.id, {
@@ -68,7 +87,6 @@ export default async function handler(req, res) {
           teamCode: player.team_code,
           position: player.element_type,
           photo: player.photo,
-          eventPoints: player.event_points || 0,  // Actual gameweek points
           totalPoints: player.total_points || 0,
           nowCost: player.now_cost,
           status: player.status || 'a',
@@ -104,9 +122,11 @@ export default async function handler(req, res) {
       picksData.picks.forEach(pick => {
         const playerInfo = playersMap.get(pick.element) || {};
         const teamInfo = teamsMap.get(playerInfo.team) || {};
+        const liveStats = liveStatsMap.get(pick.element) || {};
+        const eventPoints = liveStats.total_points || 0;
 
         // Calculate actual points with multipliers
-        let finalPoints = playerInfo.eventPoints || 0;
+        let finalPoints = eventPoints;
 
         // Apply captain/vice-captain multiplier
         if (pick.multiplier && pick.multiplier > 1) {
@@ -124,8 +144,11 @@ export default async function handler(req, res) {
           isCaptain: Boolean(pick.is_captain),
           isViceCaptain: Boolean(pick.is_vice_captain),
           multiplier: pick.multiplier || 1,
-          points: finalPoints,  // FIXED: Now uses actual eventPoints with multiplier
-          eventPoints: playerInfo.eventPoints || 0,  // Raw points without multiplier
+          points: finalPoints,  // This gameweek's points, with captain multiplier applied
+          eventPoints,          // Raw points without multiplier, this gameweek
+          bonus: liveStats.bonus || 0,
+          bps: liveStats.bps || 0,
+          minutes: liveStats.minutes || 0,
           totalPoints: playerInfo.totalPoints || 0,
           photo: playerInfo.photo || '',
           nowCost: playerInfo.nowCost || 0,
@@ -137,9 +160,35 @@ export default async function handler(req, res) {
       });
     }
 
-    // Separate starting XI and bench
-    const startingXI = enrichedPicks.slice(0, 11);
-    const bench = enrichedPicks.slice(11, 15);
+    // Apply automatic substitutions so the pitch/list view shows who
+    // actually played, not just the pre-deadline selection. FPL applies
+    // a sub when a starter (position 1-11) didn't play (0 minutes) and a
+    // bench player of a legal replacement position did — automatic_subs
+    // is FPL's own record of exactly which swaps it made, so just mirror
+    // those swaps by position rather than re-deriving the eligibility
+    // rules ourselves.
+    (picksData.automatic_subs || []).forEach(sub => {
+      const outPick = enrichedPicks.find(p => p.id === sub.element_out);
+      const inPick = enrichedPicks.find(p => p.id === sub.element_in);
+      if (!outPick || !inPick) return;
+      // Swap their pitch positions (1-11 vs 12-15) so the starter who
+      // didn't play moves to the bench slot and the sub who came on
+      // takes their spot in the XI.
+      const outPosition = outPick.position;
+      outPick.position = inPick.position;
+      inPick.position = outPosition;
+      outPick.wasSubbedOut = true;
+      inPick.wasSubbedIn = true;
+    });
+
+    // Separate starting XI and bench — position 1-11 after the swaps
+    // above reflects who actually played this gameweek. Bench Boost
+    // (bboost) counts all 15 regardless, so the XI/bench split is purely
+    // cosmetic in that case (auto-subs also don't apply — everyone
+    // already scores).
+    const sortedPicks = [...enrichedPicks].sort((a, b) => a.position - b.position);
+    const startingXI = sortedPicks.slice(0, 11);
+    const bench = sortedPicks.slice(11, 15);
 
     // Get formation from starting XI
     const formation = {
@@ -185,14 +234,15 @@ export default async function handler(req, res) {
       startingXI: startingXI,
       bench: bench,
       formation: formationString,
-      captain: startingXI.find(p => p.isCaptain) || null,
-      viceCaptain: startingXI.find(p => p.isViceCaptain) || null
+      captain: enrichedPicks.find(p => p.isCaptain) || null,
+      viceCaptain: enrichedPicks.find(p => p.isViceCaptain) || null,
+      liveDataAvailable: liveResponse.ok
     };
 
     // Enhanced logging for debugging
     console.log(`✅ Team picks processed for manager ${managerId}, GW${eventId}`);
     console.log(`📊 Points sample: ${startingXI.slice(0, 3).map(p => `${p.name}:${p.points}`).join(', ')}`);
-    console.log(`⚡ Bootstrap players found: ${playersMap.size}, teams: ${teamsMap.size}`);
+    console.log(`⚡ Bootstrap players found: ${playersMap.size}, teams: ${teamsMap.size}, live stats found: ${liveStatsMap.size}`);
 
     // Set cache headers
     res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=300');

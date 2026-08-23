@@ -152,14 +152,17 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
     const isCaptain = player.isCaptain;
     const isVice = player.isViceCaptain;
-    const points = player.points * (player.multiplier || 1);
+    // player.points already has the captain multiplier baked in by the
+    // API (api/team-picks.js) — multiplying again here double-counts it.
+    const points = player.points;
 
     return (
       <motion.div
-        className="flex flex-col items-center w-20 group cursor-pointer"
+        className={`flex flex-col items-center w-20 group cursor-pointer ${player.wasSubbedOut ? 'opacity-60' : ''}`}
         initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
+        animate={{ scale: 1, opacity: player.wasSubbedOut ? 0.6 : 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+        title={player.wasSubbedOut ? 'Substituted out automatically' : undefined}
       >
         {/* Shirt / Icon */}
         <div className="relative mb-1 transition-transform transform group-hover:scale-110">
@@ -184,6 +187,11 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           {player.isInjured && (
             <div className="absolute -bottom-1 -right-1 bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center border border-white">
               <AlertCircle size={10} />
+            </div>
+          )}
+          {player.wasSubbedIn && (
+            <div className="absolute -bottom-1 -left-1 bg-green-600 text-white w-4 h-4 rounded-full flex items-center justify-center border border-white" title="Came on as an automatic substitute">
+              <ArrowLeftRight size={9} />
             </div>
           )}
         </div>
@@ -449,6 +457,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                             {player.name}
                             {player.isCaptain && <span className="bg-bro-primary text-white text-[9px] px-1 rounded">C</span>}
                             {player.isViceCaptain && <span className="bg-bro-muted text-white text-[9px] px-1 rounded">V</span>}
+                            {player.wasSubbedIn && <span className="bg-green-600 text-white text-[9px] px-1 rounded">IN</span>}
                           </div>
                           <div className="text-xs text-bro-muted flex items-center gap-2">
                             <span>{player.team}</span>
@@ -457,7 +466,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-bold text-base-content">{player.points * (player.multiplier || 1)}</div>
+                        <div className="font-bold text-base-content">{player.points}</div>
                         <div className="text-[10px] text-bro-muted">pts</div>
                       </div>
                     </motion.div>
@@ -485,7 +494,10 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                           {player.positionType}
                         </div>
                         <div>
-                          <div className="font-semibold text-base-content text-sm">{player.name}</div>
+                          <div className="font-semibold text-base-content text-sm flex items-center gap-1.5">
+                            {player.name}
+                            {player.wasSubbedOut && <span className="bg-base-content/20 text-base-content text-[9px] px-1 rounded">OUT</span>}
+                          </div>
                           <div className="text-xs text-bro-muted">{player.team}</div>
                         </div>
                       </div>
