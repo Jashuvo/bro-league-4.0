@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Users, X, AlertCircle, Shirt, ArrowLeftRight, History as HistoryIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './ui/Card';
@@ -211,8 +212,17 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     );
   };
 
+  // Rendered via a portal straight to document.body: a fixed-position
+  // element is normally positioned relative to the viewport, but that
+  // breaks the moment any ancestor has a CSS transform (Layout.jsx's
+  // <motion.main> animates its own y position, and framer-motion leaves
+  // that transform in the inline style even at rest) — a transformed
+  // ancestor becomes the containing block instead, so the modal ends up
+  // sized/positioned against <main>'s box and stacked inside its
+  // context rather than covering the real screen. Escaping to
+  // document.body sidesteps that entirely.
   if (loading) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -222,12 +232,13 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           <div className="w-10 h-10 border-4 border-bro-primary border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-white font-medium">Scouting team...</p>
         </motion.div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   if (error) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -247,11 +258,12 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             Close
           </Button>
         </motion.div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 md:p-6">
       <motion.div
         initial={{ opacity: 0, y: 50 }}
@@ -513,7 +525,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           )}
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

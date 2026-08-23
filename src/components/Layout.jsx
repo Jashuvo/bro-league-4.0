@@ -25,6 +25,14 @@ const Layout = ({
                 lastUpdated={lastUpdated}
             />
 
+            {/* This element's animated `y` leaves a CSS transform in its
+                inline style even at rest, which makes it the containing
+                block for any `position: fixed` descendant instead of the
+                viewport — a `fixed inset-0` modal rendered anywhere inside
+                `children` won't actually cover the screen. Any full-screen
+                overlay/modal (see TeamView.jsx, PrizeBreakdown.jsx) needs to
+                render via ReactDOM.createPortal(..., document.body) to
+                escape this and behave like a real fixed overlay. */}
             <motion.main
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}

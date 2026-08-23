@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Trophy, Calendar, Zap, DollarSign, Award, Medal, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './ui/Card';
@@ -30,7 +31,11 @@ const PrizeBreakdown = ({ managerName, teamName, prizeData, onClose }) => {
     return `${position}th Place`;
   };
 
-  return (
+  // Portal straight to document.body — see the comment in TeamView.jsx on
+  // why a fixed-position modal rendered as a normal descendant here would
+  // get sized/positioned against Layout's animated <motion.main> instead
+  // of the real viewport.
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -177,7 +182,8 @@ const PrizeBreakdown = ({ managerName, teamName, prizeData, onClose }) => {
           </Card>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 
