@@ -1,70 +1,61 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
+import {
+  Standings, Whistle, CalendarDoodle, ChipCard, CornerFlags, Coins, Medal
+} from './ui/Doodles';
+
+// Hand-drawn tab icons, keyed by tab id. The tab bar is the most-looked-at
+// piece of chrome in the app, so it gets real illustrations rather than a
+// stock icon set whose language would fight the outlines everywhere else.
+const TAB_ICONS = {
+  standings: Standings,
+  gameweek: Whistle,
+  monthly: CalendarDoodle,
+  chips: ChipCard,
+  h2h: CornerFlags,
+  prizes: Coins,
+  awards: Medal,
+};
 
 const TabNavigation = ({ tabs, activeTab, onTabChange }) => {
-  const [hoveredTab, setHoveredTab] = useState(null);
-
   return (
-    <div className="sticky top-20 z-40 bg-base-100/80 backdrop-blur-xl border-b border-base-content/5 -mx-4 px-4 py-3 transition-colors duration-300">
-      <div className="relative max-w-4xl mx-auto">
-        <div className="flex space-x-1 bg-base-200/50 rounded-xl p-1 relative overflow-hidden border border-base-content/5">
+    <div className="sticky top-[4.5rem] z-40 bg-surface/95 backdrop-blur-md -mx-4 px-4 py-3">
+      <div className="relative max-w-5xl mx-auto">
+        <div className="flex gap-2 overflow-x-auto pb-1 md:overflow-visible scrollbar-none">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
-            const isHovered = hoveredTab === tab.id;
+            const Icon = TAB_ICONS[tab.id];
 
             return (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                onMouseEnter={() => setHoveredTab(tab.id)}
-                onMouseLeave={() => setHoveredTab(null)}
+                aria-current={isActive ? 'page' : undefined}
                 className={`
-                  relative z-10 flex-1 px-2 md:px-4 py-2.5 text-sm font-medium rounded-lg
-                  transition-colors duration-200 ease-out flex items-center justify-center gap-2
-                  ${isActive ? 'text-white' : 'text-bro-muted hover:text-white'}
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-bro-primary
+                  relative shrink-0 md:flex-1 px-3 md:px-2 lg:px-3 py-2 rounded-2xl border-2
+                  flex items-center justify-center gap-2 font-display font-semibold text-sm
+                  transition-colors duration-200
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-violet focus-visible:ring-offset-2 focus-visible:ring-offset-surface
+                  ${isActive
+                    ? 'border-ink/85 text-ink shadow-pop-sm'
+                    : 'border-ink/15 bg-surface-alt text-ink-soft hover:border-ink/40 hover:text-ink'}
                 `}
-                style={{
-                  WebkitTapHighlightColor: 'transparent'
-                }}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 {isActive && (
-                  <motion.div
+                  <motion.span
                     layoutId="activeTab"
-                    className="absolute inset-0 bg-bro-primary rounded-lg shadow-lg shadow-bro-primary/25"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    className="absolute inset-0 rounded-2xl bg-sunflower"
+                    transition={{ type: 'spring', bounce: 0.25, duration: 0.5 }}
                   />
                 )}
 
-                {/* Hover Effect */}
-                {isHovered && !isActive && (
-                  <motion.div
-                    layoutId="hoverTab"
-                    className="absolute inset-0 bg-white/5 rounded-lg"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  />
-                )}
-
-                <span className="relative z-10 text-lg">{tab.icon}</span>
-                <span className="relative z-10 hidden md:inline">{tab.name}</span>
-                <span className="relative z-10 hidden sm:inline md:hidden">{tab.shortName}</span>
+                {Icon && <Icon size={22} className="relative z-10 shrink-0" />}
+                <span className="relative z-10 hidden lg:inline whitespace-nowrap">{tab.name}</span>
+                <span className="relative z-10 lg:hidden whitespace-nowrap">{tab.shortName}</span>
               </button>
             );
           })}
-        </div>
-
-        {/* Mobile: Show active tab name below the tabs */}
-        <div className="sm:hidden mt-2 text-center">
-          <motion.span
-            key={activeTab}
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-xs font-bold text-bro-primary uppercase tracking-wider"
-          >
-            {tabs.find(tab => tab.id === activeTab)?.name}
-          </motion.span>
         </div>
       </div>
     </div>

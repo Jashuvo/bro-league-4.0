@@ -1,6 +1,7 @@
-// src/components/LoadingSpinner.jsx - Updated with Theme Support
+// src/components/LoadingSpinner.jsx — Memphis loading state: a ball rolling
+// inside a ring of ink, with blob colour fields drifting behind it.
 import React from 'react';
-import { Trophy, Zap, Target } from 'lucide-react';
+import { Ball, Blob, Jersey, Whistle } from './ui/Doodles';
 
 const LoadingSpinner = ({
   message = "Loading FPL data...",
@@ -8,45 +9,33 @@ const LoadingSpinner = ({
   size = "default",
   fullScreen = false
 }) => {
-  const sizeClasses = {
-    small: "w-8 h-8",
-    default: "w-16 h-16",
-    large: "w-24 h-24"
-  };
+  const px = { small: 32, default: 64, large: 96 }[size] || 64;
 
   const containerClasses = fullScreen
-    ? "fixed inset-0 bg-base-100 flex items-center justify-center z-50"
+    ? "fixed inset-0 bg-surface flex items-center justify-center z-50 overflow-hidden"
     : "flex items-center justify-center p-8";
 
   const LoadingAnimation = () => (
-    <div className="relative">
-      <div className={`${sizeClasses[size]} relative`}>
-        <div className="absolute inset-0 rounded-full border-4 border-primary/20"></div>
-        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-primary animate-spin"></div>
-      </div>
-
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Trophy className="text-primary animate-pulse" size={size === "small" ? 16 : size === "large" ? 32 : 24} />
-      </div>
+    <div className="relative inline-flex items-center justify-center">
+      <div
+        className="rounded-full border-[3px] border-ink/15 border-t-violet border-r-violet animate-spin"
+        style={{ width: px, height: px }}
+      />
+      <span className="absolute inset-0 flex items-center justify-center">
+        <Ball size={px * 0.52} className="animate-roll" />
+      </span>
     </div>
   );
 
-  const FloatingIcons = () => (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      <div className="absolute top-1/4 left-1/4 animate-float opacity-20">
-        <div className="w-8 h-8 bg-yellow-400/20 rounded-full flex items-center justify-center">
-          <Zap className="text-yellow-400" size={16} />
-        </div>
+  const FloatingProps = () => (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+      <Blob className="w-96 h-96 -left-24 -top-16" tone="fill-violet" opacity={0.14} variant={0} />
+      <Blob className="w-80 h-80 -right-20 bottom-0" tone="fill-mint" opacity={0.14} variant={1} />
+      <div className="absolute top-1/4 left-[18%] animate-float">
+        <Jersey size={40} tone="fill-coral" />
       </div>
-      <div className="absolute top-1/3 right-1/4 animate-float opacity-20" style={{ animationDelay: '1s' }}>
-        <div className="w-6 h-6 bg-blue-400/20 rounded-full flex items-center justify-center">
-          <Target className="text-blue-400" size={12} />
-        </div>
-      </div>
-      <div className="absolute bottom-1/3 left-1/3 animate-float opacity-20" style={{ animationDelay: '2s' }}>
-        <div className="w-7 h-7 bg-green-400/20 rounded-full flex items-center justify-center">
-          <Trophy className="text-green-400" size={14} />
-        </div>
+      <div className="absolute top-1/3 right-[18%] animate-float" style={{ animationDelay: '1s' }}>
+        <Whistle size={36} />
       </div>
     </div>
   );
@@ -54,21 +43,21 @@ const LoadingSpinner = ({
   if (fullScreen) {
     return (
       <div className={containerClasses}>
-        <FloatingIcons />
+        <FloatingProps />
 
-        <div className="relative z-10 text-center">
+        <div className="relative z-10 text-center px-6">
           <div className="mb-8">
             <LoadingAnimation />
           </div>
 
           <div className="space-y-3">
-            <h2 className="text-2xl font-bold text-base-content">{message}</h2>
-            <p className="text-base-content/60 max-w-md mx-auto">{submessage}</p>
+            <h2 className="text-2xl font-display font-bold text-ink">{message}</h2>
+            <p className="text-ink-soft font-medium max-w-md mx-auto">{submessage}</p>
 
             <div className="flex justify-center space-x-2 mt-6">
-              <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <span className="w-2.5 h-2.5 bg-coral rounded-full animate-bounce" />
+              <span className="w-2.5 h-2.5 bg-sunflower rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+              <span className="w-2.5 h-2.5 bg-mint rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
             </div>
           </div>
         </div>
@@ -81,10 +70,10 @@ const LoadingSpinner = ({
       <div className="text-center">
         <LoadingAnimation />
         {message && (
-          <div className="mt-4 space-y-2">
-            <p className="text-base-content font-medium">{message}</p>
+          <div className="mt-4 space-y-1">
+            <p className="text-ink font-bold">{message}</p>
             {submessage && (
-              <p className="text-base-content/60 text-sm">{submessage}</p>
+              <p className="text-ink-soft text-sm font-medium">{submessage}</p>
             )}
           </div>
         )}

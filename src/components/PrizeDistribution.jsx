@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
-import {
-  DollarSign, Trophy, Calendar, Zap, Target, Gift, Star, PieChart, TrendingUp, Activity
-} from 'lucide-react';
+import { DollarSign, Star, TrendingUp, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
+import SectionBanner from './ui/SectionBanner';
+import {
+  Coins, TrophyCup, Whistle, CalendarDoodle, Jersey, Medal
+} from './ui/Doodles';
 import { prizeStructure, grandTotal } from '../data/leagueData';
 
 const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = [] }) => {
@@ -103,91 +105,65 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
       variants={containerVariants}
       className="space-y-6"
     >
-      {/* Header Card */}
-      <Card className="bg-gradient-to-r from-bro-primary to-bro-secondary border-none">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-white">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-              <PieChart size={32} />
-            </div>
-            <div>
-              <h2 className="text-3xl font-display font-bold">Prize Distribution</h2>
-              <p className="text-white/80 text-lg">
-                ৳{grandTotal.toLocaleString()} Total Prize Pool
-              </p>
-            </div>
-          </div>
-
-          <Badge variant="success" className="px-4 py-2 text-sm bg-white/20 border-white/20 text-white backdrop-blur-md">
-            <DollarSign size={16} className="mr-2" />
+      {/* Header Banner */}
+      <SectionBanner
+        tone="violet"
+        art={<Coins size={34} />}
+        title="Prize Distribution"
+        subtitle={`৳${grandTotal.toLocaleString()} total prize pool`}
+        actions={
+          <Badge variant="gold" className="px-3 py-1.5 text-sm">
+            <DollarSign size={14} />
             ৳{distributionStats.totalDistributed.toLocaleString()} Distributed
           </Badge>
-        </div>
-
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-          <StatBox
-            value={`৳${distributionStats.weeklyDistributed}`}
-            label="Weekly Prizes"
-            sublabel="Distributed"
-          />
-          <StatBox
-            value={`৳${distributionStats.monthlyDistributed}`}
-            label="Monthly Prizes"
-            sublabel="Distributed"
-          />
-          <StatBox
-            value={`৳${distributionStats.remainingPrizes}`}
-            label="Remaining"
-            sublabel="To be won"
-          />
-          <StatBox
-            value={`${Math.round((distributionStats.totalDistributed / grandTotal) * 100)}%`}
-            label="Completed"
-            sublabel="Season Progress"
-          />
-        </div>
-      </Card>
+        }
+        stats={[
+          { value: `৳${distributionStats.weeklyDistributed}`, label: 'Weekly Prizes', sublabel: 'Distributed' },
+          { value: `৳${distributionStats.monthlyDistributed}`, label: 'Monthly Prizes', sublabel: 'Distributed' },
+          { value: `৳${distributionStats.remainingPrizes}`, label: 'Remaining', sublabel: 'To be won' },
+          { value: `${Math.round((distributionStats.totalDistributed / grandTotal) * 100)}%`, label: 'Completed', sublabel: 'Season progress' },
+        ]}
+      />
 
       {/* Season End Prizes */}
       <motion.div variants={itemVariants}>
         <Card>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Trophy className="text-yellow-400" size={24} />
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <h3 className="text-xl font-display font-bold text-ink flex items-center gap-2">
+              <TrophyCup size={26} />
               Season End Championships
             </h3>
-            <Badge variant="warning">৳{prizeStructure.season.total}</Badge>
+            <Badge variant="gold">৳{prizeStructure.season.total}</Badge>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {prizeStructure.season.prizes.map((prize, index) => (
+            {prizeStructure.season.prizes.map((prize) => (
               <div
-                key={index}
-                className="bg-white/5 rounded-xl p-5 border border-white/10 hover:bg-white/10 transition-colors"
+                key={prize.position}
+                className="rounded-2xl p-5 bg-surface-sunk border-2 border-ink/85 shadow-card"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{prize.emoji}</span>
-                    <div>
-                      <div className="font-bold text-white">{prize.label}</div>
-                      <div className="text-xs text-bro-muted">Position #{prize.position}</div>
+                <div className="flex items-center justify-between gap-2 mb-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Medal size={36} tone={prize.tone} className="shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-display font-bold text-ink truncate">{prize.label}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Position #{prize.position}</div>
                     </div>
                   </div>
-                  <div className={`text-xl font-bold ${prize.color}`}>
+                  <div className={`text-xl font-display font-bold shrink-0 ${prize.color}`}>
                     ৳{prize.amount}
                   </div>
                 </div>
 
                 {/* Current leader for this position */}
-                {standings[index] && (
-                  <div className="p-3 bg-black/20 rounded-lg">
-                    <div className="text-xs text-bro-muted mb-1">Current Leader</div>
-                    <div className="font-medium text-white">
-                      {standings[index].managerName || standings[index].player_name}
+                {standings[prize.position - 1] && (
+                  <div className="p-3 rounded-xl bg-surface-alt border-2 border-ink/15">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft mb-0.5">Current Leader</div>
+                    <div className="font-bold text-ink truncate">
+                      {standings[prize.position - 1].managerName || standings[prize.position - 1].player_name}
                     </div>
-                    <div className="text-sm text-bro-primary">
-                      {(standings[index].totalPoints || standings[index].total)?.toLocaleString()} pts
+                    <div className="text-sm font-bold text-violet">
+                      {(standings[prize.position - 1].totalPoints || standings[prize.position - 1].total)?.toLocaleString()} pts
                     </div>
                   </div>
                 )}
@@ -202,36 +178,36 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
         {/* Weekly Prizes */}
         <motion.div variants={itemVariants}>
           <Card className="h-full">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <Zap className="text-blue-400" size={24} />
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <h3 className="text-xl font-display font-bold text-ink flex items-center gap-2">
+                <Whistle size={26} />
                 Weekly
               </h3>
-              <Badge variant="primary">৳{prizeStructure.weekly.total}</Badge>
+              <Badge variant="info">৳{prizeStructure.weekly.total}</Badge>
             </div>
 
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/5 p-4 rounded-xl text-center">
-                  <div className="text-2xl font-bold text-blue-400">৳30</div>
-                  <div className="text-xs text-bro-muted">Per Week</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-sky/12 border-2 border-ink/15 p-4 rounded-2xl text-center">
+                  <div className="text-2xl font-display font-bold text-sky">৳{prizeStructure.weekly.perWeek}</div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">Per Week</div>
                 </div>
-                <div className="bg-white/5 p-4 rounded-xl text-center">
-                  <div className="text-2xl font-bold text-white">{distributionStats.completedGameweeks}</div>
-                  <div className="text-xs text-bro-muted">GWs Done</div>
+                <div className="bg-surface-sunk border-2 border-ink/15 p-4 rounded-2xl text-center">
+                  <div className="text-2xl font-display font-bold text-ink">{distributionStats.completedGameweeks}</div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">GWs Done</div>
                 </div>
               </div>
 
               <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-bro-muted">Progress</span>
-                  <span className="text-blue-400">{Math.round(distributionStats.weeklyProgress)}%</span>
+                <div className="flex justify-between text-sm font-bold mb-2">
+                  <span className="text-ink-soft">Progress</span>
+                  <span className="text-sky">{Math.round(distributionStats.weeklyProgress)}%</span>
                 </div>
-                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-3 bg-surface-sunk rounded-full border-2 border-ink/85 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${distributionStats.weeklyProgress}%` }}
-                    className="h-full bg-blue-500 rounded-full"
+                    className="h-full bg-sky"
                   />
                 </div>
               </div>
@@ -242,36 +218,36 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
         {/* Monthly Prizes */}
         <motion.div variants={itemVariants}>
           <Card className="h-full">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <Calendar className="text-green-400" size={24} />
+            <div className="flex items-center justify-between gap-3 mb-6">
+              <h3 className="text-xl font-display font-bold text-ink flex items-center gap-2">
+                <CalendarDoodle size={26} />
                 Monthly
               </h3>
               <Badge variant="success">৳{prizeStructure.monthly.total}</Badge>
             </div>
 
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/5 p-4 rounded-xl text-center">
-                  <div className="text-2xl font-bold text-green-400">৳750</div>
-                  <div className="text-xs text-bro-muted">Per Month</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-pitch/12 border-2 border-ink/15 p-4 rounded-2xl text-center">
+                  <div className="text-2xl font-display font-bold text-pitch">৳750</div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">Per Month</div>
                 </div>
-                <div className="bg-white/5 p-4 rounded-xl text-center">
-                  <div className="text-2xl font-bold text-white">{Math.floor(distributionStats.completedGameweeks / 4)}</div>
-                  <div className="text-xs text-bro-muted">Months Done</div>
+                <div className="bg-surface-sunk border-2 border-ink/15 p-4 rounded-2xl text-center">
+                  <div className="text-2xl font-display font-bold text-ink">{Math.floor(distributionStats.completedGameweeks / 4)}</div>
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">Months Done</div>
                 </div>
               </div>
 
               <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-bro-muted">Progress</span>
-                  <span className="text-green-400">{Math.round(distributionStats.monthlyProgress)}%</span>
+                <div className="flex justify-between text-sm font-bold mb-2">
+                  <span className="text-ink-soft">Progress</span>
+                  <span className="text-pitch">{Math.round(distributionStats.monthlyProgress)}%</span>
                 </div>
-                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-3 bg-surface-sunk rounded-full border-2 border-ink/85 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${distributionStats.monthlyProgress}%` }}
-                    className="h-full bg-green-500 rounded-full"
+                    className="h-full bg-pitch"
                   />
                 </div>
               </div>
@@ -284,16 +260,16 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
       {(distributionStats.topWeeklyWinners[0] || distributionStats.biggestRiser || distributionStats.bestAverage) && (
         <motion.div variants={itemVariants}>
           <Card>
-            <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-6">
-              <Trophy className="text-yellow-400" size={24} />
+            <h3 className="text-xl font-display font-bold text-ink flex items-center gap-2 mb-6">
+              <TrophyCup size={26} />
               Season Awards
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {distributionStats.topWeeklyWinners[0] && (
                 <AwardCard
                   icon={Star}
-                  color="text-purple-400"
-                  bgColor="bg-purple-500/10"
+                  color="text-violet"
+                  bgColor="bg-violet/15"
                   title="Most Weekly Wins"
                   name={distributionStats.topWeeklyWinners[0].name}
                   detail={`${distributionStats.topWeeklyWinners[0].wins} gameweek win${distributionStats.topWeeklyWinners[0].wins !== 1 ? 's' : ''}`}
@@ -302,8 +278,8 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
               {distributionStats.biggestRiser && (
                 <AwardCard
                   icon={TrendingUp}
-                  color="text-green-400"
-                  bgColor="bg-green-500/10"
+                  color="text-pitch"
+                  bgColor="bg-pitch/15"
                   title="Biggest Riser"
                   name={distributionStats.biggestRiser.managerName || distributionStats.biggestRiser.player_name}
                   detail={`Up ${distributionStats.biggestRiser.rankChange} place${distributionStats.biggestRiser.rankChange !== 1 ? 's' : ''} since last GW`}
@@ -312,8 +288,8 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
               {distributionStats.bestAverage && (
                 <AwardCard
                   icon={Activity}
-                  color="text-blue-400"
-                  bgColor="bg-blue-500/10"
+                  color="text-sky"
+                  bgColor="bg-sky/15"
                   title="Best Average"
                   name={distributionStats.bestAverage.managerName || distributionStats.bestAverage.player_name}
                   detail={`${distributionStats.bestAverage.average} pts/GW`}
@@ -328,23 +304,21 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
       {distributionStats.topWeeklyWinners.length > 0 && (
         <motion.div variants={itemVariants}>
           <Card>
-            <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-6">
-              <Star className="text-purple-400" size={24} />
+            <h3 className="text-xl font-display font-bold text-ink flex items-center gap-2 mb-6">
+              <Star className="text-violet fill-violet" size={24} />
               Top Weekly Winners
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {distributionStats.topWeeklyWinners.map((winner, index) => (
-                <div key={index} className="bg-white/5 rounded-xl p-4 flex items-center justify-between border border-white/5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-sm">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <div className="font-bold text-white">{winner.name}</div>
-                      <div className="text-xs text-bro-muted">{winner.wins} wins</div>
+                <div key={index} className="bg-surface-sunk rounded-2xl p-4 flex items-center justify-between gap-2 border-2 border-ink/15">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Jersey size={34} number={index + 1} tone={index === 0 ? 'fill-sunflower' : 'fill-violet'} className="shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-bold text-ink truncate">{winner.name}</div>
+                      <div className="text-xs font-semibold text-ink-soft">{winner.wins} wins</div>
                     </div>
                   </div>
-                  <div className="text-green-400 font-bold">৳{winner.totalWon}</div>
+                  <div className="text-pitch font-display font-bold shrink-0">৳{winner.totalWon}</div>
                 </div>
               ))}
             </div>
@@ -355,20 +329,23 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
       {/* Souvenirs */}
       <motion.div variants={itemVariants}>
         <Card>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Gift className="text-pink-400" size={24} />
-              Souvenirs & Swag
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <h3 className="text-xl font-display font-bold text-ink flex items-center gap-2">
+              <Jersey size={26} tone="fill-bubblegum" />
+              Souvenirs &amp; Swag
             </h3>
             <Badge variant="accent">৳{prizeStructure.souvenirs.total}</Badge>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {prizeStructure.souvenirs.items.map((item, index) => (
-              <div key={index} className="bg-white/5 rounded-xl p-4 text-center hover:bg-white/10 transition-colors">
-                <div className="text-3xl mb-2">
-                  {index === 0 ? '👕' : index === 1 ? '📜' : index === 2 ? '🏅' : '🏆'}
+              <div key={index} className="bg-surface-sunk rounded-2xl p-4 text-center border-2 border-ink/15">
+                <div className="flex justify-center mb-2">
+                  {index === 0 ? <Jersey size={38} tone="fill-coral" />
+                    : index === 1 ? <Medal size={38} tone="fill-sky" />
+                      : index === 2 ? <Medal size={38} tone="fill-mint" />
+                        : <TrophyCup size={38} />}
                 </div>
-                <div className="text-sm font-medium text-white">{item}</div>
+                <div className="text-sm font-bold text-ink">{item}</div>
               </div>
             ))}
           </div>
@@ -379,23 +356,15 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
 };
 
 const AwardCard = ({ icon: Icon, color, bgColor, title, name, detail }) => (
-  <div className="bg-white/5 rounded-xl p-4 flex items-center gap-3 border border-white/5">
-    <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center flex-shrink-0`}>
+  <div className="bg-surface-sunk rounded-2xl p-4 flex items-center gap-3 border-2 border-ink/15">
+    <div className={`w-11 h-11 rounded-2xl ${bgColor} border-2 border-ink/85 flex items-center justify-center flex-shrink-0`}>
       <Icon className={color} size={20} />
     </div>
     <div className="min-w-0">
-      <div className="text-xs text-bro-muted uppercase tracking-wider">{title}</div>
-      <div className="font-bold text-white truncate">{name}</div>
-      <div className={`text-xs ${color}`}>{detail}</div>
+      <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">{title}</div>
+      <div className="font-display font-bold text-ink truncate">{name}</div>
+      <div className={`text-xs font-bold ${color}`}>{detail}</div>
     </div>
-  </div>
-);
-
-const StatBox = ({ value, label, sublabel }) => (
-  <div className="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm border border-white/10">
-    <div className="text-xl font-bold text-white">{value}</div>
-    <div className="text-xs font-medium text-white/90">{label}</div>
-    <div className="text-[10px] text-white/60 uppercase tracking-wider">{sublabel}</div>
   </div>
 );
 

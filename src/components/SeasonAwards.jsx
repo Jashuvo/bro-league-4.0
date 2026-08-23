@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Award } from 'lucide-react';
 import Card from './ui/Card';
+import SectionBanner from './ui/SectionBanner';
+import { Medal } from './ui/Doodles';
 import { computeRankHistory } from '../utils/rankHistory';
 
 // Every award here is derived from `standings` + `gameweekTable`, both of
@@ -137,30 +139,27 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false }) =
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-28 bg-base-200/50 rounded-xl animate-pulse" />
+          <div key={i} className="h-28 bg-surface-sunk rounded-3xl border-2 border-ink/10 animate-pulse" />
         ))}
       </div>
     );
   }
 
+  const TONES = ['sunflower', 'coral', 'mint', 'sky', 'violet'];
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <Card className="bg-gradient-to-r from-bro-primary to-bro-secondary border-none">
-        <div className="flex items-center gap-4 text-white">
-          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-            <Award size={32} />
-          </div>
-          <div>
-            <h2 className="text-3xl font-display font-bold">Season Awards</h2>
-            <p className="text-white/80 text-lg">The superlatives nobody asked for, updated every gameweek</p>
-          </div>
-        </div>
-      </Card>
+      <SectionBanner
+        tone="sunflower"
+        art={<Medal size={34} />}
+        title="Season Awards"
+        subtitle="The superlatives nobody asked for, updated every gameweek"
+      />
 
       {awards.length === 0 ? (
-        <div className="p-12 text-center text-bro-muted">
-          <Award className="w-16 h-16 mx-auto mb-4 opacity-20" />
-          <p className="text-lg">Awards unlock once the season gets going</p>
+        <div className="p-12 text-center">
+          <Award className="w-14 h-14 mx-auto mb-4 text-ink/20" />
+          <p className="text-lg font-bold text-ink-soft">Awards unlock once the season gets going</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -171,14 +170,16 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false }) =
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card className="flex items-center gap-4 hover:bg-base-content/5 transition-colors">
-                <div className="text-3xl flex-shrink-0">{award.emoji}</div>
+              <Card tone={TONES[index % TONES.length]} className="flex items-center gap-4 p-5">
+                <span className="w-12 h-12 shrink-0 rounded-2xl bg-surface-sunk border-2 border-ink/85 flex items-center justify-center text-2xl">
+                  {award.emoji}
+                </span>
                 <div className="flex-grow min-w-0">
-                  <div className="text-xs text-bro-muted uppercase tracking-wider font-bold mb-0.5">{award.title}</div>
-                  <div className="font-bold text-base-content truncate">
+                  <div className="text-[10px] text-ink-soft uppercase tracking-[0.14em] font-bold mb-0.5">{award.title}</div>
+                  <div className="font-display font-bold text-ink truncate">
                     {award.manager.managerName || award.manager.player_name}
                   </div>
-                  <div className="text-sm text-bro-primary font-medium">{award.detail}</div>
+                  <div className="text-sm text-violet font-bold">{award.detail}</div>
                 </div>
               </Card>
             </motion.div>

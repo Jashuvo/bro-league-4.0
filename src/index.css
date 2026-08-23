@@ -6,14 +6,18 @@
    (App.css) with its own @tailwind directives and a near-duplicate set of
    animation utilities — some of which collided by name with real Tailwind
    utilities and lost silently, and worse, App.css was the one actually
-   imported while this file (with the classes components like Card.jsx
-   depend on, e.g. `glass-panel`) was never imported at all. Everything
-   still in use has been consolidated here; keep it that way. */
+   imported while this file (with the classes components depend on) was never
+   imported at all. Everything still in use has been consolidated here; keep
+   it that way.
+
+   COLOR LIVES IN tailwind.config.js. Every color below goes through a
+   `--c-*` token variable declared there — no hex literals in this file
+   either. */
 
 :root {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  font-family: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.55;
+  font-weight: 500;
 
   color-scheme: light dark;
   font-synthesis: none;
@@ -28,7 +32,7 @@
   }
 
   body {
-    @apply bg-base-100 text-base-content min-h-screen selection:bg-primary selection:text-white overflow-x-hidden;
+    @apply bg-surface text-ink min-h-screen selection:bg-sunflower selection:text-ink overflow-x-hidden;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }
@@ -39,50 +43,89 @@
   h4,
   h5,
   h6 {
-    @apply font-display font-bold tracking-tight;
+    @apply font-display font-semibold tracking-tight;
   }
 
   :focus-visible {
-    outline: 2px solid theme('colors.bro-primary');
+    outline: 2px solid rgb(var(--c-violet));
     outline-offset: 2px;
   }
 }
 
 @layer components {
-  .glass-panel {
-    @apply bg-base-200/60 backdrop-blur-xl border border-base-content/10 shadow-xl;
+  /* The core surface of the design language: flat paper, one thin uniform
+     ink outline, a hard (never blurred) offset shadow. */
+  .paper-panel {
+    @apply bg-surface-alt border-2 border-ink/85 shadow-card;
   }
 
-  .glass-card {
-    @apply bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 transition-all duration-300;
+  .paper-inset {
+    @apply bg-surface-sunk border border-ink/12 rounded-2xl;
   }
 
-  .btn-primary-glow {
-    @apply relative overflow-hidden transition-all duration-300 hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] hover:scale-105 active:scale-95;
+  /* Amorphous Memphis blob backdrop. Purely decorative, sits BEHIND
+     content — this is the approved alternative to a literal pitch texture. */
+  .blob {
+    @apply absolute pointer-events-none rounded-blob;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border-2 border-ink/85 px-3 py-1 text-xs font-bold;
+  }
+
+  /* Horizontal scrollers (tab bar, month picker) that shouldn't show a
+     scrollbar chrome of their own. */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Chunky, tactile press. The shadow collapses into the button so it reads
+     as physically pushed rather than merely dimmed. */
+  .btn-pop {
+    @apply shadow-pop-sm transition-all duration-150 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none;
   }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-base-100;
+  @apply bg-surface-sunk;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-base-200 rounded-full hover:bg-base-content/5 transition-colors;
+  @apply bg-violet/50 rounded-full border-2 border-transparent bg-clip-padding hover:bg-violet transition-colors;
 }
 
 /* Utilities */
-.text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-bro-secondary to-bro-primary;
+.text-confetti {
+  @apply bg-clip-text text-transparent;
+  background-image: linear-gradient(92deg,
+      rgb(var(--c-coral)) 0%,
+      rgb(var(--c-tangerine)) 28%,
+      rgb(var(--c-sunflower)) 52%,
+      rgb(var(--c-mint)) 76%,
+      rgb(var(--c-violet)) 100%);
 }
 
-.text-gradient-accent {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-bro-accent to-bro-primary;
+/* Thin ink rule with a confetti-colored dash pattern — used to separate
+   sections without adding another boxed container. */
+.rule-confetti {
+  height: 4px;
+  border-radius: 999px;
+  background: repeating-linear-gradient(90deg,
+      rgb(var(--c-coral)) 0 18px,
+      rgb(var(--c-sunflower)) 18px 36px,
+      rgb(var(--c-mint)) 36px 54px,
+      rgb(var(--c-violet)) 54px 72px);
 }
 
 /* Animation Utilities */
@@ -107,6 +150,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

@@ -1,76 +1,58 @@
-// src/components/ErrorMessage.jsx - Updated with Theme Support
+// src/components/ErrorMessage.jsx — inline problem banner, drawn as flat
+// paper with a thin ink outline like everything else. Tone comes from the
+// central tokens (coral = negative, sunflower = warning).
 import React from 'react';
 import { AlertTriangle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import Button from './ui/Button';
+
+const TONES = {
+  error: {
+    surface: 'bg-coral/12',
+    text: 'text-coral',
+    icon: <AlertTriangle size={22} className="text-coral" />,
+    title: 'Error',
+    button: 'danger',
+  },
+  network: {
+    surface: 'bg-coral/12',
+    text: 'text-coral',
+    icon: <WifiOff size={22} className="text-coral" />,
+    title: 'Connection Problem',
+    button: 'danger',
+  },
+  warning: {
+    surface: 'bg-sunflower/25',
+    text: 'text-ink',
+    icon: <AlertTriangle size={22} className="text-tangerine" />,
+    title: 'Heads up',
+    button: 'sunny',
+  },
+};
 
 const ErrorMessage = ({
   message = "Something went wrong",
   onRetry = null,
   type = "error" // "error", "warning", "network"
 }) => {
-  const getIcon = () => {
-    switch (type) {
-      case "network":
-        return <WifiOff className="text-error" size={24} />;
-      case "warning":
-        return <AlertTriangle className="text-warning" size={24} />;
-      default:
-        return <AlertTriangle className="text-error" size={24} />;
-    }
-  };
-
-  const getContainerStyles = () => {
-    switch (type) {
-      case "network":
-        return "bg-error/10 border-error/20";
-      case "warning":
-        return "bg-warning/10 border-warning/20";
-      default:
-        return "bg-error/10 border-error/20";
-    }
-  };
-
-  const getTextColor = () => {
-    switch (type) {
-      case "network":
-        return "text-error";
-      case "warning":
-        return "text-warning";
-      default:
-        return "text-error";
-    }
-  };
-
-  const getButtonColor = () => {
-    switch (type) {
-      case "network":
-        return "btn-error";
-      case "warning":
-        return "btn-warning";
-      default:
-        return "btn-error";
-    }
-  };
+  const tone = TONES[type] || TONES.error;
 
   return (
-    <div className={`
-      ${getContainerStyles()} rounded-xl border p-6 mb-6
-      animate-fade-in-up
-    `}>
+    <div className={`${tone.surface} rounded-3xl border-2 border-ink/85 shadow-card p-5 mb-6 animate-fade-in-up`}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex-shrink-0">
-          {getIcon()}
+        <div className="flex-shrink-0 w-11 h-11 rounded-2xl bg-surface-alt border-2 border-ink/85 flex items-center justify-center">
+          {tone.icon}
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className={`font-semibold ${getTextColor()} mb-1`}>
-            {type === "network" ? "Connection Problem" : "Error"}
+          <h3 className={`font-display font-bold ${tone.text} mb-0.5`}>
+            {tone.title}
           </h3>
-          <p className={`${getTextColor()} opacity-90 text-sm leading-relaxed`}>
+          <p className="text-ink text-sm font-medium leading-relaxed">
             {message}
           </p>
 
           {type === "network" && (
-            <p className="text-base-content/60 text-xs mt-2">
+            <p className="text-ink-soft text-xs mt-2 font-medium">
               Check your internet connection or try again in a few moments.
             </p>
           )}
@@ -78,26 +60,17 @@ const ErrorMessage = ({
 
         {onRetry && (
           <div className="flex-shrink-0 w-full sm:w-auto">
-            <button
-              onClick={onRetry}
-              className={`
-                w-full sm:w-auto flex items-center justify-center gap-2 
-                px-4 py-2 rounded-lg text-white font-medium btn btn-sm
-                ${getButtonColor()}
-                transition-all duration-200 
-                hover:shadow-lg active:scale-95
-              `}
-            >
+            <Button variant={tone.button} size="sm" onClick={onRetry} className="w-full sm:w-auto">
               <RefreshCw size={16} />
               <span>Try Again</span>
-            </button>
+            </Button>
           </div>
         )}
       </div>
 
       {type === "network" && (
-        <div className="mt-4 pt-4 border-t border-error/10">
-          <div className="flex items-center gap-2 text-sm text-error">
+        <div className="mt-4 pt-4 border-t-2 border-dashed border-ink/15">
+          <div className="flex items-center gap-2 text-sm font-semibold text-ink-soft">
             <Wifi size={14} />
             <span>Network status will update automatically when connection is restored</span>
           </div>

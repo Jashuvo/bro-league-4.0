@@ -59,10 +59,13 @@ const monthlyPrizeConfig = {
   },
 };
 
+// `color`/`tone` are design tokens from tailwind.config.js (never stock
+// Tailwind palette entries) — the amounts are the data, these just say which
+// podium metal each position wears.
 const seasonPrizes = [
-  { position: 1, amount: 800, emoji: '🥇', color: 'text-yellow-400', label: 'Champion' },
-  { position: 2, amount: 600, emoji: '🥈', color: 'text-gray-300', label: 'Runner-up' },
-  { position: 3, amount: 400, emoji: '🥉', color: 'text-orange-400', label: 'Third Place' },
+  { position: 1, amount: 800, emoji: '🥇', color: 'text-sunflower', tone: 'fill-sunflower', label: 'Champion' },
+  { position: 2, amount: 600, emoji: '🥈', color: 'text-silver', tone: 'fill-silver', label: 'Runner-up' },
+  { position: 3, amount: 400, emoji: '🥉', color: 'text-tangerine', tone: 'fill-tangerine', label: 'Third Place' },
 ];
 const seasonTotal = seasonPrizes.reduce((sum, p) => sum + p.amount, 0);
 

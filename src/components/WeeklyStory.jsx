@@ -99,16 +99,19 @@ const WeeklyStory = ({ gameweekTable = [], gameweek }) => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <Card>
-        <h3 className="text-lg font-bold text-base-content flex items-center gap-2 mb-4">
-          <BookOpen className="text-bro-primary" size={20} />
+      <Card tone="violet">
+        <h3 className="text-lg font-display font-bold text-ink flex items-center gap-2 mb-4">
+          <BookOpen className="text-violet" size={20} />
           This Week&rsquo;s Story
+          <span className="flex-1 rule-confetti opacity-70 ml-2" />
         </h3>
         <ul className="space-y-2.5">
           {beats.map((beat, i) => (
-            <li key={i} className="flex items-start gap-3 text-sm text-base-content">
-              <span className="text-lg leading-none flex-shrink-0">{beat.emoji}</span>
-              <span className="leading-relaxed">{beat.text}</span>
+            <li key={i} className="flex items-start gap-3 text-sm font-medium text-ink">
+              <span className="w-8 h-8 shrink-0 rounded-xl bg-surface-sunk border-2 border-ink/15 flex items-center justify-center text-base leading-none">
+                {beat.emoji}
+              </span>
+              <span className="leading-relaxed pt-1.5">{beat.text}</span>
             </li>
           ))}
         </ul>

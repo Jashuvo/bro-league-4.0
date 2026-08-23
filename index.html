@@ -16,10 +16,12 @@
     <meta name="apple-mobile-web-app-title" content="BRO League 5" />
     <meta name="application-name" content="BRO League 5" />
 
-    <!-- PWA Theme Colors (matches tailwind.config.js's bro-primary) -->
-    <meta name="theme-color" content="#4f46e5" />
-    <meta name="msapplication-navbutton-color" content="#4f46e5" />
-    <meta name="msapplication-TileColor" content="#4f46e5" />
+    <!-- PWA Theme Colors (match the `surface` token in tailwind.config.js) -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff6ec" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#17131f" />
+    <meta name="theme-color" content="#fff6ec" />
+    <meta name="msapplication-navbutton-color" content="#7250f5" />
+    <meta name="msapplication-TileColor" content="#7250f5" />
 
     <!-- PWA Icons -->
     <link rel="apple-touch-icon" href="./apple-icon-180.png" />
@@ -45,7 +47,17 @@
     <meta name="googlebot" content="index, follow" />
     <link rel="preconnect" href="https://fantasy.premierleague.com" />
     <link rel="dns-prefetch" href="https://fantasy.premierleague.com" />
-    
+
+    <!-- Type: Fredoka (display/headings) + Nunito (body). These are named in
+         tailwind.config.js's fontFamily; without this link they would fall
+         back to system-ui, which is exactly what used to happen with the
+         previously-configured-but-never-loaded Inter/Outfit. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap"
+      rel="stylesheet" />
+
     <title>BRO League 5 - Fantasy Premier League</title>
   </head>
   <body>

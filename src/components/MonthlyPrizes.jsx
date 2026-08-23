@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Calendar, Trophy, Crown, Medal, Award, Gift, ChevronRight
-} from 'lucide-react';
+import { Calendar, Gift, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
+import SectionBanner from './ui/SectionBanner';
+import { CalendarDoodle, RankBadge, Coins } from './ui/Doodles';
 import { monthlyWindows, prizeStructure } from '../data/leagueData';
 
 const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }) => {
@@ -24,13 +24,6 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
 
   const toggleRowExpansion = (managerId) => {
     setExpandedRow(expandedRow === managerId ? null : managerId);
-  };
-
-  const getPositionIcon = (position) => {
-    if (position === 1) return <Crown className="text-yellow-400 fill-yellow-400" size={20} />;
-    if (position === 2) return <Medal className="text-gray-300 fill-gray-300" size={20} />;
-    if (position === 3) return <Award className="text-orange-400 fill-orange-400" size={20} />;
-    return <span className="font-bold text-bro-muted w-5 text-center">{position}</span>;
   };
 
   const monthlyStandings = useMemo(() => {
@@ -114,7 +107,7 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
     return (
       <div className="space-y-4">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-20 bg-base-200/50 rounded-xl animate-pulse"></div>
+          <div key={i} className="h-20 bg-surface-sunk rounded-3xl border-2 border-ink/10 animate-pulse"></div>
         ))}
       </div>
     );
@@ -126,42 +119,31 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      {/* Header Card */}
-      <Card className="bg-gradient-to-r from-green-600 to-teal-600 border-none">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-white">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-              <Calendar size={32} />
-            </div>
-            <div>
-              <h2 className="text-3xl font-display font-bold">Monthly Competitions</h2>
-              <p className="text-white/80 text-lg">
-                {selectedMonthData?.name} • GW {selectedMonthData?.gameweeks[0]}-{selectedMonthData?.gameweeks[selectedMonthData.gameweeks.length - 1]}
-              </p>
-            </div>
-          </div>
-
+      {/* Header Banner */}
+      <SectionBanner
+        tone="mint"
+        art={<CalendarDoodle size={34} />}
+        title="Monthly Competitions"
+        subtitle={`${selectedMonthData?.name} • GW ${selectedMonthData?.gameweeks[0]}-${selectedMonthData?.gameweeks[selectedMonthData.gameweeks.length - 1]}`}
+        stats={monthStats.highest ? [
+          { value: monthStats.highest, label: 'Highest Total' },
+          { value: monthStats.average, label: 'Average' },
+          { value: `৳${monthStats.totalPrizes}`, label: 'Total Prizes' },
+          { value: monthStats.participants, label: 'Participants' },
+        ] : []}
+        actions={
           <Badge
-            variant={monthStatus === 'completed' ? 'success' : monthStatus === 'active' ? 'primary' : 'warning'}
-            className="px-4 py-2 text-sm bg-white/20 border-white/20 text-white backdrop-blur-md"
+            variant={monthStatus === 'completed' ? 'success' : monthStatus === 'active' ? 'gold' : 'default'}
+            className="px-3 py-1.5 text-sm"
           >
-            <Gift size={16} className="mr-2" />
+            <Gift size={14} />
             {monthStatus === 'completed' ? 'Complete' : monthStatus === 'active' ? 'Active' : 'Upcoming'}
           </Badge>
-        </div>
-
-        {monthStats.highest && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-            <StatBox value={monthStats.highest} label="Highest Total" />
-            <StatBox value={monthStats.average} label="Average" />
-            <StatBox value={`৳${monthStats.totalPrizes}`} label="Total Prizes" />
-            <StatBox value={monthStats.participants} label="Participants" />
-          </div>
-        )}
-      </Card>
+        }
+      />
 
       {/* Month Navigation */}
-      <div className="overflow-x-auto pb-2">
+      <div className="overflow-x-auto scrollbar-none pb-2">
         <div className="flex gap-2 min-w-max">
           {months.map(month => {
             const status = getMonthStatus(month);
@@ -171,20 +153,19 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
                 key={month.id}
                 onClick={() => setSelectedMonth(month.id)}
                 className={`
-                  flex flex-col items-center justify-center p-3 rounded-xl min-w-[100px] transition-all duration-300 border
+                  flex flex-col items-center justify-center p-3 rounded-2xl min-w-[104px] border-2 border-ink/85 transition-colors duration-200
                   ${isSelected
-                    ? 'bg-bro-primary text-white border-bro-primary shadow-lg scale-105'
-                    : 'bg-base-200 hover:bg-base-content/5 border-base-content/5 text-base-content/60 hover:text-base-content'
+                    ? 'bg-violet text-white shadow-pop-sm'
+                    : 'bg-surface-alt text-ink-soft hover:bg-surface-sunk shadow-card'
                   }
                 `}
               >
-                <span className="font-bold text-sm">{month.name}</span>
-                <span className="text-[10px] opacity-70 mt-1">GW {month.gameweeks[0]}-{month.gameweeks[month.gameweeks.length - 1]}</span>
-                <div className="mt-1">
-                  {status === 'completed' && '✅'}
-                  {status === 'active' && '🔄'}
-                  {status === 'upcoming' && '⏳'}
-                </div>
+                <span className="font-display font-bold text-sm">{month.name}</span>
+                <span className="text-[10px] font-semibold opacity-80 mt-0.5">GW {month.gameweeks[0]}-{month.gameweeks[month.gameweeks.length - 1]}</span>
+                <span
+                  className={`mt-1.5 h-2 w-2 rounded-full ${status === 'completed' ? 'bg-pitch' : status === 'active' ? 'bg-sunflower' : 'bg-ink/25'}`}
+                  title={status}
+                />
               </button>
             );
           })}
@@ -194,9 +175,9 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
       {/* Standings List */}
       <div className="space-y-3">
         {!monthlyStandings || monthlyStandings.length === 0 ? (
-          <div className="p-12 text-center text-bro-muted">
-            <Calendar className="w-16 h-16 mx-auto mb-4 opacity-20" />
-            <p className="text-lg">No data available for {selectedMonthData?.name}</p>
+          <div className="p-12 text-center">
+            <Calendar className="w-14 h-14 mx-auto mb-4 text-ink/20" />
+            <p className="text-lg font-bold text-ink-soft">No data available for {selectedMonthData?.name}</p>
           </div>
         ) : (
           monthlyStandings.map((manager, index) => (
@@ -207,33 +188,29 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
               transition={{ delay: index * 0.05 }}
             >
               <Card
-                className={`p-0 overflow-hidden transition-all duration-300 ${expandedRow === manager.id ? 'ring-2 ring-bro-primary' : 'hover:bg-white/5'}`}
+                tone={manager.position === 1 ? 'sunflower' : manager.position === 2 ? 'mint' : manager.position === 3 ? 'coral' : 'paper'}
+                className={`p-0 overflow-hidden transition-colors duration-300 ${expandedRow === manager.id ? 'bg-surface-sunk' : 'hover:bg-surface-sunk/60'}`}
               >
                 <div
-                  className="p-4 flex items-center gap-4 cursor-pointer"
+                  className="p-3 md:p-4 flex items-center gap-3 md:gap-4 cursor-pointer"
                   onClick={() => toggleRowExpansion(manager.id)}
                 >
-                  <div className="flex-shrink-0 w-8 flex justify-center">
-                    {getPositionIcon(manager.position)}
-                  </div>
+                  <RankBadge rank={manager.position} size={manager.position <= 3 ? 44 : 38} className="shrink-0" />
 
                   <div className="flex-grow min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className={`font-bold text-lg truncate ${manager.position <= 3 ? 'text-white' : 'text-bro-text'}`}>
-                        {manager.name}
-                      </h3>
-                      {manager.position <= 3 && getPositionIcon(manager.position)}
-                    </div>
-                    <p className="text-bro-muted text-sm truncate">{manager.teamName}</p>
+                    <h3 className="font-display font-bold text-lg truncate text-ink">
+                      {manager.name}
+                    </h3>
+                    <p className="text-ink-soft text-sm font-medium truncate">{manager.teamName}</p>
                   </div>
 
-                  <div className="text-right">
-                    <div className="font-bold text-xl text-bro-primary">{manager.totalPoints}</div>
-                    <div className="text-xs text-bro-muted">Total</div>
+                  <div className="text-right shrink-0">
+                    <div className="font-display font-bold text-xl text-violet leading-tight">{manager.totalPoints}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Total</div>
                   </div>
 
                   <ChevronRight
-                    className={`text-bro-muted transition-transform duration-300 ${expandedRow === manager.id ? 'rotate-90' : ''}`}
+                    className={`text-ink-soft shrink-0 transition-transform duration-300 ${expandedRow === manager.id ? 'rotate-90' : ''}`}
                     size={20}
                   />
                 </div>
@@ -244,17 +221,17 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className="bg-black/20 border-t border-white/5 p-4"
+                      className="bg-surface-sunk border-t-2 border-dashed border-ink/15 p-4"
                     >
-                      <h4 className="font-bold text-white mb-3 text-sm uppercase tracking-wider">Gameweek Breakdown</h4>
+                      <h4 className="font-display font-bold text-ink mb-3 text-xs uppercase tracking-[0.14em]">Gameweek Breakdown</h4>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                         {manager.details.map((detail, idx) => (
-                          <div key={idx} className="bg-white/5 rounded-lg p-2 text-center border border-white/5">
-                            <div className="text-xs text-bro-muted">GW {detail.gameweek}</div>
-                            <div className="font-bold text-white">
+                          <div key={idx} className="bg-surface-alt rounded-2xl p-2 text-center border-2 border-ink/15">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">GW {detail.gameweek}</div>
+                            <div className="font-display font-bold text-ink">
                               {detail.points}
                               {detail.transfersCost > 0 && (
-                                <span className="text-xs text-red-400 ml-1">(-{detail.transfersCost})</span>
+                                <span className="text-xs text-coral ml-1">(-{detail.transfersCost})</span>
                               )}
                             </div>
                           </div>
@@ -262,10 +239,10 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
                       </div>
 
                       {manager.prize > 0 && (
-                        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2 text-green-400">
-                          <Trophy size={18} />
-                          <span className="font-bold">
-                            {manager.position === 1 ? 'Monthly Champion' : manager.position === 2 ? 'Runner-up' : 'Third Place'} - ৳{manager.prize} Prize!
+                        <div className="p-3 bg-sunflower rounded-2xl border-2 border-ink/85 flex items-center gap-3 text-ink">
+                          <Coins size={24} />
+                          <span className="font-display font-bold">
+                            {manager.position === 1 ? 'Monthly Champion' : manager.position === 2 ? 'Runner-up' : 'Third Place'} — ৳{manager.prize} Prize!
                           </span>
                         </div>
                       )}
@@ -280,12 +257,5 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
     </motion.div>
   );
 };
-
-const StatBox = ({ value, label }) => (
-  <div className="bg-white/10 rounded-xl p-3 text-center backdrop-blur-sm border border-white/10">
-    <div className="text-xl font-bold text-white">{value}</div>
-    <div className="text-xs font-medium text-white/80">{label}</div>
-  </div>
-);
 
 export default MonthlyPrizes;

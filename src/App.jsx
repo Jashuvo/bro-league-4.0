@@ -32,14 +32,16 @@ function AppContent() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [performanceInfo, setPerformanceInfo] = useState(null);
 
+  // Tab identity only — the hand-drawn icon for each id lives with the rest
+  // of the illustration set in TabNavigation/Doodles, not in app state.
   const tabs = [
-    { id: 'standings', name: 'League Table', icon: '🏆', shortName: 'Table' },
-    { id: 'gameweek', name: 'Weekly Results', icon: '⚡', shortName: 'Results' },
-    { id: 'monthly', name: 'Monthly Prizes', icon: '📅', shortName: 'Monthly' },
-    { id: 'chips', name: 'Chip Tracker', icon: '🃏', shortName: 'Chips' },
-    { id: 'h2h', name: 'Head-to-Head', icon: '⚔️', shortName: 'H2H' },
-    { id: 'prizes', name: 'Prize Distribution', icon: '💰', shortName: 'Prizes' },
-    { id: 'awards', name: 'Season Awards', icon: '🏅', shortName: 'Awards' }
+    { id: 'standings', name: 'League Table', shortName: 'Table' },
+    { id: 'gameweek', name: 'Weekly Results', shortName: 'Results' },
+    { id: 'monthly', name: 'Monthly Prizes', shortName: 'Monthly' },
+    { id: 'chips', name: 'Chip Tracker', shortName: 'Chips' },
+    { id: 'h2h', name: 'Head-to-Head', shortName: 'H2H' },
+    { id: 'prizes', name: 'Prize Distribution', shortName: 'Prizes' },
+    { id: 'awards', name: 'Season Awards', shortName: 'Awards' }
   ];
 
   const filteredStandings = React.useMemo(() => {

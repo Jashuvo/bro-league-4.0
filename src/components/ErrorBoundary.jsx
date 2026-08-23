@@ -36,58 +36,58 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-surface flex items-center justify-center p-4">
           <div className="max-w-2xl w-full">
-            <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="bg-surface-alt rounded-3xl border-2 border-ink/85 shadow-pop p-8">
               <div className="flex items-center justify-center mb-6">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertCircle className="w-8 h-8 text-red-600" />
+                <div className="w-16 h-16 bg-coral/15 border-2 border-ink/85 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-8 h-8 text-coral" />
                 </div>
               </div>
-              
-              <h1 className="text-2xl font-bold text-center text-gray-900 mb-4">
+
+              <h1 className="text-2xl font-display font-bold text-center text-ink mb-3">
                 Oops! Something went wrong
               </h1>
-              
-              <p className="text-gray-600 text-center mb-6">
+
+              <p className="text-ink-soft font-medium text-center mb-6">
                 The application encountered an unexpected error. Don&rsquo;t worry, your data is safe.
               </p>
-              
+
               {/* Error details (only in development) */}
               {import.meta.env.VITE_DEV_MODE === 'true' && this.state.error && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-semibold text-gray-700 mb-2">Error Details:</h3>
-                  <pre className="text-xs text-red-600 overflow-auto">
+                <div className="mb-6 p-4 paper-inset">
+                  <h3 className="font-bold text-ink mb-2">Error Details:</h3>
+                  <pre className="text-xs text-coral overflow-auto">
                     {this.state.error.toString()}
                   </pre>
                   {this.state.errorInfo && (
-                    <pre className="text-xs text-gray-500 overflow-auto mt-2">
+                    <pre className="text-xs text-ink-soft overflow-auto mt-2">
                       {this.state.errorInfo.componentStack}
                     </pre>
                   )}
                 </div>
               )}
-              
-              <div className="flex gap-4 justify-center">
+
+              <div className="flex flex-wrap gap-4 justify-center">
                 <button
                   onClick={this.handleReset}
-                  className="flex items-center gap-2 px-6 py-3 bg-bro-primary text-white rounded-lg hover:bg-bro-primary/90 transition-colors font-semibold"
+                  className="btn-pop flex items-center gap-2 px-6 py-3 bg-violet text-white rounded-2xl border-2 border-ink/85 font-display font-bold"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Reload Application
                 </button>
-                
+
                 <button
                   onClick={() => window.history.back()}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+                  className="btn-pop px-6 py-3 bg-surface-sunk text-ink rounded-2xl border-2 border-ink/85 font-display font-bold"
                 >
                   Go Back
                 </button>
               </div>
             </div>
-            
+
             {/* Help text */}
-            <div className="mt-6 text-center text-sm text-gray-500">
+            <div className="mt-6 text-center text-sm font-medium text-ink-soft">
               <p>If this problem persists, please try:</p>
               <ul className="mt-2">
                 <li>• Clearing your browser cache</li>

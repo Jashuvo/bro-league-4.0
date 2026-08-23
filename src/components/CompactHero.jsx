@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, Users, Calendar, Target, Crown, Zap, Clock, Rocket } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
+import {
+  Ball, Jersey, TrophyCup, Whistle, Coins, CheerScene, Confetti, Boot
+} from './ui/Doodles';
 import { leagueConfig } from '../data/leagueData';
 
 const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap, leagueStats }) => {
@@ -56,16 +58,7 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap, leagueSta
   };
 
   return (
-    <div className="relative overflow-hidden bg-base-100 pt-12 pb-8">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
-          <div className="absolute top-10 left-10 w-72 h-72 bg-bro-primary/10 rounded-full blur-3xl animate-pulse-slow"></div>
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-bro-secondary/10 rounded-full blur-3xl animate-pulse-slow delay-1000"></div>
-        </div>
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-20"></div>
-      </div>
-
+    <div className="relative overflow-hidden pt-8 pb-8">
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
           variants={containerVariants}
@@ -73,47 +66,56 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap, leagueSta
           animate="visible"
           className="flex flex-col items-center"
         >
-          {/* League Title */}
-          <motion.div variants={itemVariants} className="text-center mb-8">
-            <div className="inline-flex items-center justify-center p-3 mb-4 bg-gradient-to-br from-bro-primary to-bro-secondary rounded-2xl shadow-lg shadow-bro-primary/25">
-              <Crown className="text-white" size={32} />
+          {/* League Title + celebration scene */}
+          <motion.div variants={itemVariants} className="w-full max-w-4xl mb-8">
+            <div className="relative rounded-[2rem] border-2 border-ink/85 bg-surface-alt shadow-pop overflow-hidden">
+              <Confetti className="absolute -top-2 left-0 w-full h-16 opacity-90 pointer-events-none" />
+
+              <div className="relative grid md:grid-cols-[1.1fr_1fr] items-center gap-4 p-6 md:p-8">
+                <div className="text-center md:text-left">
+                  <span className="pill border-ink/85 bg-mint/30 text-ink mb-3">
+                    <Ball size={14} /> Season {leagueConfig.season}
+                  </span>
+                  <h1 className="text-4xl md:text-5xl font-display font-bold text-ink tracking-tight leading-[1.05]">
+                    {leagueName}
+                  </h1>
+                  <div className="rule-confetti w-32 mx-auto md:mx-0 my-3" />
+                  <p className="text-ink-soft font-semibold">
+                    {totalManagers || '–'} bros. One trophy. Zero mercy.
+                  </p>
+                </div>
+
+                <CheerScene className="w-full max-w-sm mx-auto" />
+              </div>
             </div>
-            <h1 className="text-4xl md:text-5xl font-display font-bold text-base-content mb-2 tracking-tight">
-              {leagueName}
-            </h1>
-            <p className="text-bro-muted text-lg">Fantasy Premier League Championship</p>
           </motion.div>
 
           {/* Main Stats Grid */}
-          <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-4xl mb-8">
+          <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 w-full max-w-4xl mb-8">
             <StatCard
-              icon={Users}
+              art={<Jersey size={30} tone="fill-mint" />}
               value={totalManagers}
               label="Managers"
-              color="text-green-400"
-              bgColor="bg-green-500/10"
+              tone="bg-mint/25"
             />
             <StatCard
-              icon={Calendar}
+              art={<Whistle size={30} />}
               value={`GW ${gameweekInfo?.current || '-'}`}
               label="Current"
-              color="text-blue-400"
-              bgColor="bg-blue-500/10"
+              tone="bg-sky/25"
               live={isLive}
             />
             <StatCard
-              icon={Target}
+              art={<Boot size={30} tone="fill-bubblegum" />}
               value={gameweeksLeft}
               label="GWs Left"
-              color="text-purple-400"
-              bgColor="bg-purple-500/10"
+              tone="bg-bubblegum/25"
             />
             <StatCard
-              icon={Trophy}
+              art={<Coins size={30} />}
               value={`৳${(totalPrizePool / 1000).toFixed(0)}K`}
               label="Prize Pool"
-              color="text-yellow-400"
-              bgColor="bg-yellow-500/10"
+              tone="bg-sunflower/35"
             />
           </motion.div>
 
@@ -125,39 +127,37 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap, leagueSta
           )}
 
           {/* Leader & Deadline Section */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
+          <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl">
             {/* Current Leader */}
             {!isPreSeason && currentLeader && (
-              <Card className="flex items-center justify-between p-4 border-l-4 border-l-yellow-400">
-                <div>
-                  <div className="text-bro-muted text-xs uppercase tracking-wider font-bold mb-1">Current Leader</div>
-                  <div className="text-base-content font-bold text-lg">{currentLeader.managerName}</div>
-                  <div className="text-yellow-400 text-sm font-medium">{currentLeader.totalPoints} pts</div>
+              <div className="relative flex items-center justify-between gap-4 p-5 rounded-3xl border-2 border-ink/85 bg-sunflower shadow-pop overflow-hidden">
+                <div className="relative z-10">
+                  <div className="text-ink/70 text-[11px] uppercase tracking-[0.18em] font-bold mb-1">Current Leader</div>
+                  <div className="text-ink font-display font-bold text-2xl leading-tight">{currentLeader.managerName}</div>
+                  <div className="text-ink/80 text-sm font-bold">{currentLeader.totalPoints} pts</div>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-yellow-400/10 flex items-center justify-center">
-                  <Crown className="text-yellow-400" size={24} />
-                </div>
-              </Card>
+                <TrophyCup size={56} tone="fill-surface-alt" className="relative z-10 shrink-0 animate-wiggle" />
+              </div>
             )}
 
             {/* Next Deadline */}
             {!isPreSeason && nextDeadline && (
-              <Card className="flex items-center justify-between p-4 border-l-4 border-l-bro-primary">
+              <div className="flex items-center justify-between gap-4 p-5 rounded-3xl border-2 border-ink/85 bg-surface-alt shadow-card">
                 <div>
-                  <div className="text-bro-muted text-xs uppercase tracking-wider font-bold mb-1">Next Deadline</div>
-                  <div className="text-base-content font-bold text-lg">
+                  <div className="text-ink-soft text-[11px] uppercase tracking-[0.18em] font-bold mb-1">Next Deadline</div>
+                  <div className="text-ink font-display font-bold text-lg leading-tight">
                     {nextDeadline.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
                     {' • '}
                     {nextDeadline.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  <div className="text-bro-primary text-sm font-medium tabular-nums">
+                  <div className="text-violet text-sm font-bold tabular-nums">
                     <LiveCountdown deadline={nextDeadline} />
                   </div>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-bro-primary/10 flex items-center justify-center">
-                  <Clock className="text-bro-primary" size={24} />
-                </div>
-              </Card>
+                <span className="w-14 h-14 shrink-0 rounded-full bg-violet/20 border-2 border-ink/85 flex items-center justify-center">
+                  <Whistle size={30} tone="fill-violet" />
+                </span>
+              </div>
             )}
           </motion.div>
 
@@ -165,30 +165,33 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap, leagueSta
           {topPerformers.length > 0 && authStatus?.authenticated && (
             <motion.div variants={itemVariants} className="w-full max-w-4xl mt-8">
               <div className="flex items-center gap-2 mb-4">
-                <Zap className="text-yellow-400" size={18} />
-                <h3 className="text-base-content font-bold">Gameweek Heroes</h3>
+                <TrophyCup size={22} />
+                <h3 className="text-ink font-display font-bold text-lg">Gameweek Heroes</h3>
+                <span className="flex-1 rule-confetti opacity-70" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {topPerformers.map((manager, index) => (
-                  <Card key={manager.id} className="flex items-center gap-3 p-3 hover:bg-base-content/10 transition-colors">
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm
-                      ${index === 0 ? 'bg-yellow-400 text-yellow-900' :
-                        index === 1 ? 'bg-gray-300 text-gray-900' :
-                          'bg-orange-400 text-orange-900'}
-                    `}>
-                      {index + 1}
-                    </div>
+                  <Card
+                    key={manager.id}
+                    tone={index === 0 ? 'sunflower' : index === 1 ? 'mint' : 'coral'}
+                    className="flex items-center gap-3 p-4"
+                  >
+                    <Jersey
+                      size={38}
+                      number={index + 1}
+                      tone={index === 0 ? 'fill-sunflower' : index === 1 ? 'fill-silver' : 'fill-tangerine'}
+                      className="shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
-                      <div className="text-base-content font-medium truncate">{manager.managerName}</div>
-                      <div className="text-bro-muted text-xs">{manager.teamName}</div>
+                      <div className="text-ink font-bold truncate">{manager.managerName}</div>
+                      <div className="text-ink-soft text-xs truncate">{manager.teamName}</div>
                     </div>
                     <Badge variant="success">
                       {(manager.gameweekPoints || 0) - (manager.gameweekHits || 0)}
                       {(manager.gameweekHits || 0) > 0 && (
-                        <span className="text-[10px] ml-1 opacity-80">(-{manager.gameweekHits})</span>
+                        <span className="text-[10px] opacity-80">(-{manager.gameweekHits})</span>
                       )}
-                      <span className="ml-1">pts</span>
+                      <span>pts</span>
                     </Badge>
                   </Card>
                 ))}
@@ -246,14 +249,15 @@ const KickoffCountdown = ({ deadline }) => {
   }, [deadline]);
 
   return (
-    <Card className="bg-gradient-to-r from-bro-primary to-bro-secondary border-none">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-white">
+    <div className="relative rounded-3xl border-2 border-ink/85 bg-violet text-white shadow-pop p-5 overflow-hidden">
+      <Confetti className="absolute inset-x-0 -top-1 h-14 opacity-80 pointer-events-none" />
+      <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-            <Rocket size={28} />
-          </div>
+          <span className="w-14 h-14 shrink-0 rounded-2xl bg-surface-alt border-2 border-ink/85 flex items-center justify-center">
+            <Ball size={32} className="animate-roll" />
+          </span>
           <div>
-            <div className="text-white/80 text-xs uppercase tracking-wider font-bold">Season kicks off in</div>
+            <div className="text-white/80 text-[11px] uppercase tracking-[0.18em] font-bold">Season kicks off in</div>
             <div className="text-2xl font-display font-bold tabular-nums">
               {parts.days}d {String(parts.hours).padStart(2, '0')}h {String(parts.minutes).padStart(2, '0')}m {String(parts.seconds).padStart(2, '0')}s
             </div>
@@ -268,27 +272,27 @@ const KickoffCountdown = ({ deadline }) => {
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
 
-const StatCard = ({ icon: Icon, value, label, color, bgColor, live = false }) => (
-  <Card className="relative flex flex-col items-center justify-center p-4 text-center hover:scale-105 transition-transform duration-300">
+const StatCard = ({ art, value, label, tone, live = false }) => (
+  <div className="relative flex flex-col items-center justify-center p-4 text-center rounded-3xl border-2 border-ink/85 bg-surface-alt shadow-card">
     {live && (
       <div className="absolute top-2 right-2 flex items-center gap-1">
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-coral opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-coral" />
         </span>
-        <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">Live</span>
+        <span className="text-[9px] font-bold text-coral uppercase tracking-wider">Live</span>
       </div>
     )}
-    <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center mb-2`}>
-      <Icon className={color} size={20} />
+    <div className={`w-12 h-12 rounded-2xl ${tone} border-2 border-ink/85 flex items-center justify-center mb-2`}>
+      {art}
     </div>
-    <div className={`text-xl font-bold ${color}`}>{value}</div>
-    <div className="text-bro-muted text-xs font-medium uppercase tracking-wide">{label}</div>
-  </Card>
+    <div className="text-xl font-display font-bold text-ink">{value}</div>
+    <div className="text-ink-soft text-[11px] font-bold uppercase tracking-[0.14em]">{label}</div>
+  </div>
 );
 
 export default CompactHero;

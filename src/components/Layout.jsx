@@ -2,6 +2,7 @@ import React from 'react';
 import StickyHeader from './StickyHeader';
 import Footer from './Footer';
 import { motion } from 'framer-motion';
+import { Blob } from './ui/Doodles';
 
 const Layout = ({
     children,
@@ -16,7 +17,15 @@ const Layout = ({
     leagueStats
 }) => {
     return (
-        <div className="min-h-screen bg-base-100 text-base-content transition-colors duration-300 flex flex-col">
+        <div className="relative min-h-screen bg-surface text-ink transition-colors duration-300 flex flex-col">
+            {/* Amorphous color fields behind everything. Blobs, never a
+                grass/pitch texture — the surface stays flat cream. */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
+                <Blob className="w-[38rem] h-[38rem] -left-56 -top-40" tone="fill-violet" opacity={0.1} variant={0} />
+                <Blob className="w-[30rem] h-[30rem] -right-40 top-1/3" tone="fill-mint" opacity={0.1} variant={1} />
+                <Blob className="w-[26rem] h-[26rem] left-1/4 bottom-10" tone="fill-sunflower" opacity={0.09} variant={2} />
+            </div>
+
             <StickyHeader
                 authStatus={authStatus}
                 isRefreshing={isRefreshing}
@@ -37,7 +46,7 @@ const Layout = ({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex-grow pt-20" // Add padding top to account for fixed header
+                className="relative z-10 flex-grow pt-20" // Add padding top to account for fixed header
             >
                 {children}
             </motion.main>

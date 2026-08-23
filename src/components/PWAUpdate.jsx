@@ -79,7 +79,7 @@ export default function PWAUpdate() {
     <>
       {/* Offline Indicator */}
       {!isOnline && (
-        <div className="fixed top-0 left-0 right-0 bg-orange-500 text-white px-4 py-2 text-center text-sm font-medium z-50 flex items-center justify-center gap-2">
+        <div className="fixed top-0 left-0 right-0 bg-tangerine text-ink border-b-2 border-ink/85 px-4 py-2 text-center text-sm font-bold z-50 flex items-center justify-center gap-2">
           <WifiOff size={16} />
           <span>You&rsquo;re offline - Using cached data</span>
         </div>
@@ -87,7 +87,7 @@ export default function PWAUpdate() {
 
       {/* Online Indicator (brief, only right after reconnecting) */}
       {isOnline && justReconnected && (
-        <div className="fixed top-0 left-0 right-0 bg-green-500 text-white px-4 py-1 text-center text-sm font-medium z-50 flex items-center justify-center gap-2 transition-all duration-300">
+        <div className="fixed top-0 left-0 right-0 bg-pitch text-white border-b-2 border-ink/85 px-4 py-1 text-center text-sm font-bold z-50 flex items-center justify-center gap-2 transition-all duration-300">
           <Wifi size={16} />
           <span>Back online</span>
         </div>
@@ -95,26 +95,27 @@ export default function PWAUpdate() {
 
       {/* Install App Banner */}
       {showInstallPrompt && (
-        <div className="fixed bottom-4 left-4 right-4 bg-gradient-to-r from-bro-primary to-bro-secondary text-white rounded-lg shadow-lg p-4 z-40 mx-auto max-w-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+        <div className="fixed bottom-4 left-4 right-4 bg-violet text-white rounded-2xl border-2 border-ink/85 shadow-pop p-4 z-40 mx-auto max-w-md">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 shrink-0 bg-white/20 border-2 border-white/40 rounded-xl flex items-center justify-center">
                 <Download size={20} />
               </div>
-              <div>
-                <p className="font-semibold text-sm">Install BRO League 5</p>
+              <div className="min-w-0">
+                <p className="font-display font-bold text-sm">Install BRO League 5</p>
                 <p className="text-xs opacity-90">Get faster access & offline mode</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={handleInstallClick}
-                className="bg-white text-bro-primary px-3 py-1 rounded-md text-xs font-medium hover:bg-gray-100 transition-colors"
+                className="bg-sunflower text-ink border-2 border-ink/85 px-3 py-1 rounded-lg text-xs font-bold hover:bg-surface-alt transition-colors"
               >
                 Install
               </button>
               <button
                 onClick={() => setShowInstallPrompt(false)}
+                aria-label="Dismiss"
                 className="text-white/80 hover:text-white transition-colors"
               >
                 <X size={16} />
@@ -126,27 +127,28 @@ export default function PWAUpdate() {
 
       {/* Update Available Banner */}
       {showUpdateBanner && (
-        <div className="fixed bottom-4 left-4 right-4 bg-bro-primary text-white rounded-lg shadow-lg p-4 z-40 mx-auto max-w-md">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+        <div className="fixed bottom-4 left-4 right-4 bg-mint text-ink rounded-2xl border-2 border-ink/85 shadow-pop p-4 z-40 mx-auto max-w-md">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 shrink-0 bg-surface-alt border-2 border-ink/85 rounded-xl flex items-center justify-center">
                 <RefreshCw size={20} />
               </div>
-              <div>
-                <p className="font-semibold text-sm">Update Available</p>
-                <p className="text-xs opacity-90">New features and improvements</p>
+              <div className="min-w-0">
+                <p className="font-display font-bold text-sm">Update Available</p>
+                <p className="text-xs opacity-80">New features and improvements</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={handleUpdateClick}
-                className="bg-white text-bro-primary px-3 py-1 rounded-md text-xs font-medium hover:bg-gray-100 transition-colors"
+                className="bg-ink text-surface px-3 py-1 rounded-lg text-xs font-bold hover:bg-violet transition-colors"
               >
                 Update
               </button>
               <button
                 onClick={() => setShowUpdateBanner(false)}
-                className="text-white/80 hover:text-white transition-colors"
+                aria-label="Dismiss"
+                className="text-ink/60 hover:text-ink transition-colors"
               >
                 <X size={16} />
               </button>

@@ -1,23 +1,32 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 
-const Badge = ({ children, variant = 'default', className, ...props }) => {
-    const variants = {
-        default: "bg-base-200 text-base-content border border-base-content/10",
-        primary: "bg-bro-primary/20 text-bro-primary border border-bro-primary/20",
-        secondary: "bg-bro-secondary/20 text-bro-secondary border border-bro-secondary/20",
-        accent: "bg-bro-accent/20 text-bro-accent border border-bro-accent/20",
-        success: "bg-green-500/20 text-green-400 border border-green-500/20",
-        warning: "bg-yellow-500/20 text-yellow-400 border border-yellow-500/20",
-    };
-
-    return (
-        <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className}`}
-            {...props}
-        >
-            {children}
-        </span>
-    );
+// Flat sticker pill: solid token tint, thin ink outline, ink text. Every
+// variant resolves to a token from tailwind.config.js — no stock palette
+// entries, no per-component hexes.
+const VARIANTS = {
+    default: 'bg-surface-sunk text-ink border-ink/70',
+    primary: 'bg-violet/20 text-violet border-violet/70',
+    secondary: 'bg-mint/25 text-ink border-mint',
+    accent: 'bg-coral/20 text-coral border-coral/70',
+    success: 'bg-pitch/20 text-pitch border-pitch/70',
+    warning: 'bg-sunflower/35 text-ink border-sunflower',
+    info: 'bg-sky/20 text-sky border-sky/70',
+    gold: 'bg-sunflower text-ink border-ink/80',
+    ghost: 'bg-transparent text-ink-soft border-ink/25',
 };
+
+const Badge = ({ children, variant = 'default', className, ...props }) => (
+    <span
+        className={cn(
+            'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border-2 text-xs font-bold whitespace-nowrap',
+            VARIANTS[variant] || VARIANTS.default,
+            className
+        )}
+        {...props}
+    >
+        {children}
+    </span>
+);
 
 export default Badge;

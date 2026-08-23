@@ -5,7 +5,11 @@ const ThemeContext = createContext();
 export function ThemeProvider({ children }) {
     const [theme, setTheme] = useState(() => {
         const savedTheme = localStorage.getItem('theme');
-        return savedTheme || 'dark'; // Default to dark
+        // Light is the fully-realized "Memphis × Football" direction: flat
+        // saturated fills need a light cream field to read as cut paper.
+        // Dark is a coherent adapted variant (deep ink base, same hues
+        // lifted for contrast), not the default.
+        return savedTheme || 'light';
     });
 
     useEffect(() => {

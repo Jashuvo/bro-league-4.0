@@ -6,7 +6,7 @@ import React from 'react';
 const RankTrendSparkline = ({ data = [], maxRank = 15 }) => {
   if (data.length < 2) {
     return (
-      <p className="text-xs text-bro-muted text-center py-2">
+      <p className="text-xs font-semibold text-ink-soft text-center py-2">
         Not enough gameweeks yet to show a trend
       </p>
     );
@@ -23,7 +23,15 @@ const RankTrendSparkline = ({ data = [], maxRank = 15 }) => {
   const last = data[data.length - 1];
   const improved = last.rank < first.rank;
   const unchanged = last.rank === first.rank;
-  const strokeColor = unchanged ? '#9ca3af' : improved ? '#4ade80' : '#f87171';
+  // Colours come from the central token set, applied as Tailwind
+  // stroke-*/fill-* utilities so the line follows the active theme. Full
+  // class names only — Tailwind can't see interpolated ones.
+  const TONES = {
+    flat: { stroke: 'stroke-silver', fill: 'fill-silver' },
+    up: { stroke: 'stroke-pitch', fill: 'fill-pitch' },
+    down: { stroke: 'stroke-coral', fill: 'fill-coral' },
+  };
+  const tone = TONES[unchanged ? 'flat' : improved ? 'up' : 'down'];
 
   return (
     <div className="w-full">
@@ -31,17 +39,17 @@ const RankTrendSparkline = ({ data = [], maxRank = 15 }) => {
         <polyline
           points={points}
           fill="none"
-          stroke={strokeColor}
-          strokeWidth="2"
+          className={tone.stroke}
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
         />
         {data.map((d, i) => (
-          <circle key={d.gw} cx={i * stepX} cy={scaleY(d.rank)} r="1.8" fill={strokeColor} />
+          <circle key={d.gw} cx={i * stepX} cy={scaleY(d.rank)} r="2" className={tone.fill} />
         ))}
       </svg>
-      <div className="flex justify-between text-[10px] text-bro-muted mt-1">
+      <div className="flex justify-between text-[10px] font-bold text-ink-soft mt-1">
         <span>GW{first.gw}: #{first.rank}</span>
         <span>GW{last.gw}: #{last.rank}</span>
       </div>

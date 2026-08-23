@@ -4,6 +4,8 @@ import React, { useMemo } from 'react';
 import { Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Card from './ui/Card';
+import SectionBanner from './ui/SectionBanner';
+import { ChipCard } from './ui/Doodles';
 
 // FPL's chip identifiers, in the order managers typically consider playing
 // them. `wildcard` can appear twice in a season (one per half) — this UI
@@ -39,7 +41,7 @@ const ChipTracker = ({ standings = [], loading = false }) => {
     return (
       <div className="space-y-4">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-16 bg-base-200/50 rounded-xl animate-pulse"></div>
+          <div key={i} className="h-16 bg-surface-sunk rounded-3xl border-2 border-ink/10 animate-pulse"></div>
         ))}
       </div>
     );
@@ -47,9 +49,9 @@ const ChipTracker = ({ standings = [], loading = false }) => {
 
   if (rows.length === 0) {
     return (
-      <div className="p-12 text-center text-bro-muted">
-        <Sparkles className="w-16 h-16 mx-auto mb-4 opacity-20" />
-        <p className="text-lg">No chip data available yet</p>
+      <div className="p-12 text-center">
+        <Sparkles className="w-14 h-14 mx-auto mb-4 text-ink/20" />
+        <p className="text-lg font-bold text-ink-soft">No chip data available yet</p>
       </div>
     );
   }
@@ -60,26 +62,23 @@ const ChipTracker = ({ standings = [], loading = false }) => {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      <Card className="bg-gradient-to-r from-bro-primary to-bro-secondary border-none">
-        <div className="flex items-center gap-4 text-white">
-          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shadow-lg">
-            <Sparkles size={32} />
-          </div>
-          <div>
-            <h2 className="text-3xl font-display font-bold">Chip Tracker</h2>
-            <p className="text-white/80 text-lg">Who&rsquo;s holding their wildcard — and who&rsquo;s already gone for it</p>
-          </div>
-        </div>
-      </Card>
+      <SectionBanner
+        tone="bubblegum"
+        art={<ChipCard size={34} />}
+        title="Chip Tracker"
+        subtitle="Who's holding their wildcard — and who's already gone for it"
+      />
 
+      {/* Deliberately restrained: this is a dense reference table, so colour
+          is carried by the chip pills alone rather than the whole grid. */}
       <Card className="p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[560px]">
             <thead>
-              <tr className="border-b border-base-content/10 text-left">
-                <th className="p-4 text-bro-muted font-medium">Manager</th>
+              <tr className="border-b-2 border-ink/85 text-left bg-surface-sunk">
+                <th className="p-4 text-ink font-display font-bold">Manager</th>
                 {CHIP_TYPES.map((chip) => (
-                  <th key={chip.id} className="p-4 text-bro-muted font-medium text-center whitespace-nowrap">
+                  <th key={chip.id} className="p-4 text-ink font-display font-bold text-center whitespace-nowrap">
                     <span className="mr-1">{chip.emoji}</span>
                     {chip.label}
                   </th>
@@ -90,11 +89,11 @@ const ChipTracker = ({ standings = [], loading = false }) => {
               {rows.map((row, index) => (
                 <tr
                   key={row.id}
-                  className={`border-b border-base-content/5 last:border-0 ${index % 2 === 1 ? 'bg-base-content/[0.02]' : ''}`}
+                  className={`border-b border-ink/10 last:border-0 ${index % 2 === 1 ? 'bg-surface-sunk/50' : ''}`}
                 >
                   <td className="p-4">
-                    <div className="font-bold text-base-content truncate max-w-[160px]">{row.managerName}</div>
-                    <div className="text-xs text-bro-muted truncate max-w-[160px]">{row.teamName}</div>
+                    <div className="font-bold text-ink truncate max-w-[160px]">{row.managerName}</div>
+                    <div className="text-xs font-medium text-ink-soft truncate max-w-[160px]">{row.teamName}</div>
                   </td>
                   {CHIP_TYPES.map((chip) => {
                     const plays = row.chipsById[chip.id];
@@ -105,14 +104,14 @@ const ChipTracker = ({ standings = [], loading = false }) => {
                             {plays.map((gw) => (
                               <span
                                 key={gw}
-                                className="inline-flex items-center px-2 py-1 rounded-lg bg-bro-secondary/15 text-bro-secondary text-xs font-bold"
+                                className="inline-flex items-center px-2 py-0.5 rounded-full border-2 border-ink/85 bg-mint text-ink text-xs font-bold"
                               >
                                 GW{gw}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-bro-muted/40 text-xs">In the bank</span>
+                          <span className="text-ink-soft/60 text-xs font-semibold">In the bank</span>
                         )}
                       </td>
                     );

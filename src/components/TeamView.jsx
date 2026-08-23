@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, X, AlertCircle, Shirt, ArrowLeftRight, History as HistoryIcon } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Card from './ui/Card';
+import { X, AlertCircle, ArrowLeftRight, History as HistoryIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
+import { Jersey, Ball, PitchGraphic, Confetti } from './ui/Doodles';
 import fplApi from '../services/fplApi';
 
 const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) => {
@@ -147,7 +147,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     }
   };
 
-  // Component: Pitch Player Card
+  // Component: Pitch Player Card — a flat drawn kit with a paper name plate
+  // under it. Same outline/fill language as the rest of the illustration set.
   const PitchPlayer = ({ player }) => {
     if (!player) return null;
 
@@ -157,55 +158,57 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     // API (api/team-picks.js) — multiplying again here double-counts it.
     const points = player.points;
 
+    const kitTone =
+      player.positionType === 'GK' ? 'fill-sunflower' :
+        player.positionType === 'DEF' ? 'fill-sky' :
+          player.positionType === 'MID' ? 'fill-mint' :
+            'fill-coral';
+
     return (
       <motion.div
-        className={`flex flex-col items-center w-20 group cursor-pointer ${player.wasSubbedOut ? 'opacity-60' : ''}`}
+        className={`flex flex-col items-center w-[74px] group ${player.wasSubbedOut ? 'opacity-60' : ''}`}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: player.wasSubbedOut ? 0.6 : 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20 }}
         title={player.wasSubbedOut ? 'Substituted out automatically' : undefined}
       >
-        {/* Shirt / Icon */}
-        <div className="relative mb-1 transition-transform transform group-hover:scale-110">
-          <div className={`
-            w-10 h-10 rounded-full flex items-center justify-center shadow-lg border-2 border-white
-            bg-gradient-to-br ${player.positionType === 'GK' ? 'from-yellow-400 to-yellow-600' : 'from-red-500 to-red-700'}
-          `}>
-            <Shirt size={20} className="text-white opacity-90" />
-          </div>
+        {/* Kit */}
+        <div className="relative transition-transform duration-200 group-hover:scale-110">
+          <Jersey size={40} tone={kitTone} />
 
           {/* Badges */}
           {isCaptain && (
-            <div className="absolute -top-1 -right-1 bg-black text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+            <span className="absolute -top-1 -right-1 bg-ink text-surface text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-surface-alt">
               C
-            </div>
+            </span>
           )}
-          {isVice && (
-            <div className="absolute -top-1 -right-1 bg-gray-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+          {isVice && !isCaptain && (
+            <span className="absolute -top-1 -right-1 bg-silver text-ink text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-surface-alt">
               V
-            </div>
+            </span>
           )}
           {player.isInjured && (
-            <div className="absolute -bottom-1 -right-1 bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center border border-white">
-              <AlertCircle size={10} />
-            </div>
+            <span className="absolute -bottom-1 -right-1 bg-coral text-white w-4 h-4 rounded-full flex items-center justify-center border-2 border-surface-alt">
+              <AlertCircle size={9} />
+            </span>
           )}
           {player.wasSubbedIn && (
-            <div className="absolute -bottom-1 -left-1 bg-green-600 text-white w-4 h-4 rounded-full flex items-center justify-center border border-white" title="Came on as an automatic substitute">
-              <ArrowLeftRight size={9} />
-            </div>
+            <span
+              className="absolute -bottom-1 -left-1 bg-pitch text-white w-4 h-4 rounded-full flex items-center justify-center border-2 border-surface-alt"
+              title="Came on as an automatic substitute"
+            >
+              <ArrowLeftRight size={8} />
+            </span>
           )}
         </div>
 
-        {/* Info Box */}
-        <div className="bg-bro-card/90 backdrop-blur-sm rounded-md overflow-hidden shadow-lg w-full max-w-[72px] border border-white/10">
-          <div className="bg-white/10 px-1 py-0.5 text-center">
-            <p className="text-[10px] font-bold text-white truncate leading-tight">
-              {player.name}
-            </p>
-          </div>
-          <div className="bg-bro-dark px-1 py-0.5 text-center flex items-center justify-center gap-1">
-            <span className="text-xs font-extrabold text-white">{points}</span>
+        {/* Name plate */}
+        <div className="-mt-1 w-full rounded-lg overflow-hidden border-2 border-ink/85 bg-surface-alt">
+          <p className="text-[10px] font-bold text-ink truncate leading-tight text-center px-1 py-0.5">
+            {player.name}
+          </p>
+          <div className="bg-ink text-center py-0.5">
+            <span className="text-xs font-display font-bold text-surface">{points}</span>
           </div>
         </div>
       </motion.div>
@@ -223,14 +226,14 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   // document.body sidesteps that entirely.
   if (loading) {
     return createPortal(
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-ink/70 flex items-center justify-center z-50 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-base-200 rounded-2xl p-8 flex flex-col items-center shadow-2xl border border-base-content/10"
+          className="bg-surface-alt rounded-3xl p-8 flex flex-col items-center border-2 border-ink/85 shadow-pop"
         >
-          <div className="w-10 h-10 border-4 border-bro-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-white font-medium">Scouting team...</p>
+          <Ball size={44} className="animate-roll mb-4" />
+          <p className="text-ink font-display font-bold">Scouting team...</p>
         </motion.div>
       </div>,
       document.body
@@ -239,17 +242,17 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
   if (error) {
     return createPortal(
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-ink/70 flex items-center justify-center z-50 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-base-200 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl border border-base-content/10"
+          className="bg-surface-alt rounded-3xl p-6 max-w-sm w-full text-center border-2 border-ink/85 shadow-pop"
         >
-          <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="text-red-500" size={24} />
+          <div className="w-14 h-14 bg-coral/15 border-2 border-ink/85 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="text-coral" size={26} />
           </div>
-          <h3 className="text-lg font-bold text-white mb-2">Unable to Load Team</h3>
-          <p className="text-bro-muted text-sm mb-6">{error}</p>
+          <h3 className="text-lg font-display font-bold text-ink mb-2">Unable to Load Team</h3>
+          <p className="text-ink-soft text-sm font-medium mb-6">{error}</p>
           <Button
             variant="primary"
             onClick={onClose}
@@ -264,99 +267,85 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   }
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 md:p-6">
+    <div className="fixed inset-0 bg-ink/70 flex items-center justify-center z-50 p-3 md:p-6">
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 50 }}
-        className="bg-base-100 rounded-3xl w-full max-w-lg h-[85vh] md:h-[800px] flex flex-col shadow-2xl overflow-hidden border border-base-content/10"
+        className="bg-surface rounded-3xl w-full max-w-lg h-[88vh] md:h-[800px] flex flex-col overflow-hidden border-2 border-ink/85 shadow-pop-lg"
       >
 
         {/* Header */}
-        <div className="bg-gradient-to-r from-bro-primary to-bro-secondary p-4 text-white shrink-0 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10">
-            <Users size={100} />
-          </div>
+        <div className="bg-violet p-4 text-white shrink-0 relative overflow-hidden border-b-2 border-ink/85">
+          <Confetti className="absolute inset-x-0 -top-1 h-12 opacity-80 pointer-events-none" />
 
-          <div className="relative z-10 flex items-start justify-between">
-            <div>
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <Badge variant="default" className="bg-white/20 text-white border-none">
+                <Badge variant="default" className="bg-surface-alt text-ink">
                   GW {currentGameweek}
                 </Badge>
                 {teamData?.activeChip && (
-                  <Badge variant="warning" className="bg-yellow-400/90 text-yellow-900 border-none">
+                  <Badge variant="gold">
                     {teamData.activeChip}
                   </Badge>
                 )}
               </div>
-              <h2 className="text-xl font-bold leading-tight">{managerName}</h2>
-              <p className="text-white/80 text-sm font-medium">{teamName}</p>
+              <h2 className="text-xl font-display font-bold leading-tight truncate">{managerName}</h2>
+              <p className="text-white/80 text-sm font-semibold truncate">{teamName}</p>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+              aria-label="Close"
+              className="w-9 h-9 shrink-0 bg-surface-alt text-ink border-2 border-ink/85 rounded-full flex items-center justify-center hover:bg-coral hover:text-white transition-colors"
             >
               <X size={18} />
             </button>
           </div>
 
           {/* Stats Summary */}
-          <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/10">
-            <div>
-              <div className="text-white/60 text-xs">Points</div>
-              <div className="text-xl font-bold">{teamData?.entryHistory?.points || 0}</div>
-            </div>
-            <div>
-              <div className="text-white/60 text-xs">Rank</div>
-              <div className="text-xl font-bold">#{teamData?.entryHistory?.rank?.toLocaleString() || '-'}</div>
-            </div>
-            <div>
-              <div className="text-white/60 text-xs">Total</div>
-              <div className="text-xl font-bold">{teamData?.entryHistory?.totalPoints?.toLocaleString() || 0}</div>
-            </div>
+          <div className="relative grid grid-cols-3 gap-2 mt-4">
+            {[
+              { label: 'Points', value: teamData?.entryHistory?.points || 0 },
+              { label: 'Rank', value: `#${teamData?.entryHistory?.rank?.toLocaleString() || '-'}` },
+              { label: 'Total', value: teamData?.entryHistory?.totalPoints?.toLocaleString() || 0 },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-xl bg-surface-alt border-2 border-ink/85 px-2 py-1.5 text-center">
+                <div className="text-[9px] font-bold uppercase tracking-wider text-ink-soft">{stat.label}</div>
+                <div className="text-lg font-display font-bold text-ink leading-tight truncate">{stat.value}</div>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* View Toggle */}
-        <div className="p-2 bg-base-200 border-b border-base-content/5 shrink-0">
-          <div className="flex bg-base-300 p-1 rounded-xl">
-            <button
-              onClick={() => setViewMode('pitch')}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${viewMode === 'pitch'
-                ? 'bg-bro-primary text-white shadow-sm'
-                : 'text-bro-muted hover:text-white'
-                }`}
-            >
-              Pitch View
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${viewMode === 'list'
-                ? 'bg-bro-primary text-white shadow-sm'
-                : 'text-bro-muted hover:text-white'
-                }`}
-            >
-              List View
-            </button>
-            <button
-              onClick={() => setViewMode('history')}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${viewMode === 'history'
-                ? 'bg-bro-primary text-white shadow-sm'
-                : 'text-bro-muted hover:text-white'
-                }`}
-            >
-              Career
-            </button>
+        <div className="p-2 bg-surface-alt border-b-2 border-ink/85 shrink-0">
+          <div className="flex gap-1.5">
+            {[
+              { id: 'pitch', label: 'Pitch View' },
+              { id: 'list', label: 'List View' },
+              { id: 'history', label: 'Career' },
+            ].map((mode) => (
+              <button
+                key={mode.id}
+                onClick={() => setViewMode(mode.id)}
+                className={`flex-1 py-2 rounded-xl border-2 border-ink/85 text-sm font-display font-bold transition-colors duration-200 ${viewMode === mode.id
+                  ? 'bg-sunflower text-ink shadow-pop-sm'
+                  : 'bg-surface-sunk text-ink-soft hover:text-ink'
+                  }`}
+              >
+                {mode.label}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Automatic Substitutions */}
         {teamData?.automaticSubs?.length > 0 && (
           <div className="px-4 pt-3 shrink-0">
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-bro-primary/10 border border-bro-primary/20 text-sm">
-              <ArrowLeftRight size={16} className="text-bro-primary mt-0.5 shrink-0" />
-              <div className="text-base-content">
+            <div className="flex items-start gap-2 p-3 rounded-2xl bg-mint/20 border-2 border-ink/85 text-sm">
+              <ArrowLeftRight size={16} className="text-pitch mt-0.5 shrink-0" />
+              <div className="text-ink font-medium">
                 <span className="font-bold">Auto-subs: </span>
                 {teamData.automaticSubs.map((sub, i) => (
                   <span key={i}>
@@ -369,26 +358,26 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         )}
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto bg-base-100 relative">
+        <div className="flex-1 overflow-y-auto bg-surface relative">
           {viewMode === 'history' ? (
             <div className="p-4">
               {!careerHistory || careerHistory.seasonHistory?.length === 0 ? (
-                <div className="text-center py-16 text-bro-muted">
-                  <HistoryIcon className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                  <p>{careerHistory ? 'No previous seasons on record' : 'Loading career history…'}</p>
+                <div className="text-center py-16">
+                  <HistoryIcon className="w-12 h-12 mx-auto mb-3 text-ink/20" />
+                  <p className="font-bold text-ink-soft">{careerHistory ? 'No previous seasons on record' : 'Loading career history…'}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <h3 className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 ml-1">Past Seasons</h3>
+                  <h3 className="text-[10px] font-display font-bold text-ink-soft uppercase tracking-[0.16em] mb-3 ml-1">Past Seasons</h3>
                   {careerHistory.seasonHistory.map((season) => (
                     <div
                       key={season.season}
-                      className="flex items-center justify-between p-3 bg-base-200 rounded-xl border border-base-content/5"
+                      className="flex items-center justify-between p-3 bg-surface-alt rounded-2xl border-2 border-ink/85 shadow-card"
                     >
-                      <span className="font-semibold text-base-content">{season.season}</span>
+                      <span className="font-display font-bold text-ink">{season.season}</span>
                       <div className="text-right">
-                        <div className="font-bold text-base-content">{season.totalPoints?.toLocaleString()} pts</div>
-                        <div className="text-xs text-bro-muted">Rank #{season.rank?.toLocaleString() || '-'}</div>
+                        <div className="font-display font-bold text-ink">{season.totalPoints?.toLocaleString()} pts</div>
+                        <div className="text-xs font-semibold text-ink-soft">Rank #{season.rank?.toLocaleString() || '-'}</div>
                       </div>
                     </div>
                   ))}
@@ -397,21 +386,10 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             </div>
           ) : viewMode === 'pitch' ? (
             <div className="min-h-full flex flex-col">
-              {/* Pitch Container */}
-              <div className="relative flex-1 m-2 mb-0">
-                {/* Pitch Background */}
-                <div className="absolute inset-0 bg-gradient-to-b from-green-800 to-green-900 rounded-t-2xl border-x-2 border-t-2 border-white/10 shadow-inner overflow-hidden">
-                  {/* Grass Pattern */}
-                  <div className="absolute inset-0 opacity-10"
-                    style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 20px, #000 20px, #000 40px)' }}>
-                  </div>
-
-                  {/* Pitch Lines */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-16 border-b-2 border-x-2 border-white/20 rounded-b-lg"></div>
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-16 border-t-2 border-x-2 border-white/20 rounded-t-lg"></div>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/20 rounded-full"></div>
-                  <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/20"></div>
-                </div>
+              {/* Pitch — a flat drawn diagram (thin lines, one flat green
+                  wash), never a grass texture. */}
+              <div className="relative flex-1 m-2 mb-0 min-h-[420px]">
+                <PitchGraphic className="absolute inset-0 w-full h-full" />
 
                 {/* Players on Pitch */}
                 <div className="absolute inset-0">
@@ -428,9 +406,9 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               </div>
 
               {/* Bench Section */}
-              <div className="bg-base-200 border-t border-base-content/5 p-4 pb-8 z-10">
-                <div className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 text-center">Substitutes</div>
-                <div className="flex justify-center gap-2 overflow-x-auto pb-2">
+              <div className="bg-surface-alt border-t-2 border-ink/85 p-4 pb-8 z-10">
+                <div className="text-[10px] font-display font-bold text-ink-soft uppercase tracking-[0.16em] mb-3 text-center">Substitutes</div>
+                <div className="flex justify-center gap-2 overflow-x-auto scrollbar-none pb-2">
                   {teamData?.bench?.map((player) => (
                     <PitchPlayer key={player.id} player={player} />
                   ))}
@@ -442,8 +420,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             <div className="p-4 space-y-6 pb-10">
               {/* Starting XI List */}
               <div>
-                <h3 className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 ml-1">Starting XI</h3>
-                <div className="bg-base-200 rounded-xl shadow-sm border border-base-content/5 overflow-hidden">
+                <h3 className="text-[10px] font-display font-bold text-ink-soft uppercase tracking-[0.16em] mb-3 ml-1">Starting XI</h3>
+                <div className="bg-surface-alt rounded-2xl border-2 border-ink/85 shadow-card overflow-hidden">
                   {teamData?.startingXI?.map((player, idx) => (
                     <motion.div
                       key={player.id}
@@ -451,35 +429,35 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
                       className={`
-                        flex items-center justify-between p-3 hover:bg-base-content/5 transition-colors
-                        ${idx !== teamData.startingXI.length - 1 ? 'border-b border-base-content/5' : ''}
+                        flex items-center justify-between gap-2 p-3 hover:bg-surface-sunk transition-colors
+                        ${idx !== teamData.startingXI.length - 1 ? 'border-b border-ink/10' : ''}
                       `}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className={`
-                          w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold
-                          ${player.positionType === 'GK' ? 'bg-yellow-600' :
-                            player.positionType === 'DEF' ? 'bg-blue-600' :
-                              player.positionType === 'MID' ? 'bg-green-600' : 'bg-red-600'}
+                          w-9 h-9 shrink-0 rounded-xl border-2 border-ink/85 flex items-center justify-center text-ink text-[10px] font-display font-bold
+                          ${player.positionType === 'GK' ? 'bg-sunflower' :
+                            player.positionType === 'DEF' ? 'bg-sky' :
+                              player.positionType === 'MID' ? 'bg-mint' : 'bg-coral'}
                         `}>
                           {player.positionType}
                         </div>
-                        <div>
-                          <div className="font-semibold text-base-content text-sm flex items-center gap-1.5">
+                        <div className="min-w-0">
+                          <div className="font-bold text-ink text-sm flex items-center gap-1.5 flex-wrap">
                             {player.name}
-                            {player.isCaptain && <span className="bg-bro-primary text-white text-[9px] px-1 rounded">C</span>}
-                            {player.isViceCaptain && <span className="bg-bro-muted text-white text-[9px] px-1 rounded">V</span>}
-                            {player.wasSubbedIn && <span className="bg-green-600 text-white text-[9px] px-1 rounded">IN</span>}
+                            {player.isCaptain && <span className="bg-ink text-surface text-[9px] px-1.5 rounded-full font-bold">C</span>}
+                            {player.isViceCaptain && <span className="bg-silver text-ink text-[9px] px-1.5 rounded-full font-bold">V</span>}
+                            {player.wasSubbedIn && <span className="bg-pitch text-white text-[9px] px-1.5 rounded-full font-bold">IN</span>}
                           </div>
-                          <div className="text-xs text-bro-muted flex items-center gap-2">
+                          <div className="text-xs font-medium text-ink-soft flex items-center gap-2">
                             <span>{player.team}</span>
-                            {player.isInjured && <span className="text-red-500 font-medium">Injured</span>}
+                            {player.isInjured && <span className="text-coral font-bold">Injured</span>}
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-base-content">{player.points}</div>
-                        <div className="text-[10px] text-bro-muted">pts</div>
+                      <div className="text-right shrink-0">
+                        <div className="font-display font-bold text-ink">{player.points}</div>
+                        <div className="text-[10px] font-bold uppercase text-ink-soft">pts</div>
                       </div>
                     </motion.div>
                   ))}
@@ -488,8 +466,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
               {/* Bench List */}
               <div>
-                <h3 className="text-xs font-bold text-bro-muted uppercase tracking-wider mb-3 ml-1">Bench</h3>
-                <div className="bg-base-200 rounded-xl shadow-sm border border-base-content/5 overflow-hidden opacity-75">
+                <h3 className="text-[10px] font-display font-bold text-ink-soft uppercase tracking-[0.16em] mb-3 ml-1">Bench</h3>
+                <div className="bg-surface-alt rounded-2xl border-2 border-dashed border-ink/40 overflow-hidden">
                   {teamData?.bench?.map((player, idx) => (
                     <motion.div
                       key={player.id}
@@ -497,25 +475,25 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: (idx + 11) * 0.05 }}
                       className={`
-                        flex items-center justify-between p-3 hover:bg-base-content/5 transition-colors
-                        ${idx !== teamData.bench.length - 1 ? 'border-b border-base-content/5' : ''}
+                        flex items-center justify-between gap-2 p-3 hover:bg-surface-sunk transition-colors
+                        ${idx !== teamData.bench.length - 1 ? 'border-b border-ink/10' : ''}
                       `}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-base-content/10 flex items-center justify-center text-bro-muted text-xs font-bold">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 shrink-0 rounded-xl bg-surface-sunk border-2 border-ink/30 flex items-center justify-center text-ink-soft text-[10px] font-display font-bold">
                           {player.positionType}
                         </div>
-                        <div>
-                          <div className="font-semibold text-base-content text-sm flex items-center gap-1.5">
+                        <div className="min-w-0">
+                          <div className="font-bold text-ink text-sm flex items-center gap-1.5">
                             {player.name}
-                            {player.wasSubbedOut && <span className="bg-base-content/20 text-base-content text-[9px] px-1 rounded">OUT</span>}
+                            {player.wasSubbedOut && <span className="bg-ink/15 text-ink text-[9px] px-1.5 rounded-full font-bold">OUT</span>}
                           </div>
-                          <div className="text-xs text-bro-muted">{player.team}</div>
+                          <div className="text-xs font-medium text-ink-soft">{player.team}</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-base-content">{player.points}</div>
-                        <div className="text-[10px] text-bro-muted">pts</div>
+                      <div className="text-right shrink-0">
+                        <div className="font-display font-bold text-ink">{player.points}</div>
+                        <div className="text-[10px] font-bold uppercase text-ink-soft">pts</div>
                       </div>
                     </motion.div>
                   ))}

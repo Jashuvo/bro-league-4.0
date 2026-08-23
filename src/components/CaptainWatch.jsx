@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Crown, Star, Gem } from 'lucide-react';
+import { Star, Gem } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
+import { TrophyCup, Jersey } from './ui/Doodles';
 import fplApi from '../services/fplApi';
 
 // Aggregates every manager's captain pick for a gameweek (and, as a side
@@ -80,7 +81,7 @@ const CaptainWatch = ({ standings = [], gameweek, enabled = true }) => {
       <Card>
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-14 bg-base-content/5 rounded-xl animate-pulse" />
+            <div key={i} className="h-14 bg-surface-sunk rounded-2xl animate-pulse" />
           ))}
         </div>
       </Card>
@@ -98,8 +99,8 @@ const CaptainWatch = ({ standings = [], gameweek, enabled = true }) => {
   return (
     <div className="space-y-4">
       <Card>
-        <h3 className="text-lg font-bold text-base-content flex items-center gap-2 mb-4">
-          <Crown className="text-yellow-400" size={20} />
+        <h3 className="text-lg font-display font-bold text-ink flex items-center gap-2 mb-4">
+          <TrophyCup size={22} />
           Captain Watch — GW {gameweek}
         </h3>
         <div className="space-y-2">
@@ -108,17 +109,19 @@ const CaptainWatch = ({ standings = [], gameweek, enabled = true }) => {
             return (
               <div
                 key={r.id}
-                className={`flex items-center gap-3 p-3 rounded-xl border ${index === 0 ? 'bg-yellow-400/10 border-yellow-400/30' : 'bg-base-content/5 border-base-content/5'
+                className={`flex items-center gap-3 p-3 rounded-2xl border-2 ${index === 0 ? 'bg-sunflower/25 border-ink/85' : 'bg-surface-sunk border-ink/15'
                   }`}
               >
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${index === 0 ? 'bg-yellow-400 text-yellow-900' : 'bg-base-content/10 text-bro-muted'
-                  }`}>
-                  {index + 1}
-                </div>
+                <Jersey
+                  size={32}
+                  number={index + 1}
+                  tone={index === 0 ? 'fill-sunflower' : 'fill-surface-alt'}
+                  className="flex-shrink-0"
+                />
                 <div className="flex-grow min-w-0">
-                  <div className="font-bold text-base-content text-sm truncate">{r.managerName}</div>
-                  <div className="text-xs text-bro-muted truncate flex items-center gap-1.5">
-                    <Star size={10} className="text-yellow-400 fill-yellow-400 flex-shrink-0" />
+                  <div className="font-bold text-ink text-sm truncate">{r.managerName}</div>
+                  <div className="text-xs font-medium text-ink-soft truncate flex items-center gap-1.5">
+                    <Star size={10} className="text-sunflower fill-sunflower flex-shrink-0" />
                     <span className="truncate">{r.captain.name}</span>
                     {isDifferentialCaptain ? (
                       <Badge variant="secondary" className="text-[9px] px-1.5 py-0 flex-shrink-0">Differential</Badge>
@@ -127,7 +130,7 @@ const CaptainWatch = ({ standings = [], gameweek, enabled = true }) => {
                     ) : null}
                   </div>
                 </div>
-                <div className="text-lg font-bold text-bro-primary flex-shrink-0">{r.captain.points}</div>
+                <div className="text-lg font-display font-bold text-violet flex-shrink-0">{r.captain.points}</div>
               </div>
             );
           })}
@@ -136,19 +139,19 @@ const CaptainWatch = ({ standings = [], gameweek, enabled = true }) => {
 
       {differentials.length > 0 && (
         <Card>
-          <h3 className="text-lg font-bold text-base-content flex items-center gap-2 mb-4">
-            <Gem className="text-bro-secondary" size={20} />
+          <h3 className="text-lg font-display font-bold text-ink flex items-center gap-2 mb-4">
+            <Gem className="text-mint" size={20} />
             League Differentials
           </h3>
-          <p className="text-xs text-bro-muted mb-3">Players only one manager in the league owns this gameweek</p>
+          <p className="text-xs font-semibold text-ink-soft mb-3">Players only one manager in the league owns this gameweek</p>
           <div className="flex flex-wrap gap-2">
             {differentials.map((d) => (
               <span
                 key={d.name}
-                className="text-xs bg-bro-secondary/10 text-bro-secondary border border-bro-secondary/20 rounded-full px-3 py-1.5"
+                className="text-xs bg-mint/20 text-ink border-2 border-ink/85 rounded-full px-3 py-1"
               >
                 <span className="font-bold">{d.name}</span>
-                <span className="text-bro-muted"> · {d.owners[0]}</span>
+                <span className="text-ink-soft"> · {d.owners[0]}</span>
               </span>
             ))}
           </div>
