@@ -7,7 +7,9 @@ import Badge from './ui/Badge';
 import Button from './ui/Button';
 import PrizeBreakdown from './PrizeBreakdown';
 import { useExclusion } from '../context/ExclusionContext';
+import RankTrendSparkline from './RankTrendSparkline';
 import { monthlyWindows, prizeStructure } from '../data/leagueData';
+import { computeRankHistory } from '../utils/rankHistory';
 
 const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
   const [expandedRow, setExpandedRow] = useState(null);
@@ -141,6 +143,10 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
       totalPrizesWon: calculateTotalPrizesWon(manager.id || manager.entry)
     }));
   }, [standings, gameweekTable, gameweekInfo]);
+
+  // Cumulative league-position history per manager, derived from
+  // gameweekTable — powers the "Rank Trend" sparkline in each expanded row.
+  const rankHistoryByManager = useMemo(() => computeRankHistory(gameweekTable), [gameweekTable]);
 
   const toggleRowExpansion = (managerId) => {
     setExpandedRow(expandedRow === managerId ? null : managerId);
@@ -378,6 +384,17 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                                 <div className="text-xs text-bro-muted mb-1">Prizes Won</div>
                                 <div className="font-bold text-green-400 text-lg">৳{manager.totalPrizesWon}</div>
                               </div>
+                            </div>
+
+                            {/* Rank Trend */}
+                            <div className="p-3 rounded-lg bg-base-content/5">
+                              <div className="text-xs text-bro-muted mb-1 flex items-center gap-1">
+                                <TrendingUp size={12} /> League Rank Trend
+                              </div>
+                              <RankTrendSparkline
+                                data={rankHistoryByManager[String(manager.id || manager.entry)] || []}
+                                maxRank={standings.length}
+                              />
                             </div>
 
                             {/* Action Buttons */}

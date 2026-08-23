@@ -12,6 +12,7 @@ import MonthlyPrizes from './components/MonthlyPrizes';
 import PrizeDistribution from './components/PrizeDistribution';
 import ChipTracker from './components/ChipTracker';
 import HeadToHead from './components/HeadToHead';
+import SeasonAwards from './components/SeasonAwards';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
 import PWAUpdate from './components/PWAUpdate';
@@ -37,7 +38,8 @@ function AppContent() {
     { id: 'monthly', name: 'Monthly Prizes', icon: '📅', shortName: 'Monthly' },
     { id: 'chips', name: 'Chip Tracker', icon: '🃏', shortName: 'Chips' },
     { id: 'h2h', name: 'Head-to-Head', icon: '⚔️', shortName: 'H2H' },
-    { id: 'prizes', name: 'Prize Distribution', icon: '💰', shortName: 'Prizes' }
+    { id: 'prizes', name: 'Prize Distribution', icon: '💰', shortName: 'Prizes' },
+    { id: 'awards', name: 'Season Awards', icon: '🏅', shortName: 'Awards' }
   ];
 
   const filteredStandings = React.useMemo(() => {
@@ -182,6 +184,7 @@ function AppContent() {
             currentGameweek={gameweekInfo.current}
             loading={loading}
             bootstrap={bootstrap}
+            standings={filteredStandings}
           />
         );
       case 'monthly':
@@ -213,6 +216,14 @@ function AppContent() {
             gameweekInfo={gameweekInfo}
             standings={filteredStandings}
             gameweekTable={filteredGameweekTable}
+          />
+        );
+      case 'awards':
+        return (
+          <SeasonAwards
+            standings={filteredStandings}
+            gameweekTable={filteredGameweekTable}
+            loading={loading}
           />
         );
       default:

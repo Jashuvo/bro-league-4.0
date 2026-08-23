@@ -25,6 +25,12 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap, leagueSta
   const kickoffDeadline = gw1?.deadline_time ? new Date(gw1.deadline_time) : null;
   const isPreSeason = kickoffDeadline ? kickoffDeadline.getTime() > Date.now() : false;
 
+  // A gameweek is "live" once its deadline has passed and FPL hasn't
+  // marked it finished yet — matches are in progress and scores can still
+  // move (bonus points, live updates).
+  const currentGwData = bootstrap?.gameweeks?.find((gw) => gw.id === gameweekInfo?.current);
+  const isLive = !isPreSeason && !!currentGwData && currentGwData.is_current && !currentGwData.finished;
+
   const topPerformers = standings
     ?.filter(m => (m.gameweekPoints || 0) - (m.gameweekHits || 0) > 0)
     ?.sort((a, b) => {
@@ -93,6 +99,7 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap, leagueSta
               label="Current"
               color="text-blue-400"
               bgColor="bg-blue-500/10"
+              live={isLive}
             />
             <StatCard
               icon={Target}
@@ -140,9 +147,11 @@ const CompactHero = ({ standings, gameweekInfo, authStatus, bootstrap, leagueSta
                   <div className="text-bro-muted text-xs uppercase tracking-wider font-bold mb-1">Next Deadline</div>
                   <div className="text-base-content font-bold text-lg">
                     {nextDeadline.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
-                  </div>
-                  <div className="text-bro-primary text-sm font-medium">
+                    {' • '}
                     {nextDeadline.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  <div className="text-bro-primary text-sm font-medium tabular-nums">
+                    <LiveCountdown deadline={nextDeadline} />
                   </div>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-bro-primary/10 flex items-center justify-center">
@@ -203,6 +212,29 @@ const getCountdownParts = (deadline) => {
   };
 };
 
+// Compact "in Xd Yh Zm" ticker used next to a fixed deadline date — updates
+// once a minute, which is plenty for a countdown measured in days/hours.
+const LiveCountdown = ({ deadline }) => {
+  const [parts, setParts] = useState(() => getCountdownParts(deadline));
+
+  useEffect(() => {
+    const tick = () => setParts(getCountdownParts(deadline));
+    tick();
+    const interval = setInterval(tick, 60000);
+    return () => clearInterval(interval);
+  }, [deadline]);
+
+  if (parts.days === 0 && parts.hours === 0 && parts.minutes === 0) {
+    return <span>Deadline passed</span>;
+  }
+
+  if (parts.days > 0) {
+    return <span>in {parts.days}d {parts.hours}h</span>;
+  }
+
+  return <span>in {parts.hours}h {parts.minutes}m</span>;
+};
+
 const KickoffCountdown = ({ deadline }) => {
   const [parts, setParts] = useState(() => getCountdownParts(deadline));
 
@@ -240,8 +272,17 @@ const KickoffCountdown = ({ deadline }) => {
   );
 };
 
-const StatCard = ({ icon: Icon, value, label, color, bgColor }) => (
-  <Card className="flex flex-col items-center justify-center p-4 text-center hover:scale-105 transition-transform duration-300">
+const StatCard = ({ icon: Icon, value, label, color, bgColor, live = false }) => (
+  <Card className="relative flex flex-col items-center justify-center p-4 text-center hover:scale-105 transition-transform duration-300">
+    {live && (
+      <div className="absolute top-2 right-2 flex items-center gap-1">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+        </span>
+        <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider">Live</span>
+      </div>
+    )}
     <div className={`w-10 h-10 rounded-xl ${bgColor} flex items-center justify-center mb-2`}>
       <Icon className={color} size={20} />
     </div>

@@ -9,8 +9,10 @@ import Badge from './ui/Badge';
 import Button from './ui/Button';
 import LivePointsTable from './LivePointsTable';
 import TeamView from './TeamView';
+import WeeklyStory from './WeeklyStory';
+import CaptainWatch from './CaptainWatch';
 
-const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = false, bootstrap = {} }) => {
+const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = false, bootstrap = {}, standings = [] }) => {
   const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek);
   const [expandedRow, setExpandedRow] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -137,6 +139,7 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
       .slice(0, 5);
   }, [gameweekTable]);
 
+
   const getPositionIcon = (position) => {
     if (position === 1) return <Crown className="text-yellow-400 fill-yellow-400" size={20} />;
     if (position === 2) return <Medal className="text-gray-300 fill-gray-300" size={20} />;
@@ -245,6 +248,17 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
             <ChevronRight size={24} />
           </button>
         </div>
+
+        {/* This Week's Story */}
+        <WeeklyStory gameweekTable={gameweekTable} gameweek={selectedGameweek} />
+
+        {/* Captain Watch + League Differentials — no picks exist yet for
+            an upcoming gameweek, so only fetch once it's underway. */}
+        <CaptainWatch
+          standings={standings}
+          gameweek={selectedGameweek}
+          enabled={selectedGameweekStatus === 'current' || selectedGameweekStatus === 'completed'}
+        />
 
         {/* Transfer Activity Leaderboard */}
         {transferLeaderboard.length > 0 && (
