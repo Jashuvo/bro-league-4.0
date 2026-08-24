@@ -4,15 +4,11 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ExclusionProvider, useExclusion } from './context/ExclusionContext';
 
 import Layout from './components/Layout';
-import CompactHero from './components/CompactHero';
-import TabNavigation from './components/TabNavigation';
+import CommandBar from './components/CommandBar';
 import LeagueTable from './components/LeagueTable';
 import GameweekTable from './components/GameweekTable';
-import MonthlyPrizes from './components/MonthlyPrizes';
-import PrizeDistribution from './components/PrizeDistribution';
-import ChipTracker from './components/ChipTracker';
-import HeadToHead from './components/HeadToHead';
-import SeasonAwards from './components/SeasonAwards';
+import PrizesHub from './components/PrizesHub';
+import MoreHub from './components/MoreHub';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
 import PWAUpdate from './components/PWAUpdate';
@@ -30,19 +26,16 @@ function AppContent() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [authStatus, setAuthStatus] = useState({ authenticated: false, message: '' });
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [performanceInfo, setPerformanceInfo] = useState(null);
+  // Load timing is logged rather than held in state: the old CompactHero was
+  // the only thing that ever rendered it, and the CommandBar that replaced it
+  // shows the live/offline pill and last-sync time instead.
+  const [, setPerformanceInfo] = useState(null);
 
-  // Tab identity only — the hand-drawn icon for each id lives with the rest
-  // of the illustration set in TabNavigation/Doodles, not in app state.
-  const tabs = [
-    { id: 'standings', name: 'League Table', shortName: 'Table' },
-    { id: 'gameweek', name: 'Weekly Results', shortName: 'Results' },
-    { id: 'monthly', name: 'Monthly Prizes', shortName: 'Monthly' },
-    { id: 'chips', name: 'Chip Tracker', shortName: 'Chips' },
-    { id: 'h2h', name: 'Head-to-Head', shortName: 'H2H' },
-    { id: 'prizes', name: 'Prize Distribution', shortName: 'Prizes' },
-    { id: 'awards', name: 'Season Awards', shortName: 'Awards' }
-  ];
+  // The app has four destinations, defined once in AppNav.DESTINATIONS (which
+  // both the desktop sidebar and the mobile bottom bar render from). `activeTab`
+  // holds one of those ids; the seven-entry tab array that used to live here is
+  // gone — Monthly Prizes + Prize Distribution now sit behind `prizes`, and Chip
+  // Tracker + Head-to-Head + Season Awards behind `more`.
 
   const filteredStandings = React.useMemo(() => {
     return standings.filter(manager => !excludedTeamIds.includes(Number(manager.id || manager.entry)));
@@ -179,7 +172,7 @@ function AppContent() {
             gameweekTable={filteredGameweekTable}
           />
         );
-      case 'gameweek':
+      case 'gameweeks':
         return (
           <GameweekTable
             gameweekTable={filteredGameweekTable}
@@ -189,40 +182,18 @@ function AppContent() {
             standings={filteredStandings}
           />
         );
-      case 'monthly':
-        return (
-          <MonthlyPrizes
-            gameweekTable={filteredGameweekTable}
-            gameweekInfo={gameweekInfo}
-            loading={loading}
-          />
-        );
-      case 'chips':
-        return (
-          <ChipTracker
-            standings={filteredStandings}
-            loading={loading}
-          />
-        );
-      case 'h2h':
-        return (
-          <HeadToHead
-            standings={filteredStandings}
-            gameweekTable={filteredGameweekTable}
-            loading={loading}
-          />
-        );
       case 'prizes':
         return (
-          <PrizeDistribution
-            gameweekInfo={gameweekInfo}
-            standings={filteredStandings}
+          <PrizesHub
             gameweekTable={filteredGameweekTable}
+            standings={filteredStandings}
+            gameweekInfo={gameweekInfo}
+            loading={loading}
           />
         );
-      case 'awards':
+      case 'more':
         return (
-          <SeasonAwards
+          <MoreHub
             standings={filteredStandings}
             gameweekTable={filteredGameweekTable}
             loading={loading}
@@ -239,41 +210,37 @@ function AppContent() {
 
   return (
     <Layout
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
       authStatus={authStatus}
-      isRefreshing={isRefreshing}
-      onRefresh={handleRefresh}
-      performanceInfo={performanceInfo}
       lastUpdated={lastUpdated}
       gameweekInfo={gameweekInfo}
       standings={filteredStandings}
       bootstrap={bootstrap}
       leagueStats={leagueStats}
     >
-      <CompactHero
+      {/* One condensed strip above whichever destination is showing, in place
+          of the full-height hero that every tab used to sit below. */}
+      <CommandBar
+        activeTab={activeTab}
         standings={filteredStandings}
         gameweekInfo={gameweekInfo}
         authStatus={authStatus}
-        leagueStats={filteredLeagueStats}
         bootstrap={bootstrap}
+        leagueStats={filteredLeagueStats}
+        isRefreshing={isRefreshing}
+        onRefresh={handleRefresh}
       />
 
-      <div className="container mx-auto px-4 pb-20">
-        <TabNavigation
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-
-        <div className="mt-6">
-          {error && (
-            <ErrorMessage
-              message={error}
-              onRetry={() => loadData(true)}
-            />
-          )}
-          <div className="animate-fade-in">
-            {renderTabContent()}
-          </div>
+      <div className="max-w-[1500px] mx-auto px-4 lg:px-6 pt-5 pb-28 lg:pb-14">
+        {error && (
+          <ErrorMessage
+            message={error}
+            onRetry={() => loadData(true)}
+          />
+        )}
+        <div className="animate-fade-in">
+          {renderTabContent()}
         </div>
       </div>
     </Layout>

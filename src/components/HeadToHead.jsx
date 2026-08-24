@@ -15,7 +15,9 @@ const getNetPoints = (manager) => {
   return raw - cost;
 };
 
-const HeadToHead = ({ standings = [], gameweekTable = [], loading = false }) => {
+// `embedded` is set when this renders inside the More destination, whose own
+// SectionBanner already names the section — see MoreHub.jsx.
+const HeadToHead = ({ standings = [], gameweekTable = [], loading = false, embedded = false }) => {
   const [managerAId, setManagerAId] = useState(standings[0]?.id ?? standings[0]?.entry ?? null);
   const [managerBId, setManagerBId] = useState(standings[1]?.id ?? standings[1]?.entry ?? null);
 
@@ -68,12 +70,14 @@ const HeadToHead = ({ standings = [], gameweekTable = [], loading = false }) => 
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <SectionBanner
-        tone="coral"
-        art={<CornerFlags size={34} />}
-        title="Head-to-Head"
-        subtitle="Bragging rights, gameweek by gameweek"
-      />
+      {!embedded && (
+        <SectionBanner
+          tone="coral"
+          art={<CornerFlags size={34} />}
+          title="Head-to-Head"
+          subtitle="Bragging rights, gameweek by gameweek"
+        />
+      )}
 
       <Card>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-3">

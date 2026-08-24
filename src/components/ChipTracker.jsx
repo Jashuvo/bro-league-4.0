@@ -17,7 +17,9 @@ const CHIP_TYPES = [
   { id: '3xc', label: 'Triple Captain', emoji: '👑' }
 ];
 
-const ChipTracker = ({ standings = [], loading = false }) => {
+// `embedded` is set when this renders inside the More destination, whose own
+// SectionBanner already names the section — see MoreHub.jsx.
+const ChipTracker = ({ standings = [], loading = false, embedded = false }) => {
   const rows = useMemo(() => {
     return standings
       .map((manager) => {
@@ -62,12 +64,14 @@ const ChipTracker = ({ standings = [], loading = false }) => {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      <SectionBanner
-        tone="bubblegum"
-        art={<ChipCard size={34} />}
-        title="Chip Tracker"
-        subtitle="Who's holding their wildcard — and who's already gone for it"
-      />
+      {!embedded && (
+        <SectionBanner
+          tone="bubblegum"
+          art={<ChipCard size={34} />}
+          title="Chip Tracker"
+          subtitle="Who's holding their wildcard — and who's already gone for it"
+        />
+      )}
 
       {/* Deliberately restrained: this is a dense reference table, so colour
           is carried by the chip pills alone rather than the whole grid. */}

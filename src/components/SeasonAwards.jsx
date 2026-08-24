@@ -10,7 +10,9 @@ import { computeRankHistory } from '../utils/rankHistory';
 // which the app already has in state by the time this tab is visible — no
 // extra fetching. Superlatives fill in progressively as more gameweeks
 // complete; the season leader/wooden spoon always show once standings load.
-const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false }) => {
+// `embedded` is set when this renders inside the More destination, whose own
+// SectionBanner already names the section — see MoreHub.jsx.
+const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, embedded = false }) => {
   const awards = useMemo(() => {
     if (standings.length === 0) return [];
 
@@ -149,12 +151,14 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false }) =
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <SectionBanner
-        tone="sunflower"
-        art={<Medal size={34} />}
-        title="Season Awards"
-        subtitle="The superlatives nobody asked for, updated every gameweek"
-      />
+      {!embedded && (
+        <SectionBanner
+          tone="sunflower"
+          art={<Medal size={34} />}
+          title="Season Awards"
+          subtitle="The superlatives nobody asked for, updated every gameweek"
+        />
+      )}
 
       {awards.length === 0 ? (
         <div className="p-12 text-center">

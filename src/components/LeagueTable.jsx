@@ -170,23 +170,21 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
         animate={{ opacity: 1 }}
         className="space-y-6"
       >
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <span className="w-14 h-14 shrink-0 rounded-2xl bg-sunflower border-2 border-ink/85 shadow-pop-sm flex items-center justify-center">
-              <StandingsDoodle size={30} />
-            </span>
-            <div>
-              <h2 className="text-2xl font-display font-bold text-ink">League Standings</h2>
-              <p className="text-ink-soft text-sm font-semibold">Gameweek {gameweekInfo?.current || 1} • {enhancedStandings.length} Managers</p>
-            </div>
-          </div>
+        {/* Header row. The destination's name, headcount and gameweek are
+            already in the CommandBar directly above, so this carries only what
+            that strip doesn't: the two league-wide totals and the exclusion
+            control. */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-ink-soft">
+            <StandingsDoodle size={20} />
+            Gameweek {gameweekInfo?.current || 1} • {enhancedStandings.length} managers
+          </span>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {excludedTeamIds.length > 0 && (
               <button
                 onClick={() => setShowExclusionSettings(!showExclusionSettings)}
-                className={`px-4 py-2 text-sm font-bold rounded-2xl border-2 border-ink/85 btn-pop flex items-center justify-center gap-2 ${showExclusionSettings
+                className={`h-10 px-3 text-sm font-bold rounded-2xl border-2 border-ink/85 btn-pop flex items-center justify-center gap-2 ${showExclusionSettings
                   ? 'bg-coral text-white'
                   : 'bg-coral/15 text-coral'
                   }`}
@@ -197,16 +195,16 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
             )}
 
             {leagueStats && (
-              <div className="flex gap-3">
-                <div className="flex-1 px-4 py-2 rounded-2xl bg-surface-alt border-2 border-ink/85 shadow-card whitespace-nowrap">
-                  <div className="text-[10px] text-ink-soft font-bold uppercase tracking-[0.14em]">Avg Total</div>
-                  <div className="text-lg font-display font-bold text-ink">{leagueStats.averageScore || '--'}</div>
-                </div>
-                <div className="flex-1 px-4 py-2 rounded-2xl bg-mint/20 border-2 border-ink/85 shadow-card whitespace-nowrap">
-                  <div className="text-[10px] text-ink-soft font-bold uppercase tracking-[0.14em]">Highest</div>
-                  <div className="text-lg font-display font-bold text-pitch">{leagueStats.highestTotal || '--'}</div>
-                </div>
-              </div>
+              <>
+                <span className="h-10 px-3 rounded-2xl bg-surface-alt border-2 border-ink/85 shadow-card flex flex-col justify-center whitespace-nowrap">
+                  <span className="text-[9px] text-ink-soft font-bold uppercase tracking-[0.14em] leading-none">Avg Total</span>
+                  <span className="font-display font-bold text-ink leading-none mt-0.5 tabular-nums">{leagueStats.averageScore || '--'}</span>
+                </span>
+                <span className="h-10 px-3 rounded-2xl bg-mint/20 border-2 border-ink/85 shadow-card flex flex-col justify-center whitespace-nowrap">
+                  <span className="text-[9px] text-ink-soft font-bold uppercase tracking-[0.14em] leading-none">Highest</span>
+                  <span className="font-display font-bold text-pitch leading-none mt-0.5 tabular-nums">{leagueStats.highestTotal || '--'}</span>
+                </span>
+              </>
             )}
           </div>
         </div>
@@ -257,92 +255,108 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
           )}
         </AnimatePresence>
 
-        {/* Table/List */}
-        <div className="space-y-3">
-          {
-            enhancedStandings.map((manager, index) => {
-              const position = index + 1;
-              const isExpanded = expandedRow === (manager.id || manager.entry);
+        {/* Table/List — one card holding one tight row per manager, rather
+            than one full card per manager separated by gaps. A twenty-manager
+            league now fits a screen instead of scrolling for three. */}
+        <Card className="p-0 overflow-hidden">
+          {/* Column headings, desktop only — the mobile row is self-evident. */}
+          <div className="hidden md:flex items-center gap-3 px-3 py-2 bg-surface-sunk border-b-2 border-ink/85 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-soft">
+            <span className="w-8 shrink-0 text-center">#</span>
+            <span className="flex-grow">Manager</span>
+            <span className="w-16 text-right shrink-0">Won</span>
+            <span className="w-14 text-right shrink-0">GW</span>
+            <span className="w-16 text-right shrink-0">Total</span>
+            <span className="w-5 shrink-0" />
+          </div>
 
-              return (
-                <motion.div
-                  key={manager.id || manager.entry}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card
-                    tone={position === 1 ? 'sunflower' : position === 2 ? 'mint' : position === 3 ? 'coral' : 'paper'}
-                    className={`
-                    p-0 overflow-hidden transition-colors duration-300
-                    ${isExpanded ? 'bg-surface-sunk' : 'hover:bg-surface-sunk/60'}
-                  `}
+          <div className="divide-y-2 divide-dashed divide-ink/10">
+            {
+              enhancedStandings.map((manager, index) => {
+                const position = index + 1;
+                const isExpanded = expandedRow === (manager.id || manager.entry);
+                const gwNet = (manager.gameweekPoints || manager.event_total || 0) - (manager.gameweekHits || 0);
+
+                return (
+                  <div
+                    key={manager.id || manager.entry}
+                    className={`transition-colors duration-200 ${isExpanded
+                      ? 'bg-surface-sunk'
+                      : position === 1
+                        ? 'bg-sunflower/25 hover:bg-sunflower/35'
+                        : position === 2
+                          ? 'bg-mint/20 hover:bg-mint/30'
+                          : position === 3
+                            ? 'bg-coral/15 hover:bg-coral/25'
+                            : 'hover:bg-surface-sunk/60'
+                      }`}
                   >
                     <div
-                      className="p-3 md:p-4 flex items-center gap-3 md:gap-4 cursor-pointer"
+                      className="px-3 py-2 flex items-center gap-3 cursor-pointer"
                       onClick={() => toggleRowExpansion(manager.id || manager.entry)}
                     >
                       {/* Rank — shirt-number badge */}
-                      <RankBadge rank={position} size={position <= 3 ? 44 : 38} className="shrink-0" />
+                      <RankBadge rank={position} size={32} className="shrink-0" />
 
-                      {/* Manager Details */}
+                      {/* Manager + team, stacked tight on one line's worth of space */}
                       <div className="flex-grow min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-display font-bold text-lg truncate text-ink">
+                        <div className="flex items-center gap-1.5">
+                          <h3 className="font-display font-bold text-[15px] leading-tight truncate text-ink">
                             {manager.managerName || manager.player_name}
                           </h3>
                           {manager.lastRank && manager.lastRank !== position && (
                             manager.lastRank > position
-                              ? <TrendingUp size={16} className="text-pitch shrink-0" />
-                              : <TrendingDown size={16} className="text-coral shrink-0" />
+                              ? <TrendingUp size={14} className="text-pitch shrink-0" />
+                              : <TrendingDown size={14} className="text-coral shrink-0" />
                           )}
                         </div>
-                        <p className="text-ink-soft text-sm font-medium truncate">{manager.teamName || manager.entry_name}</p>
+                        <p className="text-ink-soft text-[11px] font-medium leading-tight truncate">
+                          {manager.teamName || manager.entry_name}
+                        </p>
                       </div>
 
-                      {/* Points (Desktop) */}
-                      <div className="hidden md:flex items-center gap-6 text-right">
+                      {/* Prizes won — desktop column, folded into the mobile
+                          stack below to keep the row to one line there. */}
+                      <div className="hidden md:flex w-16 shrink-0 items-center justify-end gap-1 font-display font-bold text-pitch text-sm tabular-nums">
                         {manager.totalPrizesWon > 0 && (
-                          <div className="flex flex-col items-end">
-                            <div className="text-[10px] text-ink-soft font-bold uppercase tracking-wider">Won</div>
-                            <div className="font-display font-bold text-pitch text-lg flex items-center gap-1">
-                              <Coins size={16} /> ৳{manager.totalPrizesWon}
-                            </div>
-                          </div>
+                          <>
+                            <Coins size={14} />৳{manager.totalPrizesWon}
+                          </>
                         )}
-                        <div>
-                          <div className="text-[10px] text-ink-soft font-bold uppercase tracking-wider">GW</div>
-                          <div className="font-display font-bold text-ink text-lg">
-                            {(manager.gameweekPoints || manager.event_total || 0) - (manager.gameweekHits || 0)}
-                            {(manager.gameweekHits || 0) > 0 && (
-                              <span className="text-xs text-coral ml-1">(-{manager.gameweekHits})</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="px-3 py-1 rounded-2xl bg-violet/15 border-2 border-violet/60">
-                          <div className="text-[10px] text-ink-soft font-bold uppercase tracking-wider">Total</div>
-                          <div className="font-display font-bold text-violet text-xl leading-tight">{manager.totalPoints || manager.total || 0}</div>
-                        </div>
                       </div>
 
-                      {/* Points (Mobile) */}
-                      <div className="md:hidden text-right shrink-0">
-                        <div className="font-display font-bold text-violet text-lg leading-tight">{manager.totalPoints || manager.total || 0}</div>
-                        <div className="text-xs font-bold text-ink-soft">
-                          {(manager.gameweekPoints || manager.event_total || 0) - (manager.gameweekHits || 0)}
+                      {/* GW points */}
+                      <div className="hidden md:block w-14 shrink-0 text-right font-display font-bold text-ink text-sm tabular-nums">
+                        {gwNet}
+                        {(manager.gameweekHits || 0) > 0 && (
+                          <span className="text-[11px] text-coral ml-0.5">(-{manager.gameweekHits})</span>
+                        )}
+                      </div>
+
+                      {/* Total points */}
+                      <div className="hidden md:block w-16 shrink-0 text-right font-display font-bold text-violet text-lg leading-none tabular-nums">
+                        {manager.totalPoints || manager.total || 0}
+                      </div>
+
+                      {/* Mobile: GW / total / winnings share one right-hand column */}
+                      <div className="md:hidden text-right shrink-0 leading-tight">
+                        <div className="font-display font-bold text-violet text-base leading-none tabular-nums">
+                          {manager.totalPoints || manager.total || 0}
+                        </div>
+                        <div className="text-[11px] font-bold text-ink-soft tabular-nums">
+                          {gwNet}
                           {(manager.gameweekHits || 0) > 0 && (
-                            <span className="text-coral ml-1">(-{manager.gameweekHits})</span>
+                            <span className="text-coral ml-0.5">(-{manager.gameweekHits})</span>
                           )}
                           <span className="ml-1">GW</span>
+                          {manager.totalPrizesWon > 0 && (
+                            <span className="text-pitch ml-1.5">৳{manager.totalPrizesWon}</span>
+                          )}
                         </div>
-                        {manager.totalPrizesWon > 0 && (
-                          <div className="text-xs font-bold text-pitch mt-0.5">৳{manager.totalPrizesWon}</div>
-                        )}
                       </div>
 
                       <ChevronRight
                         className={`text-ink-soft shrink-0 transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
-                        size={20}
+                        size={18}
                       />
                     </div>
 
@@ -433,12 +447,12 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </Card>
-                </motion.div>
-              );
-            })
-          }
-        </div>
+                  </div>
+                );
+              })
+            }
+          </div>
+        </Card>
       </motion.div>
 
       {selectedTeam && (

@@ -7,7 +7,12 @@ import SectionBanner from './ui/SectionBanner';
 import { CalendarDoodle, RankBadge, Coins } from './ui/Doodles';
 import { monthlyWindows, prizeStructure } from '../data/leagueData';
 
-const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false }) => {
+// `embedded` is set when this renders inside the Prizes destination, which
+// already carries the pool-level SectionBanner. In that mode the full banner
+// would be a second, redundant page header, so the month context it holds
+// (name, gameweek window, status, stats) collapses into one compact strip —
+// the same "no banner of my own" contract WeeklyPrizes/SeasonPrizes follow.
+const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false, embedded = false }) => {
   const currentGW = gameweekInfo.current || 1;
   const [expandedRow, setExpandedRow] = useState(null);
 
@@ -119,28 +124,73 @@ const MonthlyPrizes = ({ gameweekTable = [], gameweekInfo = {}, loading = false 
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      {/* Header Banner */}
-      <SectionBanner
-        tone="mint"
-        art={<CalendarDoodle size={34} />}
-        title="Monthly Competitions"
-        subtitle={`${selectedMonthData?.name} • GW ${selectedMonthData?.gameweeks[0]}-${selectedMonthData?.gameweeks[selectedMonthData.gameweeks.length - 1]}`}
-        stats={monthStats.highest ? [
-          { value: monthStats.highest, label: 'Highest Total' },
-          { value: monthStats.average, label: 'Average' },
-          { value: `৳${monthStats.totalPrizes}`, label: 'Total Prizes' },
-          { value: monthStats.participants, label: 'Participants' },
-        ] : []}
-        actions={
+      {/* Header — full banner standalone, compact strip when embedded */}
+      {embedded ? (
+        <div className="rounded-3xl border-2 border-ink/85 bg-surface-alt shadow-card px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-3">
+          <span className="w-11 h-11 shrink-0 rounded-2xl bg-mint border-2 border-ink/85 flex items-center justify-center">
+            <CalendarDoodle size={24} />
+          </span>
+          <div className="min-w-0">
+            <h3 className="font-display font-bold text-lg text-ink leading-tight truncate">
+              {selectedMonthData?.name}
+            </h3>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-soft">
+              GW {selectedMonthData?.gameweeks[0]}-{selectedMonthData?.gameweeks[selectedMonthData.gameweeks.length - 1]}
+            </p>
+          </div>
+
           <Badge
             variant={monthStatus === 'completed' ? 'success' : monthStatus === 'active' ? 'gold' : 'default'}
-            className="px-3 py-1.5 text-sm"
+            className="shrink-0"
           >
             <Gift size={14} />
             {monthStatus === 'completed' ? 'Complete' : monthStatus === 'active' ? 'Active' : 'Upcoming'}
           </Badge>
-        }
-      />
+
+          {monthStats.highest && (
+            <div className="flex items-center gap-2 ml-auto overflow-x-auto scrollbar-none">
+              {[
+                { value: monthStats.highest, label: 'Highest' },
+                { value: monthStats.average, label: 'Average' },
+                { value: `৳${monthStats.totalPrizes}`, label: 'Prizes' },
+                { value: monthStats.participants, label: 'Bros' },
+              ].map((stat) => (
+                <span
+                  key={stat.label}
+                  className="shrink-0 rounded-2xl border-2 border-ink/15 bg-surface-sunk px-3 py-1.5 text-center"
+                >
+                  <span className="block font-display font-bold text-ink leading-none tabular-nums">{stat.value}</span>
+                  <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-ink-soft mt-0.5">
+                    {stat.label}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <SectionBanner
+          tone="mint"
+          art={<CalendarDoodle size={34} />}
+          title="Monthly Competitions"
+          subtitle={`${selectedMonthData?.name} • GW ${selectedMonthData?.gameweeks[0]}-${selectedMonthData?.gameweeks[selectedMonthData.gameweeks.length - 1]}`}
+          stats={monthStats.highest ? [
+            { value: monthStats.highest, label: 'Highest Total' },
+            { value: monthStats.average, label: 'Average' },
+            { value: `৳${monthStats.totalPrizes}`, label: 'Total Prizes' },
+            { value: monthStats.participants, label: 'Participants' },
+          ] : []}
+          actions={
+            <Badge
+              variant={monthStatus === 'completed' ? 'success' : monthStatus === 'active' ? 'gold' : 'default'}
+              className="px-3 py-1.5 text-sm"
+            >
+              <Gift size={14} />
+              {monthStatus === 'completed' ? 'Complete' : monthStatus === 'active' ? 'Active' : 'Upcoming'}
+            </Badge>
+          }
+        />
+      )}
 
       {/* Month Navigation */}
       <div className="overflow-x-auto scrollbar-none pb-2">

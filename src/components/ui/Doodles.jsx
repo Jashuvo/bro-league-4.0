@@ -199,6 +199,17 @@ export const Standings = ({ className = '', size = 24 }) => (
   </svg>
 );
 
+// The "More" destination in the primary nav — a little grid of the other
+// things (chips, head-to-head, awards) that live behind one door.
+export const MoreDots = ({ className = '', size = 24 }) => (
+  <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden="true" className={className}>
+    <rect x="5" y="5" width="16" height="16" rx="4" className="fill-bubblegum stroke-ink" {...stroke} />
+    <rect x="27" y="5" width="16" height="16" rx="4" className="fill-sky stroke-ink" {...stroke} />
+    <rect x="5" y="27" width="16" height="16" rx="4" className="fill-sunflower stroke-ink" {...stroke} />
+    <circle cx="35" cy="35" r="8" className="fill-mint stroke-ink" {...stroke} />
+  </svg>
+);
+
 /* ─────────────────────────── Composite pieces ──────────────────────────── */
 
 // Shirt-number-style rank badge. Top three get a metal tone; everyone else
