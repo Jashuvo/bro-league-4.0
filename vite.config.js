@@ -17,11 +17,11 @@ export default defineConfig({
         name: 'BRO League 5',
         short_name: 'BRO League',
         description: 'Fantasy Premier League competition with live standings, prizes, and stats',
-        // Matches tailwind.config.js's `bro-primary` — the color that
-        // actually drives the UI via daisyUI, not the leftover violet this
-        // used to disagree with.
-        theme_color: '#4f46e5',
-        background_color: '#ffffff',
+        // Matches tailwind.config.js's light-theme `sunflower`/`surface` —
+        // the gold badge chip and cream page ground the Memphis x Football
+        // redesign actually uses, not the old indigo/white pairing.
+        theme_color: '#efcb7c',
+        background_color: '#fff4e6',
         display: 'standalone',
         scope: '/',
         start_url: '/',
@@ -35,6 +35,12 @@ export default defineConfig({
             src: 'manifest-icon-512.png',
             sizes: '512x512',
             type: 'image/png'
+          },
+          {
+            src: 'manifest-icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       },
