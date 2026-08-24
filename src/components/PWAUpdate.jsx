@@ -4,6 +4,20 @@ import { useState, useEffect, useRef } from 'react'
 import { registerSW } from 'virtual:pwa-register'
 import { Download, X, Wifi, WifiOff, RefreshCw } from 'lucide-react'
 
+// Where a floating banner is allowed to sit.
+//
+// Both banners used to be `fixed bottom-4 left-4 right-4 ... mx-auto max-w-md`,
+// which put them dead centre at the bottom of the viewport: on a phone that is
+// exactly where the docked bottom nav lives (AppNav's BottomNav, ~56px plus the
+// safe-area inset), and on a desktop it parks a card over the middle of
+// whatever table is being read. Now it clears the nav on mobile and tucks into
+// the bottom-right corner from `lg` up, where nothing primary lives.
+const BANNER_POSITION =
+  'fixed z-40 left-4 right-4 bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] mx-auto max-w-md ' +
+  'lg:left-auto lg:right-6 lg:bottom-6 lg:mx-0 lg:w-[24rem] lg:max-w-none'
+
+const INSTALL_DISMISSED_KEY = 'pwaInstallDismissed'
+
 export default function PWAUpdate() {
   const [showUpdateBanner, setShowUpdateBanner] = useState(false)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
@@ -24,11 +38,18 @@ export default function PWAUpdate() {
   }, [])
 
   useEffect(() => {
-    // Handle install prompt
+    // Handle install prompt. A dismissal now sticks — the banner reappearing
+    // on every single load is what turned it from an offer into an obstacle.
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault()
       setDeferredPrompt(e)
-      setShowInstallPrompt(true)
+      let dismissed = false
+      try {
+        dismissed = localStorage.getItem(INSTALL_DISMISSED_KEY) === '1'
+      } catch {
+        dismissed = false
+      }
+      if (!dismissed) setShowInstallPrompt(true)
     }
 
     // Handle online/offline status. The "back online" banner should only
@@ -75,6 +96,20 @@ export default function PWAUpdate() {
     updateSWRef.current?.(true)
   }
 
+  const handleInstallDismiss = () => {
+    setShowInstallPrompt(false)
+    try {
+      localStorage.setItem(INSTALL_DISMISSED_KEY, '1')
+    } catch {
+      // Private-mode / storage-disabled: the banner just comes back next
+      // load, which is the old behaviour and no worse.
+    }
+  }
+
+  // Only ever one floating card at a time. An available update is the more
+  // urgent of the two, so it wins the slot.
+  const installVisible = showInstallPrompt && !showUpdateBanner
+
   return (
     <>
       {/* Offline Indicator */}
@@ -94,8 +129,8 @@ export default function PWAUpdate() {
       )}
 
       {/* Install App Banner */}
-      {showInstallPrompt && (
-        <div className="fixed bottom-4 left-4 right-4 bg-violet text-white rounded-2xl border-2 border-ink/85 shadow-pop p-4 z-40 mx-auto max-w-md">
+      {installVisible && (
+        <div className={`${BANNER_POSITION} bg-violet text-white rounded-2xl border-2 border-ink/85 p-4`}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 shrink-0 bg-white/20 border-2 border-white/40 rounded-xl flex items-center justify-center">
@@ -114,7 +149,7 @@ export default function PWAUpdate() {
                 Install
               </button>
               <button
-                onClick={() => setShowInstallPrompt(false)}
+                onClick={handleInstallDismiss}
                 aria-label="Dismiss"
                 className="text-white/80 hover:text-white transition-colors"
               >
@@ -127,7 +162,7 @@ export default function PWAUpdate() {
 
       {/* Update Available Banner */}
       {showUpdateBanner && (
-        <div className="fixed bottom-4 left-4 right-4 bg-mint text-ink rounded-2xl border-2 border-ink/85 shadow-pop p-4 z-40 mx-auto max-w-md">
+        <div className={`${BANNER_POSITION} bg-mint text-ink rounded-2xl border-2 border-ink/85 p-4`}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 shrink-0 bg-surface-alt border-2 border-ink/85 rounded-xl flex items-center justify-center">

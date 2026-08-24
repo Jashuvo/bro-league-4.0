@@ -242,12 +242,15 @@ export const Bench = ({ className = '', size = 24 }) => (
 
 // Shirt-number-style rank badge. Top three get a metal tone; everyone else
 // gets the plain league jersey with their position printed on it.
+// The artboards fill this three ways, not four: ochre for the leader, sage
+// for the rest of the podium, warm pale paper for everyone else — "the rank
+// IS the number on the back". The old silver/bronze split spent two more
+// muted greys on a badge that reads better as a clean podium/not-podium cut.
 export const RankBadge = ({ rank, size = 40, className = '' }) => {
   const tone =
     rank === 1 ? 'fill-sunflower' :
-      rank === 2 ? 'fill-silver' :
-        rank === 3 ? 'fill-tangerine' :
-          'fill-surface-sunk';
+      rank <= 3 ? 'fill-mint' :
+        'fill-tile-sand';
 
   return (
     <span className={`relative inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
@@ -323,6 +326,61 @@ export const CheerScene = ({ className = '' }) => (
   </svg>
 );
 
+// The Standings vignette — a presenter showing the table at an easel, from
+// the FusionDesktop artboard. Same construction as CheerScene: an amorphous
+// pastel blob behind, a stipple cluster at its edge, flat token fills and one
+// thin ink outline on every drawn shape. The bar chart on the easel is the
+// league table itself, which is why this scene belongs to this destination
+// and nothing else.
+export const StandingsScene = ({ className = '' }) => (
+  <svg viewBox="0 0 300 212" aria-hidden="true" className={className}>
+    <path
+      d="M154 8c42-6 84 14 96 50 12 36-4 82-38 106-34 24-88 24-118-2C64 136 44 96 56 60 68 26 112 14 154 8z"
+      className="fill-tile-sky"
+    />
+    <g className="fill-ink" opacity="0.28">
+      <circle cx="44" cy="42" r="2" />
+      <circle cx="54" cy="52" r="2" />
+      <circle cx="40" cy="58" r="2" />
+      <circle cx="50" cy="68" r="2" />
+      <circle cx="36" cy="74" r="2" />
+    </g>
+
+    {/* potted plant prop */}
+    <path d="M26 158q5-18 0-28M26 142q-10-5-11-16M26 148q10-4 12-14" className="stroke-ink" fill="none" strokeWidth="2" strokeLinecap="round" />
+    <path d="M18 158h16l-2 14H20z" className="fill-tangerine stroke-ink" strokeWidth="2" strokeLinejoin="round" />
+
+    {/* easel carrying the standings chart */}
+    <path d="M180 128 166 186M258 128l14 58M219 128v58" className="stroke-ink" fill="none" strokeWidth="2.6" strokeLinecap="round" />
+    <rect x="166" y="50" width="106" height="78" rx="5" className="fill-tile-sand stroke-ink" strokeWidth="2.2" />
+    <path d="M176 118h86" className="stroke-ink" fill="none" strokeWidth="1.8" strokeLinecap="round" />
+    <rect x="182" y="96" width="18" height="22" className="fill-sky stroke-ink" strokeWidth="1.8" />
+    <rect x="208" y="82" width="18" height="36" className="fill-mint stroke-ink" strokeWidth="1.8" />
+    <rect x="234" y="68" width="18" height="50" className="fill-sunflower stroke-ink" strokeWidth="1.8" />
+
+    {/* the presenter */}
+    <path d="M104 124v42M126 124v42" className="stroke-ink" fill="none" strokeWidth="15" strokeLinecap="round" />
+    <path d="M104 124v42M126 124v42" className="stroke-silver" fill="none" strokeWidth="11" strokeLinecap="round" />
+    <path d="M94 170h22v8H94zM118 170h22v8h-22z" className="fill-ink stroke-ink" strokeWidth="2" strokeLinejoin="round" />
+    <path d="M94 86h44v42H94z" className="fill-coral stroke-ink" strokeWidth="2.2" strokeLinejoin="round" />
+    <path d="M136 92q20-2 30-14" className="stroke-ink" fill="none" strokeWidth="12" strokeLinecap="round" />
+    <path d="M136 92q20-2 30-14" className="stroke-tangerine" fill="none" strokeWidth="8" strokeLinecap="round" />
+    <path d="M96 92q-10 12-8 26" className="stroke-ink" fill="none" strokeWidth="12" strokeLinecap="round" />
+    <path d="M96 92q-10 12-8 26" className="stroke-tangerine" fill="none" strokeWidth="8" strokeLinecap="round" />
+    <circle cx="116" cy="66" r="15" className="fill-tangerine stroke-ink" strokeWidth="2.2" />
+    <path d="M101 62q2-14 15-14t15 14q-7-5-15-5t-15 5z" className="fill-ink stroke-ink" strokeWidth="2" strokeLinejoin="round" />
+
+    {/* football on the floor */}
+    <g transform="translate(56,140)">
+      <circle cx="17" cy="17" r="13.5" className="fill-surface-alt stroke-ink" strokeWidth="2" />
+      <path d="M17 9.5 22.6 13.5 20.5 20h-7l-2.1-6.5Z" className="fill-ink" />
+      <g className="stroke-ink" fill="none" strokeWidth="1.7" strokeLinecap="round">
+        <path d="M17 3.5v6M30.5 13.5l-5.7 1.8M27 27l-3.5-4.8M7 27l3.5-4.8M3.5 13.5l5.7 1.8" />
+      </g>
+    </g>
+  </svg>
+);
+
 // Flat pitch graphic for the team formation view. A drawn diagram — flat
 // fill, thin lines, no grass texture, no stripes, no gradient.
 export const PitchGraphic = ({ className = '' }) => (
@@ -357,5 +415,6 @@ export default {
   Standings,
   RankBadge,
   CheerScene,
+  StandingsScene,
   PitchGraphic,
 };

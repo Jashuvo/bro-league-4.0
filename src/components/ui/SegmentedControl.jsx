@@ -44,7 +44,13 @@ const SegmentedControl = ({ items, value, onChange, layoutId, className }) => (
           aria-selected={isActive}
           onClick={() => onChange(item.id)}
           className={cn(
-            'relative min-h-[44px] px-1.5 sm:px-3 rounded-full font-display font-bold',
+            // `min-w-0` + `overflow-hidden` are what actually keep the label
+            // inside the pill: a grid item defaults to `min-width:auto`, so
+            // at 390px a long segment ("Distribution", "Head-to-Head") sized
+            // itself to its text and pushed straight out through the active
+            // pill's rounded edge. The track's `1fr` columns were never the
+            // constraint — the item refusing to shrink below max-content was.
+            'relative min-h-[44px] min-w-0 overflow-hidden px-1.5 sm:px-3 rounded-full font-display font-bold',
             'flex flex-col items-center justify-center transition-colors duration-200',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-violet focus-visible:ring-offset-2 focus-visible:ring-offset-surface-sunk',
             isActive ? 'text-ink' : 'text-ink-soft hover:text-ink'
@@ -61,9 +67,12 @@ const SegmentedControl = ({ items, value, onChange, layoutId, className }) => (
               transition={{ type: 'spring', bounce: 0.2, duration: 0.45 }}
             />
           )}
-          <span className="relative z-10 flex items-center gap-1.5 min-w-0">
+          {/* `w-full` gives the label row a definite width to truncate
+              against — without it the row is max-content wide and `truncate`
+              on the label is a no-op. */}
+          <span className="relative z-10 flex w-full items-center justify-center gap-1.5 min-w-0">
             <span className="shrink-0">{item.icon}</span>
-            <span className="text-[13px] sm:text-sm truncate">{item.label}</span>
+            <span className="text-[13px] sm:text-sm truncate min-w-0">{item.label}</span>
           </span>
           {item.hint && (
             <span

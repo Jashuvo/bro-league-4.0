@@ -36,33 +36,30 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         setLoading(true);
         setError(null);
 
-        // Use internal API proxy
-        const response = await fetch(`/api/team-picks?managerId=${managerId}&eventId=${currentGameweek}`);
+        // Everything client-side goes through the single data layer
+        // (src/services/fplApi.js) — it owns the timeout, the retry/backoff,
+        // the concurrency limit and the 5-minute picks cache. This component
+        // used to `fetch('/api/team-picks')` directly, which bypassed all of
+        // it and broke the one-data-layer rule in CLAUDE.md.
+        const data = await fplApi.getTeamPicks(managerId, currentGameweek);
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Team picks are not available for this gameweek yet.');
-          }
-          throw new Error(`Failed to fetch team data: ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        if (!result.success || !result.data) {
-          throw new Error(result.error || 'Failed to load team data');
+        // getTeamPicks swallows its own errors and resolves null rather than
+        // throwing, so a null here is the "couldn't load it" case.
+        if (!data) {
+          throw new Error('Team picks are not available for this gameweek yet.');
         }
 
         // Process data
         const processedTeam = {
-          ...result.data,
-          startingXI: result.data.startingXI.map(p => ({
+          ...data,
+          startingXI: data.startingXI.map(p => ({
             ...p,
             positionType: p.positionType === 'GKP' ? 'GK' : p.positionType,
             price: p.nowCost / 10,
             isInjured: p.status === 'i',
             isDoubtful: p.status === 'd'
           })),
-          bench: result.data.bench.map(p => ({
+          bench: data.bench.map(p => ({
             ...p,
             positionType: p.positionType === 'GKP' ? 'GK' : p.positionType,
             price: p.nowCost / 10,

@@ -102,6 +102,43 @@ const palette = {
     'violet-ink': '#5a4a93',
     'bubblegum-ink': '#a85f68',
     'silver-ink': '#6b6390',
+
+    // ─── TINTED TILES ──────────────────────────────────────────────────
+    //
+    // These are the artboards' OWN panel fills, lifted verbatim, and they
+    // are why the shipped app kept reading as washed-out next to the
+    // canvas even after the palette hexes were corrected. The canvas
+    // paints a stat tile as a FLAT PASTEL. The app was reproducing those
+    // tiles by compositing an accent at low alpha over the page —
+    // `bg-mint/20`, `bg-sunflower/25`, `bg-coral/15`, `bg-pitch/12` — and
+    // alpha-over-cream desaturates: `mint` at 20% lands on #eef3ed, a
+    // near-grey, where the artboard has #dfe9d9, a pastel with real
+    // chroma. Same story for every other tile. Full-strength tokens are
+    // the only way to hit the canvas value, so here they are by name.
+    'tile-sage': '#dfe9d9',   // "Managers in", the Live card, the sign-off
+    'tile-peach': '#fbe8d6',  // "Pot on the table"
+    'tile-sky': '#dce7ef',    // "Gameweeks played"
+    'tile-rose': '#f7e2e3',   // "Average, GW1"
+    'tile-clay': '#f8e3dc',   // the clay accent's tile, same construction
+    'tile-gold': '#f3d9a0',   // leader strip, active nav item
+    'tile-lilac': '#ede8f7',  // deadline disc
+    'tile-sand': '#f2e6d8',   // paper props, non-podium shirt badge
+    'tile-row': '#fbf9f5',    // a non-podium table row
+
+    // ─── AVATAR ROTATION ───────────────────────────────────────────────
+    //
+    // The eight dusty pastels the artboards cycle through for the manager
+    // discs, in order. They carry the same ink outline as the drawings,
+    // and at FULL strength they are the single biggest source of colour
+    // in the canvas's table — which the shipped table had none of.
+    'tone-1': '#e8b4b8',
+    'tone-2': '#c9bee8',
+    'tone-3': '#a8c4a2',
+    'tone-4': '#a9c3dc',
+    'tone-5': '#f2d3b3',
+    'tone-6': '#c3d6cd',
+    'tone-7': '#d9b8a8',
+    'tone-8': '#cfc6b0',
   },
   dark: {
     // ─── THE ORIGINAL BRO LEAGUE DARK THEME ─────────────────────────────
@@ -174,6 +211,34 @@ const palette = {
     'violet-ink': '#a5b4fc',     // indigo-300
     'bubblegum-ink': '#f9a8d4',  // pink-300
     'silver-ink': '#cbd5e1',     // slate-300
+
+    // Tiles invert the same way every other fill here does: on a slate
+    // ground a pastel tile would carry near-white type at ~1.4:1, so each
+    // is the DEEP end of its hue — still unmistakably tinted (that's the
+    // point of the token), still clearing 4.5:1 for both `ink` (#f8fafc)
+    // and `ink-soft` (#b0bccd).
+    'tile-sage': '#12332a',
+    'tile-peach': '#3a2a1c',
+    'tile-sky': '#12293d',
+    'tile-rose': '#3a1e2c',
+    'tile-clay': '#3d1f1a',
+    'tile-gold': '#3d3312',
+    'tile-lilac': '#262450',
+    'tile-sand': '#2a2620',
+    'tile-row': '#1a2536',
+
+    // The avatar rotation, same eight positions, deep enough for white
+    // initials. Hues track the originals (rose, indigo, emerald, sky,
+    // bronze, teal, rust, stone) so a manager keeps their colour identity
+    // across a theme switch.
+    'tone-1': '#9d174d',
+    'tone-2': '#4f46e5',
+    'tone-3': '#065f46',
+    'tone-4': '#075985',
+    'tone-5': '#6b3d18',
+    'tone-6': '#0f4c47',
+    'tone-7': '#7c2d12',
+    'tone-8': '#44403c',
   },
 };
 

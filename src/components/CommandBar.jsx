@@ -102,17 +102,17 @@ const CommandBar = ({
             deadline their own full-width rows underneath. That's what this is
             now: a grid below `lg`, the original single row from `lg` up. */}
         <div className="grid grid-cols-4 gap-1.5 lg:flex lg:items-center lg:gap-2 lg:ml-auto lg:justify-end min-w-0">
-          <StatChip tone="bg-mint/40" art={<Jersey size={18} tone="fill-mint" />} value={totalManagers} label="Bros" />
+          <StatChip tone="bg-tile-sage" art={<Jersey size={18} tone="fill-mint" />} value={totalManagers} label="Bros" />
           <StatChip
-            tone="bg-sky/40"
+            tone="bg-tile-sky"
             art={<Whistle size={18} />}
             value={`GW${gameweekInfo?.current || '-'}`}
             label="Now"
             live={isLive}
           />
-          <StatChip tone="bg-bubblegum/35" art={<Boot size={18} tone="fill-bubblegum" />} value={gameweeksLeft} label="Left" />
+          <StatChip tone="bg-tile-rose" art={<Boot size={18} tone="fill-bubblegum" />} value={gameweeksLeft} label="Left" />
           <StatChip
-            tone="bg-sunflower/45"
+            tone="bg-tile-peach"
             art={<Coins size={18} />}
             value={`৳${(totalPrizePool / 1000).toFixed(0)}K`}
             label="Pool"
@@ -137,7 +137,7 @@ const CommandBar = ({
 
           {!isPreSeason && nextDeadline && (
             <span className="col-span-2 lg:shrink-0 h-10 pl-2 pr-2.5 rounded-2xl bg-surface-sunk flex items-center gap-2 min-w-0">
-              <span className="w-7 h-7 shrink-0 rounded-full bg-violet/20 flex items-center justify-center">
+              <span className="w-7 h-7 shrink-0 rounded-full bg-tile-lilac flex items-center justify-center">
                 <Whistle size={16} tone="fill-violet" />
               </span>
               <span className="min-w-0">
@@ -174,7 +174,7 @@ const CommandBar = ({
                 key={manager.id}
                 className={cn(
                   'h-7 pl-1 pr-2 rounded-full border-2 border-ink/85 flex items-center gap-1 min-w-0',
-                  index === 0 ? 'bg-sunflower' : index === 1 ? 'bg-mint/45' : 'bg-coral/30'
+                  index === 0 ? 'bg-sunflower' : index === 1 ? 'bg-mint' : 'bg-tile-clay'
                 )}
               >
                 <Jersey
@@ -237,7 +237,7 @@ const LivePill = ({ authenticated }) => (
   <span
     className={cn(
       'shrink-0 inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full border-2 text-[11px] font-bold whitespace-nowrap',
-      authenticated ? 'bg-pitch/20 text-pitch-ink border-pitch/70' : 'bg-sunflower/35 text-ink border-sunflower'
+      authenticated ? 'bg-tile-sage text-pitch-ink border-pitch/70' : 'bg-tile-gold text-ink border-sunflower'
     )}
   >
     <span className={cn('w-2 h-2 rounded-full', authenticated ? 'bg-pitch animate-pulse' : 'bg-tangerine')} />

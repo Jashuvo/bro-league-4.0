@@ -14,16 +14,20 @@ import { cn } from '../../utils/cn';
 // So `tone` no longer picks an outline colour. It picks how the paper is
 // TINTED — the artboards' podium rows are a warmer cream, not a bordered
 // card — and `outlined` is the explicit opt-in for a block that needs the ink.
+// Each tinted tone is now the artboards' own flat tile fill rather than its
+// accent composited at 12-40% alpha. Same intent, but alpha-over-cream was
+// landing several steps paler and greyer than the canvas — see the
+// TINTED TILES note in tailwind.config.js.
 const TONES = {
   paper: 'bg-surface-alt border-transparent',
   outlined: 'bg-surface-alt border-ink/85',
-  sunflower: 'bg-sunflower/25 border-transparent',
-  mint: 'bg-mint/30 border-transparent',
-  coral: 'bg-coral/20 border-transparent',
-  violet: 'bg-violet/12 border-transparent',
-  sky: 'bg-sky/30 border-transparent',
-  tangerine: 'bg-tangerine/40 border-transparent',
-  bubblegum: 'bg-bubblegum/30 border-transparent',
+  sunflower: 'bg-tile-gold border-transparent',
+  mint: 'bg-tile-sage border-transparent',
+  coral: 'bg-tile-clay border-transparent',
+  violet: 'bg-tile-lilac border-transparent',
+  sky: 'bg-tile-sky border-transparent',
+  tangerine: 'bg-tile-peach border-transparent',
+  bubblegum: 'bg-tile-rose border-transparent',
 };
 
 const Card = ({ children, className, hover = false, tone = 'paper', ...props }) => {

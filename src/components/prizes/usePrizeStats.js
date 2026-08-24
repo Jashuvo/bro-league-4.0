@@ -19,6 +19,11 @@ const netPoints = (manager) => {
 export const usePrizeStats = ({ gameweekTable = [], standings = [], gameweekInfo = {} }) => {
   const currentGW = gameweekInfo.current || 1;
   const totalGWs = gameweekInfo.total || 38;
+  // A weekly prize is only real once FPL marks the gameweek finished — bonus
+  // points are still moving before that. `completedGameweeks` has always
+  // reflected this; the views just had no way to SAY so, which is how a
+  // correct "৳0 paid out" during a live GW1 came to read as a bug.
+  const currentGWFinished = !!gameweekInfo.isFinished;
 
   return useMemo(() => {
     // Weekly prizes distributed
@@ -90,6 +95,8 @@ export const usePrizeStats = ({ gameweekTable = [], standings = [], gameweekInfo
       : null;
 
     return {
+      currentGameweek: currentGW,
+      currentGameweekFinished: currentGWFinished,
       weeklyDistributed,
       weeklyProgress,
       monthlyDistributed,
@@ -105,7 +112,7 @@ export const usePrizeStats = ({ gameweekTable = [], standings = [], gameweekInfo
         ? { ...bestAverage, average: Math.round((bestAverage.totalPoints || 0) / completedGameweeks) }
         : null
     };
-  }, [gameweekTable, standings, currentGW, totalGWs]);
+  }, [gameweekTable, standings, currentGW, totalGWs, currentGWFinished]);
 };
 
 export default usePrizeStats;
