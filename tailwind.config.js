@@ -19,11 +19,27 @@
 // palette entry (indigo-600, slate-800, emerald-500 …). If a new color is
 // genuinely needed, add it here and use it by name everywhere.
 //
-// Direction: Corporate-Memphis flat illustration (thin uniform ink outlines,
-// flat fills, no gradients on figures) crossed with football, pushed to a
-// celebratory saturation — confetti and trophy-lift, not muted onboarding
-// pastel. `pitch` is an ACCENT green for football motifs, never a background
-// texture.
+// Direction: "Memphis × Football" — the page-3 artboards of the design canvas
+// (FusionMobile / FusionDesktop / FusionGameweeks / FusionPrizes / …), NOT the
+// page-2 "Corporate Memphis" alternative. The difference is the whole point of
+// the third direction and it is a difference of SATURATION:
+//
+//   page-2 (rejected):  #FF6B54 coral, #FFC94A gold, #6C4BF4 violet, #2ED9A6 mint
+//   page-3 (this one):  #D98C7F clay,  #EFCB7C ochre, #6B5AA8 lavender, #A8C4A2 sage
+//
+// The first reskin pass shipped the page-2 saturation by mistake. The palette
+// below is lifted value-for-value from the page-3 artboards: warm cream ground
+// (#FFF4E6), plain white paper, one deep indigo ink (#2B2350) for every outline
+// and every piece of type, and flat DUSTY fills — clay, peach, ochre, sage,
+// powder blue, lavender, dusty rose. No gradients. No shadows. Colour arrives
+// as small tinted tiles and irregular blobs behind an illustrated scene; it
+// never floods a card, a banner or the page.
+//
+// Each accent is a PAIR: `<name>` is the flat FILL (a pastel — use it for
+// backgrounds, borders and SVG fills) and `<name>-ink` is the matching TYPE
+// colour (dark enough to read on white — use it for text and icon strokes).
+// Writing `text-mint` where you mean `text-mint-ink` gives you sage-on-white
+// and no contrast; that pairing is the whole reason both exist.
 
 const plugin = require('tailwindcss/plugin');
 
@@ -37,46 +53,81 @@ const channels = (hex) => {
 
 const palette = {
   light: {
-    // Surfaces — warm cream field the flat fills sit on.
-    surface: '#fff6ec',      // page
-    'surface-alt': '#ffffff', // cards / paper
-    'surface-sunk': '#f8e7d5', // wells, expanded rows, table stripes
+    // Surfaces — the page-3 ground: plain warm cream, plain white paper.
+    surface: '#fff4e6',       // page
+    'surface-alt': '#ffffff',  // cards / paper
+    'surface-sunk': '#fbf6ee', // wells, expanded rows, segmented-control track
 
     // Ink — outlines and type. One ink, used at varying opacity.
-    ink: '#221a2e',
-    'ink-soft': '#6e6480',
-    line: '#221a2e',
+    ink: '#2b2350',
+    // The artboards carry two muted inks: #8B84AE for larger secondary text
+    // and #6B6390 for the small uppercase labels on tinted tiles. Almost every
+    // `text-ink-soft` in this app is the second kind — 9-11px labels sitting
+    // on a sage or ochre tile — where #8B84AE measures under 3:1. So the token
+    // takes the artboards' own label ink.
+    'ink-soft': '#6b6390',
+    line: '#2b2350',
 
-    // Celebration accents.
-    coral: '#ff4d5e',
-    tangerine: '#ff8a3c',
-    sunflower: '#ffc233',
-    mint: '#12cf9b',
-    pitch: '#12a854',
-    sky: '#2b9ff0',
-    violet: '#7250f5',
-    bubblegum: '#ff5cbe',
-    silver: '#9aa6b8',
+    // Flat dusty fills.
+    coral: '#d98c7f',      // clay
+    tangerine: '#e8c4a0',  // peach
+    sunflower: '#efcb7c',  // ochre
+    mint: '#a8c4a2',       // sage
+    pitch: '#4e7a61',      // deep sage — also carries white type
+    sky: '#a9c3dc',        // powder blue
+    violet: '#6b5aa8',     // lavender — also carries white type
+    bubblegum: '#e8b4b8',  // dusty rose
+    silver: '#b4aec8',
+
+    // Matching type colours — each is its accent pushed dark enough to read
+    // on white paper.
+    'coral-ink': '#c4705e',
+    'tangerine-ink': '#a5703f',
+    'sunflower-ink': '#9a7523',
+    'mint-ink': '#3f6b54',
+    'pitch-ink': '#3f6b54',
+    'sky-ink': '#3f5a75',
+    'violet-ink': '#5a4a93',
+    'bubblegum-ink': '#a85f68',
+    'silver-ink': '#6b6390',
   },
   dark: {
-    // Deep ink base — same hues, lifted for contrast on a dark field.
-    surface: '#17131f',
-    'surface-alt': '#221b2e',
-    'surface-sunk': '#100d16',
+    // Same hues on a deep indigo field, but the light/dark roles SWAP.
+    //
+    // In light mode the ink is near-black and the fills are pale, so pale
+    // fills carry dark type. Invert the ground and that stops working: the
+    // ink is now cream, and cream on a pale ochre chip is ~2:1 — the leader
+    // chip and the top-three pills became unreadable the moment the palette
+    // went dusty. So every dark-mode FILL is the deep end of its hue, dark
+    // enough that cream type clears 4.5:1 on it, while the *-ink pairs go the
+    // other way and lift, because they sit on the dark paper as type.
+    surface: '#1b1730',
+    'surface-alt': '#262046',
+    'surface-sunk': '#141024',
 
-    ink: '#fff3e4',
-    'ink-soft': '#a99cba',
-    line: '#fff3e4',
+    ink: '#fff4e6',
+    'ink-soft': '#bab2d3',
+    line: '#fff4e6',
 
-    coral: '#ff7b86',
-    tangerine: '#ffa262',
-    sunflower: '#ffd35f',
-    mint: '#3fe3b8',
-    pitch: '#35c973',
-    sky: '#5cbdf7',
-    violet: '#9d84ff',
-    bubblegum: '#ff85d3',
-    silver: '#c2cad7',
+    coral: '#8a4d43',
+    tangerine: '#82623c',
+    sunflower: '#7d6129',
+    mint: '#456140',
+    pitch: '#356248',
+    sky: '#42597a',
+    violet: '#5a4a93',
+    bubblegum: '#8a4f56',
+    silver: '#565073',
+
+    'coral-ink': '#f0b4a8',
+    'tangerine-ink': '#eac79e',
+    'sunflower-ink': '#f2d79b',
+    'mint-ink': '#a9cfb4',
+    'pitch-ink': '#8fc3a2',
+    'sky-ink': '#afcbe4',
+    'violet-ink': '#bcacec',
+    'bubblegum-ink': '#f0c2c7',
+    'silver-ink': '#bdb6ce',
   },
 };
 
@@ -95,6 +146,8 @@ const colors = {
   bronze: token('tangerine'),
   positive: token('mint'),
   negative: token('coral'),
+  'positive-ink': token('mint-ink'),
+  'negative-ink': token('coral-ink'),
 };
 
 const daisyTheme = (mode) => {
@@ -147,13 +200,16 @@ export default {
         display: ['Fredoka', 'Nunito', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        // Flat "sticker" shadows — a hard offset in ink, never a soft blur.
-        // Keeps figures/cards reading as cut paper rather than material.
-        pop: '4px 4px 0 0 rgb(var(--c-ink) / 1)',
-        'pop-sm': '2px 2px 0 0 rgb(var(--c-ink) / 1)',
-        'pop-lg': '6px 6px 0 0 rgb(var(--c-ink) / 1)',
-        card: '3px 3px 0 0 rgb(var(--c-ink) / 0.14)',
-        'card-hover': '5px 5px 0 0 rgb(var(--c-ink) / 0.2)',
+        // The page-3 artboards carry NO box-shadow at all — not a blur, not a
+        // hard offset. Depth is drawn instead: white paper on cream ground,
+        // and a thin ink outline on the few blocks that need to sit forward.
+        // These keys are kept (a lot of markup names them) but resolve to
+        // nothing, so a stray `shadow-card` can't quietly reintroduce depth.
+        pop: 'none',
+        'pop-sm': 'none',
+        'pop-lg': 'none',
+        card: 'none',
+        'card-hover': 'none',
       },
       borderRadius: {
         blob: '58% 42% 47% 53% / 43% 51% 49% 57%',

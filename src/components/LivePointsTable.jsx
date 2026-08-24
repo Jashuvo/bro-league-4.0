@@ -64,11 +64,11 @@ const LivePointsTable = ({ gameweek }) => {
     if (error && !data) {
         return (
             <div className="text-center p-8 bg-coral/12 rounded-3xl border-2 border-ink/85 shadow-card">
-                <AlertCircle className="w-12 h-12 text-coral mx-auto mb-3" />
+                <AlertCircle className="w-12 h-12 text-coral-ink mx-auto mb-3" />
                 <p className="text-ink font-bold mb-4">{error}</p>
                 <button
                     onClick={handleRefresh}
-                    className="btn-pop px-4 py-2 bg-coral text-white border-2 border-ink/85 rounded-2xl font-display font-bold"
+                    className="btn-pop px-4 py-2 bg-coral text-ink border-2 border-ink/85 rounded-2xl font-display font-bold"
                 >
                     Try Again
                 </button>
@@ -84,7 +84,7 @@ const LivePointsTable = ({ gameweek }) => {
         >
             <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2 text-sm font-bold text-ink">
-                    <Zap size={16} className="text-sunflower fill-sunflower" />
+                    <Zap size={16} className="text-sunflower-ink fill-sunflower" />
                     <span>Live Points • GW {gameweek}</span>
                 </div>
 
@@ -143,11 +143,11 @@ const LivePointsTable = ({ gameweek }) => {
                                     </div>
 
                                     <div className="text-right shrink-0">
-                                        <div className="font-display font-bold text-xl text-pitch leading-tight">
+                                        <div className="font-display font-bold text-xl text-pitch-ink leading-tight">
                                             {manager.livePoints}
                                         </div>
                                         {manager.transferCost > 0 && (
-                                            <div className="text-xs font-bold text-coral">
+                                            <div className="text-xs font-bold text-coral-ink">
                                                 -{manager.transferCost} hit
                                             </div>
                                         )}
@@ -176,7 +176,7 @@ const LivePointsTable = ({ gameweek }) => {
                                                         <span className="text-[10px] font-bold text-ink-soft w-8">{pick.positionType}</span>
                                                         <span className="flex-grow text-sm font-medium text-ink truncate flex items-center gap-1">
                                                             {pick.name}
-                                                            {pick.is_captain && <Star size={12} className="text-sunflower fill-sunflower" />}
+                                                            {pick.is_captain && <Star size={12} className="text-sunflower-ink fill-sunflower" />}
                                                         </span>
                                                         {pick.bps > 0 && (
                                                             <span className="text-[10px] font-semibold text-ink-soft" title="Bonus Points System score">
@@ -184,7 +184,7 @@ const LivePointsTable = ({ gameweek }) => {
                                                             </span>
                                                         )}
                                                         {pick.bonus > 0 && (
-                                                            <span className="text-xs font-bold text-tangerine">+{pick.bonus}</span>
+                                                            <span className="text-xs font-bold text-tangerine-ink">+{pick.bonus}</span>
                                                         )}
                                                         <span className="text-sm font-display font-bold text-ink w-8 text-right">{pick.points}</span>
                                                     </div>

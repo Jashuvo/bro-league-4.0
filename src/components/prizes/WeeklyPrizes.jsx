@@ -20,19 +20,19 @@ const WeeklyPrizes = ({ stats }) => (
         badgeVariant="info"
         amountLabel="Per Week"
         amountValue={`৳${prizeStructure.weekly.perWeek}`}
-        amountColor="text-sky"
+        amountColor="text-sky-ink"
         amountTone="bg-sky/12"
         countLabel="GWs Done"
         countValue={stats.completedGameweeks}
         progress={stats.weeklyProgress}
         progressColor="bg-sky"
-        progressTextColor="text-sky"
+        progressTextColor="text-sky-ink"
       />
 
       {/* Top Weekly Winners */}
       <Card className="h-full">
         <h3 className="text-lg font-display font-bold text-ink flex items-center gap-2 mb-5">
-          <Star className="text-violet fill-violet" size={20} />
+          <Star className="text-violet-ink fill-violet" size={20} />
           Most Weekly Wins
         </h3>
         {stats.topWeeklyWinners.length === 0 ? (
@@ -51,7 +51,7 @@ const WeeklyPrizes = ({ stats }) => (
                     <div className="text-xs font-semibold text-ink-soft">{winner.wins} win{winner.wins !== 1 ? 's' : ''}</div>
                   </div>
                 </div>
-                <div className="text-pitch font-display font-bold shrink-0">৳{winner.totalWon}</div>
+                <div className="text-pitch-ink font-display font-bold shrink-0">৳{winner.totalWon}</div>
               </div>
             ))}
           </div>
@@ -92,10 +92,10 @@ const WeeklyPrizes = ({ stats }) => (
                 )}
               </div>
               <div className="shrink-0 text-right">
-                <div className="font-display font-bold text-violet leading-none tabular-nums">{week.points}</div>
+                <div className="font-display font-bold text-violet-ink leading-none tabular-nums">{week.points}</div>
                 <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">pts</div>
               </div>
-              <div className="shrink-0 font-display font-bold text-pitch tabular-nums w-12 text-right">৳{week.prize}</div>
+              <div className="shrink-0 font-display font-bold text-pitch-ink tabular-nums w-12 text-right">৳{week.prize}</div>
             </div>
           ))}
         </div>

@@ -73,7 +73,7 @@ const HeadToHead = ({ standings = [], gameweekTable = [], loading = false, embed
       {!embedded && (
         <SectionBanner
           tone="coral"
-          art={<CornerFlags size={34} />}
+          art={<CornerFlags size={20} />}
           title="Head-to-Head"
           subtitle="Bragging rights, gameweek by gameweek"
         />
@@ -107,7 +107,7 @@ const HeadToHead = ({ standings = [], gameweekTable = [], loading = false, embed
             <div className="grid grid-cols-3 items-center text-center gap-3">
               <div className="rounded-2xl border-2 border-violet/60 bg-violet/12 p-3">
                 <Jersey size={34} tone="fill-violet" className="mx-auto mb-1" />
-                <div className="text-3xl font-display font-bold text-violet leading-none">{record.aWins}</div>
+                <div className="text-3xl font-display font-bold text-violet-ink leading-none">{record.aWins}</div>
                 <div className="text-[10px] font-bold text-ink-soft uppercase tracking-wider mt-1 truncate">{managerA.managerName}</div>
               </div>
               <div>
@@ -116,7 +116,7 @@ const HeadToHead = ({ standings = [], gameweekTable = [], loading = false, embed
               </div>
               <div className="rounded-2xl border-2 border-coral/60 bg-coral/12 p-3">
                 <Jersey size={34} tone="fill-coral" className="mx-auto mb-1" />
-                <div className="text-3xl font-display font-bold text-coral leading-none">{record.bWins}</div>
+                <div className="text-3xl font-display font-bold text-coral-ink leading-none">{record.bWins}</div>
                 <div className="text-[10px] font-bold text-ink-soft uppercase tracking-wider mt-1 truncate">{managerB.managerName}</div>
               </div>
             </div>
@@ -135,24 +135,27 @@ const HeadToHead = ({ standings = [], gameweekTable = [], loading = false, embed
 
           {record.weeks.length > 0 && (
             <Card className="p-0 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[420px]">
+              {/* `min-w-[420px]` forced a sideways scroll on any phone. Four
+                  narrow columns fit 390px on their own once the padding is
+                  tightened and the two names are allowed to truncate. */}
+              <div>
+                <table className="w-full text-sm table-fixed">
                   <thead>
                     <tr className="border-b-2 border-ink/85 text-left bg-surface-sunk">
-                      <th className="p-3 text-ink font-display font-bold">GW</th>
-                      <th className="p-3 text-ink font-display font-bold text-right">{managerA.managerName}</th>
-                      <th className="p-3"></th>
-                      <th className="p-3 text-ink font-display font-bold">{managerB.managerName}</th>
+                      <th className="p-2 sm:p-3 w-[64px] text-ink font-display font-bold">GW</th>
+                      <th className="p-2 sm:p-3 text-ink font-display font-bold text-right truncate">{managerA.managerName}</th>
+                      <th className="p-2 sm:p-3 w-[40px]"></th>
+                      <th className="p-2 sm:p-3 text-ink font-display font-bold truncate">{managerB.managerName}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {[...record.weeks].reverse().map((week) => (
                       <tr key={week.gameweek} className="border-b border-ink/10 last:border-0">
-                        <td className="p-3 font-semibold text-ink-soft">GW{week.gameweek}</td>
-                        <td className={`p-3 text-right font-display font-bold ${week.aPoints > week.bPoints ? 'text-violet' : 'text-ink'}`}>
+                        <td className="p-2 sm:p-3 font-semibold text-ink-soft">GW{week.gameweek}</td>
+                        <td className={`p-2 sm:p-3 text-right font-display font-bold ${week.aPoints > week.bPoints ? 'text-violet-ink' : 'text-ink'}`}>
                           {week.aPoints}
                         </td>
-                        <td className="p-3 text-center text-ink-soft">
+                        <td className="p-2 sm:p-3 text-center text-ink-soft">
                           {week.aPoints === week.bPoints ? <Minus size={14} className="mx-auto" /> : (
                             <TrophyCup
                               size={18}
@@ -161,7 +164,7 @@ const HeadToHead = ({ standings = [], gameweekTable = [], loading = false, embed
                             />
                           )}
                         </td>
-                        <td className={`p-3 font-display font-bold ${week.bPoints > week.aPoints ? 'text-coral' : 'text-ink'}`}>
+                        <td className={`p-2 sm:p-3 font-display font-bold ${week.bPoints > week.aPoints ? 'text-coral-ink' : 'text-ink'}`}>
                           {week.bPoints}
                         </td>
                       </tr>

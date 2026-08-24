@@ -93,19 +93,26 @@ const CommandBar = ({
           </div>
         </div>
 
-        {/* Stat cluster + context chips */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none lg:ml-auto lg:justify-end min-w-0">
-          <StatChip tone="bg-mint/30" art={<Jersey size={18} tone="fill-mint" />} value={totalManagers} label="Bros" />
+        {/* Stat cluster + context chips.
+            This used to be one `overflow-x-auto` row: at 390px its four stat
+            chips plus the leader and deadline chips measured 712px, so more
+            than half the bar lived off-screen behind a sideways swipe with no
+            affordance. The FusionMobile artboard doesn't scroll it — it lays
+            the stats out as a GRID of tiles and gives the leader and the
+            deadline their own full-width rows underneath. That's what this is
+            now: a grid below `lg`, the original single row from `lg` up. */}
+        <div className="grid grid-cols-4 gap-1.5 lg:flex lg:items-center lg:gap-2 lg:ml-auto lg:justify-end min-w-0">
+          <StatChip tone="bg-mint/40" art={<Jersey size={18} tone="fill-mint" />} value={totalManagers} label="Bros" />
           <StatChip
-            tone="bg-sky/30"
+            tone="bg-sky/40"
             art={<Whistle size={18} />}
             value={`GW${gameweekInfo?.current || '-'}`}
             label="Now"
             live={isLive}
           />
-          <StatChip tone="bg-bubblegum/30" art={<Boot size={18} tone="fill-bubblegum" />} value={gameweeksLeft} label="Left" />
+          <StatChip tone="bg-bubblegum/35" art={<Boot size={18} tone="fill-bubblegum" />} value={gameweeksLeft} label="Left" />
           <StatChip
-            tone="bg-sunflower/40"
+            tone="bg-sunflower/45"
             art={<Coins size={18} />}
             value={`৳${(totalPrizePool / 1000).toFixed(0)}K`}
             label="Pool"
@@ -114,11 +121,11 @@ const CommandBar = ({
           {isPreSeason && kickoffDeadline && <KickoffChip deadline={kickoffDeadline} />}
 
           {!isPreSeason && currentLeader && (
-            <span className="shrink-0 h-10 pl-2 pr-3 rounded-2xl border-2 border-ink/85 bg-sunflower shadow-pop-sm flex items-center gap-2">
+            <span className="col-span-2 lg:shrink-0 h-10 pl-2 pr-3 rounded-2xl border-2 border-ink/85 bg-sunflower flex items-center gap-2 min-w-0">
               <TrophyCup size={20} tone="fill-surface-alt" className="shrink-0" />
-              <span className="min-w-0">
+              <span className="min-w-0 flex-grow">
                 <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-ink/60 leading-none">Leader</span>
-                <span className="block font-display font-bold text-sm text-ink leading-tight truncate max-w-[120px]">
+                <span className="block font-display font-bold text-sm text-ink leading-tight truncate lg:max-w-[120px]">
                   {currentLeader.managerName}
                 </span>
               </span>
@@ -129,13 +136,13 @@ const CommandBar = ({
           )}
 
           {!isPreSeason && nextDeadline && (
-            <span className="shrink-0 h-10 pl-2 pr-3 rounded-2xl border-2 border-ink/85 bg-surface-alt shadow-card flex items-center gap-2">
-              <span className="w-7 h-7 shrink-0 rounded-full bg-violet/20 border-2 border-ink/85 flex items-center justify-center">
+            <span className="col-span-2 lg:shrink-0 h-10 pl-2 pr-2.5 rounded-2xl bg-surface-sunk flex items-center gap-2 min-w-0">
+              <span className="w-7 h-7 shrink-0 rounded-full bg-violet/20 flex items-center justify-center">
                 <Whistle size={16} tone="fill-violet" />
               </span>
-              <span>
+              <span className="min-w-0">
                 <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-ink-soft leading-none">Deadline</span>
-                <span className="block font-display font-bold text-sm text-violet leading-tight tabular-nums whitespace-nowrap">
+                <span className="block font-display font-bold text-[13px] lg:text-sm text-violet-ink leading-tight tabular-nums truncate">
                   {nextDeadline.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
                   {' • '}
                   <LiveCountdown deadline={nextDeadline} />
@@ -152,32 +159,39 @@ const CommandBar = ({
         </div>
       </div>
 
-      {/* Gameweek Heroes — the old 3-up card row, reduced to a slim ribbon. */}
+      {/* Gameweek Heroes. Also formerly a sideways-scrolling ribbon (620px in a
+          390px viewport). The artboard's top-3 strip is three equal pills that
+          share the width, carrying the FIRST NAME only — which is what makes
+          three of them fit a phone at all. */}
       {showHeroes && (
-        <div className="px-4 lg:px-6 pb-2 -mt-0.5 flex items-center gap-2 overflow-x-auto scrollbar-none">
-          <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.16em] text-ink-soft flex items-center gap-1">
+        <div className="px-4 lg:px-6 pb-2 -mt-0.5 flex items-center gap-2 min-w-0">
+          <span className="hidden sm:flex shrink-0 text-[10px] font-bold uppercase tracking-[0.16em] text-ink-soft items-center gap-1">
             <Ball size={13} /> GW Heroes
           </span>
-          {topPerformers.map((manager, index) => (
-            <span
-              key={manager.id}
-              className={cn(
-                'shrink-0 h-7 pl-1 pr-2.5 rounded-full border-2 border-ink/85 flex items-center gap-1.5',
-                index === 0 ? 'bg-sunflower' : index === 1 ? 'bg-mint/40' : 'bg-coral/25'
-              )}
-            >
-              <Jersey
-                size={18}
-                number={index + 1}
-                tone={index === 0 ? 'fill-sunflower' : index === 1 ? 'fill-silver' : 'fill-tangerine'}
-                className="shrink-0"
-              />
-              <span className="text-xs font-bold text-ink truncate max-w-[110px]">{manager.managerName}</span>
-              <span className="text-xs font-display font-bold text-ink/70 tabular-nums">
-                {(manager.gameweekPoints || 0) - (manager.gameweekHits || 0)}
+          <span className="grid grid-cols-3 gap-1.5 flex-grow min-w-0">
+            {topPerformers.map((manager, index) => (
+              <span
+                key={manager.id}
+                className={cn(
+                  'h-7 pl-1 pr-2 rounded-full border-2 border-ink/85 flex items-center gap-1 min-w-0',
+                  index === 0 ? 'bg-sunflower' : index === 1 ? 'bg-mint/45' : 'bg-coral/30'
+                )}
+              >
+                <Jersey
+                  size={18}
+                  number={index + 1}
+                  tone={index === 0 ? 'fill-sunflower' : index === 1 ? 'fill-silver' : 'fill-tangerine'}
+                  className="shrink-0"
+                />
+                <span className="text-[11px] font-bold text-ink truncate flex-grow min-w-0">
+                  {firstName(manager.managerName)}
+                </span>
+                <span className="text-[11px] font-display font-bold text-ink/70 tabular-nums shrink-0">
+                  {(manager.gameweekPoints || 0) - (manager.gameweekHits || 0)}
+                </span>
               </span>
-            </span>
-          ))}
+            ))}
+          </span>
         </div>
       )}
     </div>
@@ -186,24 +200,34 @@ const CommandBar = ({
 
 /* ───────────────────────────────── Pieces ────────────────────────────────*/
 
-// Each stat keeps the accent it carried in the old 4-up grid — the treatment
-// moved from a 120px card to a 40px chip, the token did not change.
+// "S.M. Sazzad Hossain" -> "Sazzad". The artboard's top-3 strip is labelled
+// with first names because full names cannot fit three-across on a phone;
+// initials-only prefixes ("S.M.") are skipped so the name still identifies
+// someone.
+const firstName = (name = '') => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  return parts.find((part) => part.replace(/\./g, '').length > 2) || parts[0] || '';
+};
+
+// Each stat keeps the accent it carried in the old 4-up grid. In the artboards
+// these tiles are flat tinted panels with no outline and no shadow — the tint
+// alone separates them from the white bar.
 const StatChip = ({ art, value, label, tone, live = false }) => (
   <span className={cn(
-    'relative shrink-0 h-10 pl-2 pr-3 rounded-2xl border-2 border-ink/85 shadow-card flex items-center gap-2',
+    'relative h-10 px-2 lg:shrink-0 lg:pl-2 lg:pr-3 rounded-2xl flex items-center gap-1.5 lg:gap-2 min-w-0',
     tone
   )}>
     <span className="shrink-0">{art}</span>
-    <span>
-      <span className="block font-display font-bold text-sm text-ink leading-none tabular-nums">{value}</span>
-      <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-ink-soft leading-none mt-0.5">
+    <span className="min-w-0">
+      <span className="block font-display font-bold text-[13px] lg:text-sm text-ink leading-none tabular-nums truncate">{value}</span>
+      <span className="block text-[9px] font-bold uppercase tracking-[0.12em] text-ink-soft leading-none mt-0.5 truncate">
         {label}
       </span>
     </span>
     {live && (
-      <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+      <span className="absolute top-0.5 right-0.5 flex h-2 w-2">
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-coral opacity-75" />
-        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-coral border border-ink/85" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-coral" />
       </span>
     )}
   </span>
@@ -213,7 +237,7 @@ const LivePill = ({ authenticated }) => (
   <span
     className={cn(
       'shrink-0 inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full border-2 text-[11px] font-bold whitespace-nowrap',
-      authenticated ? 'bg-pitch/20 text-pitch border-pitch/70' : 'bg-sunflower/35 text-ink border-sunflower'
+      authenticated ? 'bg-pitch/20 text-pitch-ink border-pitch/70' : 'bg-sunflower/35 text-ink border-sunflower'
     )}
   >
     <span className={cn('w-2 h-2 rounded-full', authenticated ? 'bg-pitch animate-pulse' : 'bg-tangerine')} />

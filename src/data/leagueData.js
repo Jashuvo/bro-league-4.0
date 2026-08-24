@@ -63,9 +63,9 @@ const monthlyPrizeConfig = {
 // Tailwind palette entries) — the amounts are the data, these just say which
 // podium metal each position wears.
 const seasonPrizes = [
-  { position: 1, amount: 800, emoji: '🥇', color: 'text-sunflower', tone: 'fill-sunflower', label: 'Champion' },
-  { position: 2, amount: 600, emoji: '🥈', color: 'text-silver', tone: 'fill-silver', label: 'Runner-up' },
-  { position: 3, amount: 400, emoji: '🥉', color: 'text-tangerine', tone: 'fill-tangerine', label: 'Third Place' },
+  { position: 1, amount: 800, emoji: '🥇', color: 'text-sunflower-ink', tone: 'fill-sunflower', label: 'Champion' },
+  { position: 2, amount: 600, emoji: '🥈', color: 'text-silver-ink', tone: 'fill-silver', label: 'Runner-up' },
+  { position: 3, amount: 400, emoji: '🥉', color: 'text-tangerine-ink', tone: 'fill-tangerine', label: 'Third Place' },
 ];
 const seasonTotal = seasonPrizes.reduce((sum, p) => sum + p.amount, 0);
 

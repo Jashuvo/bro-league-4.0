@@ -40,7 +40,7 @@ const StickyHeader = ({ authStatus, lastUpdated }) => {
         <div className="min-w-0">
           <h1 className="font-display font-bold text-base tracking-tight text-ink leading-none truncate">
             {leagueBaseName}{' '}
-            <span className="inline-flex items-center justify-center min-w-[1.35rem] h-5 px-1 rounded-md bg-coral text-white border-2 border-ink/85 text-sm align-middle">
+            <span className="inline-flex items-center justify-center min-w-[1.35rem] h-5 px-1 rounded-md bg-coral text-ink border-2 border-ink/85 text-sm align-middle">
               {leagueEdition}
             </span>
           </h1>

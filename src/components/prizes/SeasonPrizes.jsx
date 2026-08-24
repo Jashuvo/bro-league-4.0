@@ -61,7 +61,7 @@ const SeasonPrizes = ({ stats, standings = [] }) => {
                     <div className="font-bold text-ink truncate">
                       {standings[prize.position - 1].managerName || standings[prize.position - 1].player_name}
                     </div>
-                    <div className="text-sm font-bold text-violet">
+                    <div className="text-sm font-bold text-violet-ink">
                       {(standings[prize.position - 1].totalPoints || standings[prize.position - 1].total)?.toLocaleString()} pts
                     </div>
                   </div>
@@ -84,7 +84,7 @@ const SeasonPrizes = ({ stats, standings = [] }) => {
               {stats.topWeeklyWinners[0] && (
                 <AwardCard
                   icon={Star}
-                  color="text-violet"
+                  color="text-violet-ink"
                   bgColor="bg-violet/15"
                   title="Most Weekly Wins"
                   name={stats.topWeeklyWinners[0].name}
@@ -94,7 +94,7 @@ const SeasonPrizes = ({ stats, standings = [] }) => {
               {stats.biggestRiser && (
                 <AwardCard
                   icon={TrendingUp}
-                  color="text-pitch"
+                  color="text-pitch-ink"
                   bgColor="bg-pitch/15"
                   title="Biggest Riser"
                   name={stats.biggestRiser.managerName || stats.biggestRiser.player_name}
@@ -104,7 +104,7 @@ const SeasonPrizes = ({ stats, standings = [] }) => {
               {stats.bestAverage && (
                 <AwardCard
                   icon={Activity}
-                  color="text-sky"
+                  color="text-sky-ink"
                   bgColor="bg-sky/15"
                   title="Best Average"
                   name={stats.bestAverage.managerName || stats.bestAverage.player_name}

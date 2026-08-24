@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen } from 'lucide-react';
 import Card from './ui/Card';
+import { Boot, CornerFlags, Coins, FormArrow, Bench } from './ui/Doodles';
 import { computeRankHistory } from '../utils/rankHistory';
 
 // A one-glance, auto-generated recap of a gameweek — built entirely from
@@ -25,7 +26,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek }) => {
 
     if (top) {
       list.push({
-        emoji: '🔥',
+        art: <Boot size={26} />, tint: 'bg-tangerine/40',
         text: <><strong>{top.managerName || top.name}</strong> topped the gameweek with <strong>{top.net} pts</strong></>,
       });
     }
@@ -35,7 +36,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek }) => {
       const margin = top.net - runnerUp.net;
       if (margin <= 3) {
         list.push({
-          emoji: '⚔️',
+          art: <CornerFlags size={26} />, tint: 'bg-sky/40',
           text: <><strong>{top.managerName || top.name}</strong> just edged out <strong>{runnerUp.managerName || runnerUp.name}</strong> by {margin} point{margin === 1 ? '' : 's'}</>,
         });
       }
@@ -43,7 +44,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek }) => {
 
     if (bottom && bottom.id !== top.id) {
       list.push({
-        emoji: '💀',
+        art: <FormArrow size={26} direction="down" />, tint: 'bg-bubblegum/35',
         text: <><strong>{bottom.managerName || bottom.name}</strong> picked up the wooden spoon with just <strong>{bottom.net} pts</strong></>,
       });
     }
@@ -51,7 +52,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek }) => {
     const benchLeader = [...managers].sort((a, b) => (b.benchPoints || 0) - (a.benchPoints || 0))[0];
     if (benchLeader && benchLeader.benchPoints > 10) {
       list.push({
-        emoji: '🪑',
+        art: <Bench size={26} />, tint: 'bg-sunflower/40',
         text: <><strong>{benchLeader.managerName || benchLeader.name}</strong> left <strong>{benchLeader.benchPoints} pts</strong> stranded on the bench</>,
       });
     }
@@ -59,7 +60,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek }) => {
     const hitLeader = [...managers].sort((a, b) => (b.transferCost || 0) - (a.transferCost || 0))[0];
     if (hitLeader && hitLeader.transferCost > 0) {
       list.push({
-        emoji: '💸',
+        art: <Coins size={26} />, tint: 'bg-coral/25',
         text: <><strong>{hitLeader.managerName || hitLeader.name}</strong> paid <strong>-{hitLeader.transferCost} pts</strong> in transfer hits</>,
       });
     }
@@ -79,14 +80,14 @@ const WeeklyStory = ({ gameweekTable = [], gameweek }) => {
       const riser = [...movers].sort((a, b) => b.delta - a.delta)[0];
       if (riser?.delta > 0 && byId[riser.id]) {
         list.push({
-          emoji: '🚀',
+          art: <FormArrow size={26} direction="up" />, tint: 'bg-mint/40',
           text: <><strong>{byId[riser.id].managerName || byId[riser.id].name}</strong> climbed {riser.delta} spot{riser.delta === 1 ? '' : 's'} to #{riser.rank}</>,
         });
       }
       const faller = [...movers].sort((a, b) => a.delta - b.delta)[0];
       if (faller?.delta < 0 && faller.id !== riser?.id && byId[faller.id]) {
         list.push({
-          emoji: '📉',
+          art: <FormArrow size={26} direction="down" tone="fill-coral" />, tint: 'bg-coral/25',
           text: <><strong>{byId[faller.id].managerName || byId[faller.id].name}</strong> dropped {Math.abs(faller.delta)} spot{Math.abs(faller.delta) === 1 ? '' : 's'} to #{faller.rank}</>,
         });
       }
@@ -99,19 +100,25 @@ const WeeklyStory = ({ gameweekTable = [], gameweek }) => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-      <Card tone="violet">
-        <h3 className="text-lg font-display font-bold text-ink flex items-center gap-2 mb-4">
-          <BookOpen className="text-violet" size={20} />
-          This Week&rsquo;s Story
-          <span className="flex-1 rule-confetti opacity-70 ml-2" />
+      {/* Each beat is a tinted row with a DRAWN icon, the way the
+          FusionGameweeks "This week's story" panel does it. The emoji that
+          used to sit here (🔥 💀 🪑 …) rendered in whatever the reader's
+          system font supplies — glossy, multicoloured, and nothing at all like
+          the flat outlined drawings everywhere else on the page. */}
+      <Card className="p-5">
+        <h3 className="text-base font-display font-bold text-ink flex items-center gap-2 mb-3.5">
+          <BookOpen className="text-violet-ink" size={18} />
+          This week&rsquo;s story
+          <span className="ml-auto text-[11px] font-bold text-ink-soft">Written from the results</span>
         </h3>
-        <ul className="space-y-2.5">
+        <ul className="space-y-2">
           {beats.map((beat, i) => (
-            <li key={i} className="flex items-start gap-3 text-sm font-medium text-ink">
-              <span className="w-8 h-8 shrink-0 rounded-xl bg-surface-sunk border-2 border-ink/15 flex items-center justify-center text-base leading-none">
-                {beat.emoji}
-              </span>
-              <span className="leading-relaxed pt-1.5">{beat.text}</span>
+            <li
+              key={i}
+              className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[13px] font-bold text-ink ${beat.tint}`}
+            >
+              <span className="shrink-0">{beat.art}</span>
+              <span className="leading-snug min-w-0">{beat.text}</span>
             </li>
           ))}
         </ul>

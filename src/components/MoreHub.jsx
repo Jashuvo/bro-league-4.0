@@ -21,30 +21,36 @@ const VIEWS = [
   {
     id: 'chips',
     label: 'Chips',
+    hint: 'Who has played what',
     tone: 'bg-bubblegum',
-    icon: <ChipCard size={18} />,
+    icon: <ChipCard size={16} />,
     bannerTone: 'bubblegum',
-    art: <ChipCard size={34} />,
+    eyebrow: 'Wildcards, hits and holds',
+    art: <ChipCard size={20} />,
     title: 'Chip Tracker',
     subtitle: "Who's holding their wildcard — and who's already gone for it",
   },
   {
     id: 'h2h',
-    label: 'Head-to-Head',
+    label: 'H2H',
+    hint: 'Any two bros',
     tone: 'bg-coral',
-    icon: <CornerFlags size={18} />,
+    icon: <CornerFlags size={16} />,
     bannerTone: 'coral',
-    art: <CornerFlags size={34} />,
+    eyebrow: 'Pick two, settle it',
+    art: <CornerFlags size={20} />,
     title: 'Head-to-Head',
     subtitle: 'Bragging rights, gameweek by gameweek',
   },
   {
     id: 'awards',
     label: 'Awards',
+    hint: 'Season superlatives',
     tone: 'bg-sunflower',
-    icon: <Medal size={18} />,
+    icon: <Medal size={16} />,
     bannerTone: 'sunflower',
-    art: <Medal size={34} />,
+    eyebrow: 'Updated every gameweek',
+    art: <Medal size={20} />,
     title: 'Season Awards',
     subtitle: 'The superlatives nobody asked for, updated every gameweek',
   },
@@ -61,6 +67,7 @@ const MoreHub = ({ standings = [], gameweekTable = [], loading = false }) => {
       <SectionBanner
         tone={current.bannerTone}
         art={current.art}
+        eyebrow={current.eyebrow}
         title={current.title}
         subtitle={current.subtitle}
         actions={
@@ -78,7 +85,6 @@ const MoreHub = ({ standings = [], gameweekTable = [], loading = false }) => {
         value={view}
         onChange={setView}
         layoutId="moreSegment"
-        className="w-full sm:w-auto"
       />
 
       {/* Enter-only, and deliberately NOT wrapped in AnimatePresence.

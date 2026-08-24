@@ -53,14 +53,16 @@
 }
 
 @layer components {
-  /* The core surface of the design language: flat paper, one thin uniform
-     ink outline, a hard (never blurred) offset shadow. */
+  /* The core surface of the design language: flat white paper on the cream
+     ground. No shadow — the page-3 artboards have none anywhere; separation
+     comes from the paper/ground contrast alone. The ink outline is reserved
+     for blocks that genuinely need to sit forward. */
   .paper-panel {
-    @apply bg-surface-alt border-2 border-ink/85 shadow-card;
+    @apply bg-surface-alt border-2 border-ink/85;
   }
 
   .paper-inset {
-    @apply bg-surface-sunk border border-ink/12 rounded-2xl;
+    @apply bg-surface-sunk rounded-2xl;
   }
 
   /* Amorphous Memphis blob backdrop. Purely decorative, sits BEHIND
@@ -84,10 +86,11 @@
     display: none;
   }
 
-  /* Chunky, tactile press. The shadow collapses into the button so it reads
-     as physically pushed rather than merely dimmed. */
+  /* Tactile press. There is no shadow to collapse in this direction, so the
+     press is carried by the control sinking a little and its outline
+     darkening — the same "physically pushed" read, drawn rather than lit. */
   .btn-pop {
-    @apply shadow-pop-sm transition-all duration-150 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none;
+    @apply transition-all duration-150 active:translate-y-[1px] active:brightness-95;
   }
 }
 
@@ -105,27 +108,17 @@
   @apply bg-violet/50 rounded-full border-2 border-transparent bg-clip-padding hover:bg-violet transition-colors;
 }
 
-/* Utilities */
-.text-confetti {
-  @apply bg-clip-text text-transparent;
-  background-image: linear-gradient(92deg,
-      rgb(var(--c-coral)) 0%,
-      rgb(var(--c-tangerine)) 28%,
-      rgb(var(--c-sunflower)) 52%,
-      rgb(var(--c-mint)) 76%,
-      rgb(var(--c-violet)) 100%);
-}
-
-/* Thin ink rule with a confetti-colored dash pattern — used to separate
-   sections without adding another boxed container. */
+/* Section rule. The old version was a five-stop linear-gradient in the
+   saturated palette; page-3 has no gradient anywhere, so this is now a flat
+   dashed run of the dusty fills — hard colour stops, no blending. */
 .rule-confetti {
   height: 4px;
   border-radius: 999px;
   background: repeating-linear-gradient(90deg,
-      rgb(var(--c-coral)) 0 18px,
-      rgb(var(--c-sunflower)) 18px 36px,
-      rgb(var(--c-mint)) 36px 54px,
-      rgb(var(--c-violet)) 54px 72px);
+      rgb(var(--c-sunflower)) 0 18px,
+      rgb(var(--c-mint)) 18px 36px,
+      rgb(var(--c-sky)) 36px 54px,
+      rgb(var(--c-bubblegum)) 54px 72px);
 }
 
 /* Animation Utilities */

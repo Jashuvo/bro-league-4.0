@@ -41,7 +41,7 @@ class ErrorBoundary extends React.Component {
             <div className="bg-surface-alt rounded-3xl border-2 border-ink/85 shadow-pop p-8">
               <div className="flex items-center justify-center mb-6">
                 <div className="w-16 h-16 bg-coral/15 border-2 border-ink/85 rounded-full flex items-center justify-center">
-                  <AlertCircle className="w-8 h-8 text-coral" />
+                  <AlertCircle className="w-8 h-8 text-coral-ink" />
                 </div>
               </div>
 
@@ -57,7 +57,7 @@ class ErrorBoundary extends React.Component {
               {import.meta.env.VITE_DEV_MODE === 'true' && this.state.error && (
                 <div className="mb-6 p-4 paper-inset">
                   <h3 className="font-bold text-ink mb-2">Error Details:</h3>
-                  <pre className="text-xs text-coral overflow-auto">
+                  <pre className="text-xs text-coral-ink overflow-auto">
                     {this.state.error.toString()}
                   </pre>
                   {this.state.errorInfo && (

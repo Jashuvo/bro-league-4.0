@@ -8,22 +8,22 @@ import Button from './ui/Button';
 const TONES = {
   error: {
     surface: 'bg-coral/12',
-    text: 'text-coral',
-    icon: <AlertTriangle size={22} className="text-coral" />,
+    text: 'text-coral-ink',
+    icon: <AlertTriangle size={22} className="text-coral-ink" />,
     title: 'Error',
     button: 'danger',
   },
   network: {
     surface: 'bg-coral/12',
-    text: 'text-coral',
-    icon: <WifiOff size={22} className="text-coral" />,
+    text: 'text-coral-ink',
+    icon: <WifiOff size={22} className="text-coral-ink" />,
     title: 'Connection Problem',
     button: 'danger',
   },
   warning: {
     surface: 'bg-sunflower/25',
     text: 'text-ink',
-    icon: <AlertTriangle size={22} className="text-tangerine" />,
+    icon: <AlertTriangle size={22} className="text-tangerine-ink" />,
     title: 'Heads up',
     button: 'sunny',
   },

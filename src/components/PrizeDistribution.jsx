@@ -108,7 +108,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
       {/* Header Banner */}
       <SectionBanner
         tone="violet"
-        art={<Coins size={34} />}
+        art={<Coins size={20} />}
         title="Prize Distribution"
         subtitle={`৳${grandTotal.toLocaleString()} total prize pool`}
         actions={
@@ -162,7 +162,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
                     <div className="font-bold text-ink truncate">
                       {standings[prize.position - 1].managerName || standings[prize.position - 1].player_name}
                     </div>
-                    <div className="text-sm font-bold text-violet">
+                    <div className="text-sm font-bold text-violet-ink">
                       {(standings[prize.position - 1].totalPoints || standings[prize.position - 1].total)?.toLocaleString()} pts
                     </div>
                   </div>
@@ -189,7 +189,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-sky/12 border-2 border-ink/15 p-4 rounded-2xl text-center">
-                  <div className="text-2xl font-display font-bold text-sky">৳{prizeStructure.weekly.perWeek}</div>
+                  <div className="text-2xl font-display font-bold text-sky-ink">৳{prizeStructure.weekly.perWeek}</div>
                   <div className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">Per Week</div>
                 </div>
                 <div className="bg-surface-sunk border-2 border-ink/15 p-4 rounded-2xl text-center">
@@ -201,7 +201,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
               <div>
                 <div className="flex justify-between text-sm font-bold mb-2">
                   <span className="text-ink-soft">Progress</span>
-                  <span className="text-sky">{Math.round(distributionStats.weeklyProgress)}%</span>
+                  <span className="text-sky-ink">{Math.round(distributionStats.weeklyProgress)}%</span>
                 </div>
                 <div className="h-3 bg-surface-sunk rounded-full border-2 border-ink/85 overflow-hidden">
                   <motion.div
@@ -229,7 +229,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-pitch/12 border-2 border-ink/15 p-4 rounded-2xl text-center">
-                  <div className="text-2xl font-display font-bold text-pitch">৳750</div>
+                  <div className="text-2xl font-display font-bold text-pitch-ink">৳750</div>
                   <div className="text-[11px] font-bold uppercase tracking-wider text-ink-soft">Per Month</div>
                 </div>
                 <div className="bg-surface-sunk border-2 border-ink/15 p-4 rounded-2xl text-center">
@@ -241,7 +241,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
               <div>
                 <div className="flex justify-between text-sm font-bold mb-2">
                   <span className="text-ink-soft">Progress</span>
-                  <span className="text-pitch">{Math.round(distributionStats.monthlyProgress)}%</span>
+                  <span className="text-pitch-ink">{Math.round(distributionStats.monthlyProgress)}%</span>
                 </div>
                 <div className="h-3 bg-surface-sunk rounded-full border-2 border-ink/85 overflow-hidden">
                   <motion.div
@@ -268,7 +268,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
               {distributionStats.topWeeklyWinners[0] && (
                 <AwardCard
                   icon={Star}
-                  color="text-violet"
+                  color="text-violet-ink"
                   bgColor="bg-violet/15"
                   title="Most Weekly Wins"
                   name={distributionStats.topWeeklyWinners[0].name}
@@ -278,7 +278,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
               {distributionStats.biggestRiser && (
                 <AwardCard
                   icon={TrendingUp}
-                  color="text-pitch"
+                  color="text-pitch-ink"
                   bgColor="bg-pitch/15"
                   title="Biggest Riser"
                   name={distributionStats.biggestRiser.managerName || distributionStats.biggestRiser.player_name}
@@ -288,7 +288,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
               {distributionStats.bestAverage && (
                 <AwardCard
                   icon={Activity}
-                  color="text-sky"
+                  color="text-sky-ink"
                   bgColor="bg-sky/15"
                   title="Best Average"
                   name={distributionStats.bestAverage.managerName || distributionStats.bestAverage.player_name}
@@ -305,7 +305,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
         <motion.div variants={itemVariants}>
           <Card>
             <h3 className="text-xl font-display font-bold text-ink flex items-center gap-2 mb-6">
-              <Star className="text-violet fill-violet" size={24} />
+              <Star className="text-violet-ink fill-violet" size={24} />
               Top Weekly Winners
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -318,7 +318,7 @@ const PrizeDistribution = ({ gameweekInfo = {}, standings = [], gameweekTable = 
                       <div className="text-xs font-semibold text-ink-soft">{winner.wins} wins</div>
                     </div>
                   </div>
-                  <div className="text-pitch font-display font-bold shrink-0">৳{winner.totalWon}</div>
+                  <div className="text-pitch-ink font-display font-bold shrink-0">৳{winner.totalWon}</div>
                 </div>
               ))}
             </div>

@@ -210,6 +210,34 @@ export const MoreDots = ({ className = '', size = 24 }) => (
   </svg>
 );
 
+// A form arrow in a disc. The FusionGameweeks story rows draw their beats
+// this way — a filled circle with the same ink outline and an arrow through
+// it — rather than reaching for an emoji.
+export const FormArrow = ({ className = '', size = 24, direction = 'up', tone }) => {
+  const up = direction === 'up';
+  const fill = tone || (up ? 'fill-mint' : 'fill-bubblegum');
+  return (
+    <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden="true" className={className}>
+      <circle cx="24" cy="24" r="18" className={`${fill} stroke-ink`} {...stroke} />
+      {up ? (
+        <path d="M24 33V16m-7 7 7-7 7 7" className="stroke-ink" {...stroke} />
+      ) : (
+        <path d="M24 15v17m-7-7 7 7 7-7" className="stroke-ink" {...stroke} />
+      )}
+    </svg>
+  );
+};
+
+// The substitutes' bench — used wherever "points left on the bench" is the
+// story.
+export const Bench = ({ className = '', size = 24 }) => (
+  <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden="true" className={className}>
+    <rect x="6" y="18" width="36" height="8" rx="3" className="fill-tangerine stroke-ink" {...stroke} />
+    <path d="M11 26v14M37 26v14" className="stroke-ink" {...stroke} />
+    <path d="M9 14h30" className="stroke-ink" {...stroke} />
+  </svg>
+);
+
 /* ─────────────────────────── Composite pieces ──────────────────────────── */
 
 // Shirt-number-style rank badge. Top three get a metal tone; everyone else

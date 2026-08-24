@@ -2,8 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../../utils/cn';
 
-// Chunky flat button — solid token fill, thin ink outline, hard offset
-// shadow that collapses on press (see `.btn-pop` in index.css).
+// Chunky flat button — solid token fill, thin ink outline, and a press that
+// sinks the control rather than collapsing a shadow, since this direction has
+// no shadows at all (see `.btn-pop` in index.css).
 const Button = ({
     children,
     variant = 'primary',
@@ -18,11 +19,11 @@ const Button = ({
     const variants = {
         primary: 'bg-violet text-white hover:bg-violet/90',
         secondary: 'bg-mint text-ink hover:bg-mint/85',
-        accent: 'bg-coral text-white hover:bg-coral/90',
+        accent: 'bg-coral text-ink hover:bg-coral/90',
         sunny: 'bg-sunflower text-ink hover:bg-sunflower/85',
         outline: 'bg-surface-alt text-ink hover:bg-surface-sunk',
         ghost: 'bg-transparent border-transparent shadow-none text-ink-soft hover:text-ink hover:bg-ink/5 active:translate-x-0 active:translate-y-0',
-        danger: 'bg-coral text-white hover:bg-coral/90',
+        danger: 'bg-coral text-ink hover:bg-coral/90',
     };
 
     const sizes = {

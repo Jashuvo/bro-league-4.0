@@ -19,10 +19,32 @@ import { prizeStructure, grandTotal } from '../data/leagueData';
 // its own copy of the distribution math. Now: one banner carrying the pool
 // totals, one segmented control, three views over the same `usePrizeStats`
 // result.
+// Each segment names its pot as well as itself — "Monthly · ৳750/mo" — the way
+// the FusionPrizes artboard labels them. A bare "Monthly" gave no reason to
+// press it, which is a large part of why people reported the monthly view as
+// missing rather than as one tap away.
 const VIEWS = [
-  { id: 'weekly', label: 'Weekly', tone: 'bg-sky', icon: <Whistle size={18} /> },
-  { id: 'monthly', label: 'Monthly', tone: 'bg-mint', icon: <CalendarDoodle size={18} /> },
-  { id: 'season', label: 'Season', tone: 'bg-sunflower', icon: <TrophyCup size={18} /> },
+  {
+    id: 'weekly',
+    label: 'Weekly',
+    hint: `৳${prizeStructure.weekly.perWeek}/wk`,
+    tone: 'bg-sky',
+    icon: <Whistle size={16} />,
+  },
+  {
+    id: 'monthly',
+    label: 'Monthly',
+    hint: '৳750/mo',
+    tone: 'bg-mint',
+    icon: <CalendarDoodle size={16} />,
+  },
+  {
+    id: 'season',
+    label: 'Season',
+    hint: `৳${prizeStructure.season.total.toLocaleString()}`,
+    tone: 'bg-sunflower',
+    icon: <TrophyCup size={16} />,
+  },
 ];
 
 const PrizesHub = ({ gameweekTable = [], standings = [], gameweekInfo = {}, loading = false }) => {
@@ -38,7 +60,8 @@ const PrizesHub = ({ gameweekTable = [], standings = [], gameweekInfo = {}, load
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <SectionBanner
         tone="violet"
-        art={<Coins size={34} />}
+        art={<Coins size={20} />}
+        eyebrow={`Season pot • ৳${grandTotal.toLocaleString()}`}
         title="Prizes"
         subtitle={subtitle}
         actions={
@@ -60,7 +83,6 @@ const PrizesHub = ({ gameweekTable = [], standings = [], gameweekInfo = {}, load
         value={view}
         onChange={setView}
         layoutId="prizesSegment"
-        className="w-full sm:w-auto"
       />
 
       {/* Enter-only, and deliberately NOT wrapped in AnimatePresence — see the
@@ -85,13 +107,13 @@ const PrizesHub = ({ gameweekTable = [], standings = [], gameweekInfo = {}, load
                   badgeVariant="success"
                   amountLabel="Per Month"
                   amountValue="৳750"
-                  amountColor="text-pitch"
+                  amountColor="text-pitch-ink"
                   amountTone="bg-pitch/12"
                   countLabel="Months Done"
                   countValue={stats.monthsCompleted}
                   progress={stats.monthlyProgress}
                   progressColor="bg-pitch"
-                  progressTextColor="text-pitch"
+                  progressTextColor="text-pitch-ink"
                 />
                 <div className="rounded-3xl border-2 border-ink/85 bg-surface-alt shadow-card p-6 flex flex-col justify-center">
                   <h3 className="text-lg font-display font-bold text-ink mb-2">How months pay out</h3>

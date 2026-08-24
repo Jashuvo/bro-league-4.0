@@ -13,13 +13,13 @@ const ProgressCard = ({
   badgeVariant = 'info',
   amountLabel,
   amountValue,
-  amountColor = 'text-sky',
+  amountColor = 'text-sky-ink',
   amountTone = 'bg-sky/12',
   countLabel,
   countValue,
   progress = 0,
   progressColor = 'bg-sky',
-  progressTextColor = 'text-sky',
+  progressTextColor = 'text-sky-ink',
 }) => (
   <Card className="h-full">
     <div className="flex items-center justify-between gap-3 mb-5">

@@ -55,7 +55,7 @@ const Footer = ({ gameweekInfo, standings, authStatus, bootstrap, leagueStats })
           <div className="md:col-span-4 md:col-start-6 space-y-4">
             <h4 className="text-xs font-display font-bold text-ink uppercase tracking-[0.18em]">League Stats</h4>
             <ul className="space-y-3">
-              <StatRow label="Total Prize Pool" value={`৳${totalPrizePool.toLocaleString()}`} valueColor="text-pitch" />
+              <StatRow label="Total Prize Pool" value={`৳${totalPrizePool.toLocaleString()}`} valueColor="text-pitch-ink" />
               <StatRow label="Entry Fee" value={`৳${entryFee}`} />
               <StatRow label="Current Gameweek" value={`${currentGameweek}/${totalGameweeks}`} />
               <StatRow
@@ -92,7 +92,7 @@ const Footer = ({ gameweekInfo, standings, authStatus, bootstrap, leagueStats })
           </div>
           <div className="flex items-center gap-2">
             <span>Made with</span>
-            <Heart size={14} className="text-coral fill-coral animate-pulse" />
+            <Heart size={14} className="text-coral-ink fill-coral animate-pulse" />
             <span>for the bros</span>
           </div>
         </div>

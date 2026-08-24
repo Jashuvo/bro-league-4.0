@@ -65,7 +65,7 @@ const PrizeBreakdown = ({ managerName, teamName, prizeData, onClose }) => {
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className="w-10 h-10 shrink-0 rounded-full bg-surface-alt border-2 border-ink/85 flex items-center justify-center hover:bg-coral hover:text-white transition-colors"
+                className="w-10 h-10 shrink-0 rounded-full bg-surface-alt border-2 border-ink/85 flex items-center justify-center hover:bg-coral hover:text-ink transition-colors"
               >
                 <X size={20} />
               </button>
@@ -77,7 +77,7 @@ const PrizeBreakdown = ({ managerName, teamName, prizeData, onClose }) => {
                 <Coins size={34} className="shrink-0" />
                 <div className="min-w-0">
                   <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-ink-soft">Total Prizes Won</div>
-                  <div className="text-3xl font-display font-bold text-pitch leading-tight">৳{totalPrizes}</div>
+                  <div className="text-3xl font-display font-bold text-pitch-ink leading-tight">৳{totalPrizes}</div>
                 </div>
               </div>
               <div className="text-right shrink-0">
@@ -127,7 +127,7 @@ const PrizeBreakdown = ({ managerName, teamName, prizeData, onClose }) => {
                         <TrophyCup size={20} />
                       </div>
                       <div className="text-sm font-semibold text-ink-soft mb-1">{win.points} points</div>
-                      <div className="text-xl font-display font-bold text-pitch">৳{win.prize}</div>
+                      <div className="text-xl font-display font-bold text-pitch-ink">৳{win.prize}</div>
                     </motion.div>
                   ))}
                 </div>
@@ -167,7 +167,7 @@ const PrizeBreakdown = ({ managerName, teamName, prizeData, onClose }) => {
                           <div className="text-sm font-bold text-ink-soft mb-0.5">{getPositionLabel(win.position)}</div>
                           <div className="text-sm font-semibold text-ink">{win.points} points</div>
                         </div>
-                        <div className="text-2xl font-display font-bold text-pitch shrink-0">৳{win.prize}</div>
+                        <div className="text-2xl font-display font-bold text-pitch-ink shrink-0">৳{win.prize}</div>
                       </div>
                     </motion.div>
                   ))}

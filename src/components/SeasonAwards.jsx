@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Award } from 'lucide-react';
 import Card from './ui/Card';
 import SectionBanner from './ui/SectionBanner';
-import { Medal } from './ui/Doodles';
+import { Medal, TrophyCup, Boot, Coins, Bench, FormArrow } from './ui/Doodles';
 import { computeRankHistory } from '../utils/rankHistory';
 
 // Every award here is derived from `standings` + `gameweekTable`, both of
@@ -22,11 +22,11 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, emb
     const sortedByTotal = [...standings].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
     if (sortedByTotal.length > 0) {
       const leader = sortedByTotal[0];
-      list.push({ emoji: '👑', title: 'Season Leader', manager: leader, detail: `${leader.totalPoints} pts` });
+      list.push({ art: <TrophyCup size={24} />, tone: 'sunflower', title: 'Season Leader', manager: leader, detail: `${leader.totalPoints} pts` });
 
       const last = sortedByTotal[sortedByTotal.length - 1];
       if (last && last !== leader) {
-        list.push({ emoji: '🥄', title: 'Wooden Spoon', manager: last, detail: `${last.totalPoints} pts` });
+        list.push({ art: <FormArrow size={24} direction="down" />, tone: 'bubblegum', title: 'Wooden Spoon', manager: last, detail: `${last.totalPoints} pts` });
       }
     }
 
@@ -56,7 +56,7 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, emb
 
       if (highestGw && byId[highestGw.id]) {
         list.push({
-          emoji: '🔥',
+          art: <Boot size={24} />, tone: 'tangerine',
           title: 'Highest Single Gameweek',
           manager: byId[highestGw.id],
           detail: `${highestGw.net} pts in GW${highestGw.gw}`,
@@ -64,7 +64,7 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, emb
       }
       if (lowestGw && byId[lowestGw.id] && lowestGw.id !== highestGw?.id) {
         list.push({
-          emoji: '💀',
+          art: <FormArrow size={24} direction="down" tone="fill-coral" />, tone: 'coral',
           title: 'Worst Gameweek',
           manager: byId[lowestGw.id],
           detail: `${lowestGw.net} pts in GW${lowestGw.gw}`,
@@ -74,7 +74,7 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, emb
       const hitLeader = Object.entries(acc).sort((a, b) => b[1].hits - a[1].hits)[0];
       if (hitLeader && hitLeader[1].hits > 0 && byId[hitLeader[0]]) {
         list.push({
-          emoji: '💸',
+          art: <Coins size={24} />, tone: 'coral',
           title: 'Hit Man',
           manager: byId[hitLeader[0]],
           detail: `-${hitLeader[1].hits} pts in transfer hits`,
@@ -84,7 +84,7 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, emb
       const benchLeader = Object.entries(acc).sort((a, b) => b[1].bench - a[1].bench)[0];
       if (benchLeader && benchLeader[1].bench > 0 && byId[benchLeader[0]]) {
         list.push({
-          emoji: '🪑',
+          art: <Bench size={24} />, tone: 'sunflower',
           title: 'Bench Warmer',
           manager: byId[benchLeader[0]],
           detail: `${benchLeader[1].bench} pts stuck on the bench`,
@@ -101,7 +101,7 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, emb
         .sort((a, b) => a.stddev - b.stddev)[0];
       if (consistent && byId[consistent.id]) {
         list.push({
-          emoji: '🎯',
+          art: <Medal size={24} />, tone: 'mint',
           title: 'Mr. Consistent',
           manager: byId[consistent.id],
           detail: `±${consistent.stddev.toFixed(1)} pts week to week`,
@@ -116,7 +116,7 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, emb
       const riser = [...movers].sort((a, b) => b.delta - a.delta)[0];
       if (riser && riser.delta > 0 && byId[riser.id]) {
         list.push({
-          emoji: '🚀',
+          art: <FormArrow size={24} direction="up" />, tone: 'mint',
           title: 'Most Improved',
           manager: byId[riser.id],
           detail: `Climbed ${riser.delta} place${riser.delta === 1 ? '' : 's'} this season`,
@@ -126,7 +126,7 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, emb
       const faller = [...movers].sort((a, b) => a.delta - b.delta)[0];
       if (faller && faller.delta < 0 && faller.id !== riser?.id && byId[faller.id]) {
         list.push({
-          emoji: '📉',
+          art: <FormArrow size={24} direction="down" tone="fill-sky" />, tone: 'sky',
           title: 'Free Fall',
           manager: byId[faller.id],
           detail: `Dropped ${Math.abs(faller.delta)} place${Math.abs(faller.delta) === 1 ? '' : 's'} this season`,
@@ -147,14 +147,15 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, emb
     );
   }
 
-  const TONES = ['sunflower', 'coral', 'mint', 'sky', 'violet'];
-
+  // Each award now carries its own drawn mark and its own tint (see the beat
+  // list above) instead of an emoji and a rotating tone, matching the
+  // FusionMoreHub awards grid: tinted row, white outlined icon tile.
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       {!embedded && (
         <SectionBanner
           tone="sunflower"
-          art={<Medal size={34} />}
+          art={<Medal size={20} />}
           title="Season Awards"
           subtitle="The superlatives nobody asked for, updated every gameweek"
         />
@@ -174,16 +175,16 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, emb
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <Card tone={TONES[index % TONES.length]} className="flex items-center gap-4 p-5">
-                <span className="w-12 h-12 shrink-0 rounded-2xl bg-surface-sunk border-2 border-ink/85 flex items-center justify-center text-2xl">
-                  {award.emoji}
+              <Card tone={award.tone} className="flex items-center gap-3.5 p-4">
+                <span className="w-11 h-11 shrink-0 rounded-2xl bg-surface-alt border-2 border-ink/85 flex items-center justify-center">
+                  {award.art}
                 </span>
                 <div className="flex-grow min-w-0">
-                  <div className="text-[10px] text-ink-soft uppercase tracking-[0.14em] font-bold mb-0.5">{award.title}</div>
-                  <div className="font-display font-bold text-ink truncate">
+                  <div className="text-[10px] text-ink-soft uppercase tracking-[0.12em] font-bold">{award.title}</div>
+                  <div className="font-display font-bold text-ink truncate mt-0.5">
                     {award.manager.managerName || award.manager.player_name}
                   </div>
-                  <div className="text-sm text-violet font-bold">{award.detail}</div>
+                  <div className="text-[13px] text-ink-soft font-bold truncate">{award.detail}</div>
                 </div>
               </Card>
             </motion.div>

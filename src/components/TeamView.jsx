@@ -188,7 +188,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             </span>
           )}
           {player.isInjured && (
-            <span className="absolute -bottom-1 -right-1 bg-coral text-white w-4 h-4 rounded-full flex items-center justify-center border-2 border-surface-alt">
+            <span className="absolute -bottom-1 -right-1 bg-coral text-ink w-4 h-4 rounded-full flex items-center justify-center border-2 border-surface-alt">
               <AlertCircle size={9} />
             </span>
           )}
@@ -249,7 +249,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           className="bg-surface-alt rounded-3xl p-6 max-w-sm w-full text-center border-2 border-ink/85 shadow-pop"
         >
           <div className="w-14 h-14 bg-coral/15 border-2 border-ink/85 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="text-coral" size={26} />
+            <AlertCircle className="text-coral-ink" size={26} />
           </div>
           <h3 className="text-lg font-display font-bold text-ink mb-2">Unable to Load Team</h3>
           <p className="text-ink-soft text-sm font-medium mb-6">{error}</p>
@@ -297,7 +297,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             <button
               onClick={onClose}
               aria-label="Close"
-              className="w-9 h-9 shrink-0 bg-surface-alt text-ink border-2 border-ink/85 rounded-full flex items-center justify-center hover:bg-coral hover:text-white transition-colors"
+              className="w-9 h-9 shrink-0 bg-surface-alt text-ink border-2 border-ink/85 rounded-full flex items-center justify-center hover:bg-coral hover:text-ink transition-colors"
             >
               <X size={18} />
             </button>
@@ -344,7 +344,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
         {teamData?.automaticSubs?.length > 0 && (
           <div className="px-4 pt-3 shrink-0">
             <div className="flex items-start gap-2 p-3 rounded-2xl bg-mint/20 border-2 border-ink/85 text-sm">
-              <ArrowLeftRight size={16} className="text-pitch mt-0.5 shrink-0" />
+              <ArrowLeftRight size={16} className="text-pitch-ink mt-0.5 shrink-0" />
               <div className="text-ink font-medium">
                 <span className="font-bold">Auto-subs: </span>
                 {teamData.automaticSubs.map((sub, i) => (
@@ -408,7 +408,10 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
               {/* Bench Section */}
               <div className="bg-surface-alt border-t-2 border-ink/85 p-4 pb-8 z-10">
                 <div className="text-[10px] font-display font-bold text-ink-soft uppercase tracking-[0.16em] mb-3 text-center">Substitutes</div>
-                <div className="flex justify-center gap-2 overflow-x-auto scrollbar-none pb-2">
+                {/* Wraps rather than scrolls — four bench players at 390px
+                    overflowed the row, and a bench you have to swipe to see is
+                    a bench you never see. */}
+                <div className="flex flex-wrap justify-center gap-2 pb-2">
                   {teamData?.bench?.map((player) => (
                     <PitchPlayer key={player.id} player={player} />
                   ))}
@@ -451,7 +454,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                           </div>
                           <div className="text-xs font-medium text-ink-soft flex items-center gap-2">
                             <span>{player.team}</span>
-                            {player.isInjured && <span className="text-coral font-bold">Injured</span>}
+                            {player.isInjured && <span className="text-coral-ink font-bold">Injured</span>}
                           </div>
                         </div>
                       </div>

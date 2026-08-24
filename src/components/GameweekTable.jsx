@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Calendar, ChevronRight, ChevronLeft, Target, ArrowRight, Repeat
+  Calendar, ChevronRight, ChevronLeft, ChevronDown, ArrowRight, Repeat, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './ui/Card';
@@ -8,7 +8,6 @@ import Badge from './ui/Badge';
 import Button from './ui/Button';
 import SectionBanner from './ui/SectionBanner';
 import { Whistle, RankBadge, Coins } from './ui/Doodles';
-import LivePointsTable from './LivePointsTable';
 import TeamView from './TeamView';
 import WeeklyStory from './WeeklyStory';
 import CaptainWatch from './CaptainWatch';
@@ -17,7 +16,9 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
   const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek);
   const [expandedRow, setExpandedRow] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
-  const [showLivePoints, setShowLivePoints] = useState(false);
+  // Secondary reading (story / captains / differentials / transfers) starts
+  // folded so the leaderboard is reachable without scrolling past it.
+  const [showInsights, setShowInsights] = useState(false);
 
   const toggleRowExpansion = (managerId) => {
     setExpandedRow(expandedRow === managerId ? null : managerId);
@@ -176,109 +177,177 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
         {/* Header Banner */}
         <SectionBanner
           tone="sky"
-          art={<Whistle size={34} />}
-          title="Gameweek History"
-          subtitle={`GW ${selectedGameweek} • ${gameweekData.length} Managers`}
+          art={<Whistle size={20} />}
+          eyebrow={
+            selectedGameweekStatus === 'completed' ? 'Final result'
+              : selectedGameweekStatus === 'current' ? 'Matches in play'
+                : 'Not played yet'
+          }
+          title={`Gameweek ${selectedGameweek}`}
+          subtitle={
+            gameweekData.length > 0
+              ? `${gameweekData.length} managers • net points after hits`
+              : 'No scores in yet'
+          }
           stats={bannerStats}
           actions={
-            <>
-              {selectedGameweekStatus === 'current' && (
-                <button
-                  onClick={() => setShowLivePoints(!showLivePoints)}
-                  className={`px-4 py-2 text-sm font-bold rounded-2xl border-2 border-ink/85 btn-pop flex items-center gap-2 ${showLivePoints
-                    ? 'bg-sunflower text-ink'
-                    : 'bg-surface-alt text-ink'
-                    }`}
-                >
-                  <Target size={16} />
-                  {showLivePoints ? 'Show Normal' : 'Live Points'}
-                </button>
-              )}
-
-              <Badge
-                variant={selectedGameweekStatus === 'completed' ? 'success' : selectedGameweekStatus === 'current' ? 'gold' : 'default'}
-                className="px-3 py-1.5 text-sm"
-              >
-                {selectedGameweekStatus === 'completed' ? 'Completed' : selectedGameweekStatus === 'current' ? 'Live' : 'Upcoming'}
-              </Badge>
-            </>
+            <Badge
+              variant={selectedGameweekStatus === 'completed' ? 'success' : selectedGameweekStatus === 'current' ? 'gold' : 'default'}
+              className="px-3 py-1.5 text-sm"
+            >
+              {selectedGameweekStatus === 'completed' ? 'Completed' : selectedGameweekStatus === 'current' ? 'In progress' : 'Upcoming'}
+            </Badge>
           }
         />
 
-        {/* Gameweek Navigation */}
-        <div className="flex items-center justify-between bg-surface-alt p-3 rounded-3xl border-2 border-ink/85 shadow-card">
+        {/* Gameweek Navigation — the FusionGameweeks switcher: a prev/next pair
+            either side of the week's name, its state, and how far into the
+            season it sits. */}
+        <div className="flex items-center gap-2 sm:gap-4 bg-surface-alt p-2.5 sm:p-3 rounded-3xl border-2 border-ink/85">
           <button
             onClick={() => setSelectedGameweek(Math.max(1, selectedGameweek - 1))}
             disabled={selectedGameweek <= 1}
             aria-label="Previous gameweek"
-            className="p-2 rounded-xl border-2 border-ink/85 bg-surface-sunk text-ink btn-pop disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-11 h-11 shrink-0 rounded-2xl bg-surface-sunk text-ink-soft flex items-center justify-center btn-pop disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <ChevronLeft size={22} />
+            <ChevronLeft size={20} />
           </button>
 
-          <div className="text-center">
-            <div className="font-display font-bold text-xl text-ink">Gameweek {selectedGameweek}</div>
-            <div className="text-xs font-bold uppercase tracking-wider text-ink-soft">
-              {selectedGameweekStatus === 'completed' && 'Completed'}
-              {selectedGameweekStatus === 'current' && 'In progress'}
-              {selectedGameweekStatus === 'upcoming' && 'Upcoming'}
+          <div className="flex items-center gap-2.5 flex-grow min-w-0">
+            <Whistle size={24} className="shrink-0 hidden sm:block" />
+            <div className="min-w-0">
+              <div className="font-display font-bold text-base sm:text-lg text-ink leading-tight truncate">
+                Gameweek {selectedGameweek}
+              </div>
+              <div className="text-[11px] sm:text-xs font-bold text-ink-soft mt-0.5 truncate">
+                {selectedGameweekStatus === 'completed' && 'Final — points are settled'}
+                {selectedGameweekStatus === 'current' && 'In progress — scores can still move'}
+                {selectedGameweekStatus === 'upcoming' && 'Not played yet'}
+              </div>
             </div>
           </div>
+
+          <div className="hidden sm:flex items-center gap-2.5 shrink-0">
+            <span className="text-[11px] font-bold text-ink-soft tabular-nums">{selectedGameweek} of 38</span>
+            <span className="block w-[120px] h-1.5 rounded-full bg-surface-sunk overflow-hidden">
+              <span
+                className="block h-full rounded-full bg-pitch"
+                style={{ width: `${(selectedGameweek / 38) * 100}%` }}
+              />
+            </span>
+          </div>
+          <span className="sm:hidden shrink-0 text-[11px] font-bold text-ink-soft tabular-nums">
+            {selectedGameweek}/38
+          </span>
 
           <button
             onClick={() => setSelectedGameweek(Math.min(38, selectedGameweek + 1))}
             disabled={selectedGameweek >= 38}
             aria-label="Next gameweek"
-            className="p-2 rounded-xl border-2 border-ink/85 bg-surface-sunk text-ink btn-pop disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-11 h-11 shrink-0 rounded-2xl bg-violet/15 text-violet-ink flex items-center justify-center btn-pop disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <ChevronRight size={22} />
+            <ChevronRight size={20} />
           </button>
         </div>
 
-        {/* This Week's Story */}
-        <WeeklyStory gameweekTable={gameweekTable} gameweek={selectedGameweek} />
+        {/* ── Insights ────────────────────────────────────────────────────────
+            The story, the captain split, the differentials and the transfer
+            board used to sit here OPEN, stacked, at full length — a fifteen-row
+            captain table and an eight-name differential list among them. On a
+            phone that put the gameweek leaderboard, which is what people open
+            this tab for, roughly 2,600px down the page: three full screens of
+            scrolling past commentary to reach the scores.
 
-        {/* Captain Watch + League Differentials — no picks exist yet for
-            an upcoming gameweek, so only fetch once it's underway. */}
-        <CaptainWatch
-          standings={standings}
-          gameweek={selectedGameweek}
-          enabled={selectedGameweekStatus === 'current' || selectedGameweekStatus === 'completed'}
-        />
+            They are still one tap away and they are still here, in place — but
+            folded, so the leaderboard is the next thing under the switcher. */}
+        <div className="rounded-3xl bg-surface-alt overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowInsights((open) => !open)}
+            aria-expanded={showInsights}
+            className="w-full flex items-center gap-3 px-4 py-3.5 text-left min-h-[52px]"
+          >
+            <span className="w-9 h-9 shrink-0 rounded-full bg-tangerine/40 flex items-center justify-center">
+              <Sparkles size={16} className="text-tangerine-ink" />
+            </span>
+            <span className="min-w-0 flex-grow">
+              <span className="block font-display font-bold text-ink leading-tight">Insights</span>
+              <span className="block text-[11px] font-bold text-ink-soft truncate">
+                This week&rsquo;s story, the armband split and the differentials
+              </span>
+            </span>
+            <ChevronDown
+              size={20}
+              className={`shrink-0 text-ink-soft transition-transform duration-300 ${showInsights ? 'rotate-180' : ''}`}
+            />
+          </button>
 
-        {/* Transfer Activity Leaderboard */}
-        {transferLeaderboard.length > 0 && (
-          <Card>
-            <h3 className="text-lg font-display font-bold text-ink flex items-center gap-2 mb-4">
-              <Repeat className="text-mint" size={20} />
-              Most Active in the Transfer Market
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {transferLeaderboard.map((manager, index) => (
-                <div key={manager.id} className="bg-mint/12 rounded-2xl p-3 flex items-center justify-between gap-2 border-2 border-ink/15">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-7 h-7 rounded-full bg-mint border-2 border-ink/85 text-ink flex items-center justify-center font-bold text-xs flex-shrink-0">
-                      {index + 1}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-bold text-ink truncate">{manager.name}</div>
-                      {manager.totalHits > 0 && (
-                        <div className="text-xs font-semibold text-coral">-{manager.totalHits} pts in hits</div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-lg font-display font-bold text-pitch flex-shrink-0">{manager.totalTransfers}</div>
+          <AnimatePresence initial={false}>
+            {showInsights && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden"
+              >
+                <div className="px-3 pb-3 space-y-3">
+                  <WeeklyStory gameweekTable={gameweekTable} gameweek={selectedGameweek} />
+
+                  {/* No picks exist yet for a gameweek that hasn't started, so
+                      only fetch once it's underway. */}
+                  <CaptainWatch
+                    standings={standings}
+                    gameweek={selectedGameweek}
+                    enabled={selectedGameweekStatus === 'current' || selectedGameweekStatus === 'completed'}
+                  />
+
+                  {transferLeaderboard.length > 0 && (
+                    <Card className="p-5">
+                      <h3 className="text-base font-display font-bold text-ink flex items-center gap-2 mb-3">
+                        <Repeat className="text-mint-ink" size={18} />
+                        Busiest in the transfer market
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {transferLeaderboard.map((manager, index) => (
+                          <div key={manager.id} className="bg-mint/25 rounded-2xl p-2.5 flex items-center justify-between gap-2 min-w-0">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-7 h-7 rounded-full bg-mint text-ink flex items-center justify-center font-bold text-xs shrink-0">
+                                {index + 1}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-bold text-ink text-[13px] truncate">{manager.name}</div>
+                                {manager.totalHits > 0 && (
+                                  <div className="text-[11px] font-bold text-coral-ink">-{manager.totalHits} pts in hits</div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-lg font-display font-bold text-pitch-ink shrink-0 tabular-nums">
+                              {manager.totalTransfers}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
                 </div>
-              ))}
-            </div>
-          </Card>
-        )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-        {/* Main Table Content */}
+        {/* Main Table Content — the reason people open this tab, now directly
+            under the switcher instead of below every insight. */}
         <div className="space-y-3">
-          {showLivePoints && selectedGameweekStatus === 'current' ? (
-            <LivePointsTable gameweek={selectedGameweek} />
-          ) : (
+          <div className="flex items-baseline justify-between gap-3 px-1">
+            <h3 className="font-display font-bold text-lg sm:text-xl text-ink">
+              Gameweek {selectedGameweek} leaderboard
+            </h3>
+            <span className="text-[11px] font-bold text-ink-soft text-right shrink-0">
+              Net points · tap a row
+            </span>
+          </div>
+          {(
             <>
               {!gameweekData || gameweekData.length === 0 ? (
                 <div className="p-12 text-center">
@@ -315,10 +384,10 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
                           </div>
 
                           <div className="text-right shrink-0">
-                            <div className="font-display font-bold text-xl text-violet leading-tight">
+                            <div className="font-display font-bold text-xl text-violet-ink leading-tight">
                               {manager.netPoints}
                               {manager.transfersCost > 0 && (
-                                <span className="text-xs text-coral ml-1">(-{manager.transfersCost})</span>
+                                <span className="text-xs text-coral-ink ml-1">(-{manager.transfersCost})</span>
                               )}
                             </div>
                             <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Net</div>
@@ -345,15 +414,15 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
                                 </div>
                                 <div className="bg-surface-alt rounded-2xl p-2 text-center border-2 border-ink/15">
                                   <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Penalty</div>
-                                  <div className="font-display font-bold text-coral">-{manager.transfersCost}</div>
+                                  <div className="font-display font-bold text-coral-ink">-{manager.transfersCost}</div>
                                 </div>
                                 <div className="bg-surface-alt rounded-2xl p-2 text-center border-2 border-ink/15">
                                   <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">GW Rank</div>
-                                  <div className="font-display font-bold text-violet">#{position}</div>
+                                  <div className="font-display font-bold text-violet-ink">#{position}</div>
                                 </div>
                                 <div className="bg-surface-alt rounded-2xl p-2 text-center border-2 border-ink/15">
                                   <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Overall Rank</div>
-                                  <div className="font-display font-bold text-sky">#{manager.overallRank?.toLocaleString() || 'N/A'}</div>
+                                  <div className="font-display font-bold text-sky-ink">#{manager.overallRank?.toLocaleString() || 'N/A'}</div>
                                 </div>
                               </div>
 
