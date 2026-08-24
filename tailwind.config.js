@@ -40,6 +40,10 @@
 // colour (dark enough to read on white — use it for text and icon strokes).
 // Writing `text-mint` where you mean `text-mint-ink` gives you sage-on-white
 // and no contrast; that pairing is the whole reason both exist.
+//
+// ALL OF THE ABOVE DESCRIBES LIGHT MODE ONLY. Dark mode is deliberately NOT
+// a tinted-dark Memphis variant: it is the app's ORIGINAL indigo / emerald /
+// rose-on-slate theme, restored. See the `dark` block below.
 
 const plugin = require('tailwindcss/plugin');
 
@@ -68,6 +72,14 @@ const palette = {
     'ink-soft': '#6b6390',
     line: '#2b2350',
 
+    // Modal backdrop. Identical to `ink` here, which is what the four
+    // full-screen scrims used to name directly — but `ink` INVERTS with the
+    // theme (it is the type colour), so on a dark ground `bg-ink/70` painted
+    // a near-white veil over the page and flash-banged anyone opening a team.
+    // A scrim is always the dark end, in both themes; that's why it needs a
+    // token of its own.
+    scrim: '#2b2350',
+
     // Flat dusty fills.
     coral: '#d98c7f',      // clay
     tangerine: '#e8c4a0',  // peach
@@ -92,42 +104,76 @@ const palette = {
     'silver-ink': '#6b6390',
   },
   dark: {
-    // Same hues on a deep indigo field, but the light/dark roles SWAP.
+    // ─── THE ORIGINAL BRO LEAGUE DARK THEME ─────────────────────────────
     //
-    // In light mode the ink is near-black and the fills are pale, so pale
-    // fills carry dark type. Invert the ground and that stops working: the
-    // ink is now cream, and cream on a pale ochre chip is ~2:1 — the leader
-    // chip and the top-three pills became unreadable the moment the palette
-    // went dusty. So every dark-mode FILL is the deep end of its hue, dark
-    // enough that cream type clears 4.5:1 on it, while the *-ink pairs go the
-    // other way and lift, because they sit on the dark paper as type.
-    surface: '#1b1730',
-    'surface-alt': '#262046',
-    'surface-sunk': '#141024',
+    // Dark mode is NOT a Memphis-football variant. It is the scheme the app
+    // shipped with long before any reskin, restored verbatim where a token
+    // has a direct ancestor:
+    //
+    //   bro-dark    #0f172a  slate-900   → surface       (page)
+    //   bro-card    #1e293b  slate-800   → surface-alt   (cards)
+    //   bro-text    #f8fafc  slate-50    → ink / line
+    //   bro-muted   #94a3b8  slate-400   → ink-soft
+    //   bro-primary #4f46e5  indigo-600  → violet        (primary)
+    //   bro-secondary #10b981 emerald-500 → mint family  (positive)
+    //   bro-accent  #f43f5e  rose-500    → coral family  (negative)
+    //
+    // The light/dark roles still SWAP, exactly as before: in light mode the
+    // ink is near-black and the fills are pale, so pale fills carry dark
+    // type. On a slate ground the ink is near-white, and near-white on a
+    // pale fill is ~2:1 — the leader chip and the top-three pills go
+    // unreadable. So every dark-mode FILL is the DEEP end of its hue (dark
+    // enough that #f8fafc clears 4.5:1 on it), while the `*-ink` pairs lift
+    // to the 300/400 end of the same hue, because they sit on slate as type.
+    // `violet` is the one fill that is the brand colour verbatim — indigo-600
+    // already clears 6.3:1 against white, which is why it was the primary.
+    //
+    // Tokens with no ancestor in the original scheme (the football/medal
+    // accents, which postdate it) are derived from the nearest original hue
+    // rather than borrowed from the light theme: gold/bronze are deep ambers,
+    // silver is slate-700, pitch is the deep end of the emerald, sky is the
+    // cool blue between indigo and slate. Nothing here is a dusty pastel.
+    surface: '#0f172a',        // slate-900 — page
+    'surface-alt': '#1e293b',  // slate-800 — cards / paper
+    'surface-sunk': '#0b1120', // recessed wells, sunk below the page
 
-    ink: '#fff4e6',
-    'ink-soft': '#bab2d3',
-    line: '#fff4e6',
+    ink: '#f8fafc',            // slate-50
+    // bro-muted was slate-400 (#94a3b8). This is that colour lifted toward
+    // slate-300, and it is the ONE token here that isn't its ancestor
+    // verbatim. Six 9–10px sub-labels apply `text-ink-soft/70` in markup
+    // shared with light mode (where a 70% #6b6390 on white paper is fine).
+    // In dark that alpha caps slate-400 at 4.31:1 against *pure black* — no
+    // choice of surface can make those labels legible. Lifting the token is
+    // the only fix that doesn't change light mode, and it puts every one of
+    // them at or above where the theme this replaces had them.
+    'ink-soft': '#b0bccd',     // slate-400, lifted
+    line: '#f8fafc',
+    scrim: '#020617',          // slate-950 — a veil, not the type colour
 
-    coral: '#8a4d43',
-    tangerine: '#82623c',
-    sunflower: '#7d6129',
-    mint: '#456140',
-    pitch: '#356248',
-    sky: '#42597a',
-    violet: '#5a4a93',
-    bubblegum: '#8a4f56',
-    silver: '#565073',
+    coral: '#be123c',      // rose-700   — the deep end of bro-accent
+    // Gold sits a hair BRIGHTER than bronze on purpose — the medal order has
+    // to survive the inversion. Both are darker than they look like they want
+    // to be, because the leader chip's micro-labels are `text-ink/60` and
+    // `text-ink/70` (an alpha chosen for pale ochre in light mode), and a 60%
+    // white only clears 4.5:1 once the fill is this deep.
+    tangerine: '#6b3d18',  // deep bronze
+    sunflower: '#63480c',  // deep gold
+    mint: '#065f46',       // emerald-800 — the deep end of bro-secondary
+    pitch: '#044e37',      // emerald, deeper still
+    sky: '#075985',        // sky-800
+    violet: '#4f46e5',     // indigo-600 — bro-primary, verbatim
+    bubblegum: '#9d174d',  // pink-800
+    silver: '#334155',     // slate-700
 
-    'coral-ink': '#f0b4a8',
-    'tangerine-ink': '#eac79e',
-    'sunflower-ink': '#f2d79b',
-    'mint-ink': '#a9cfb4',
-    'pitch-ink': '#8fc3a2',
-    'sky-ink': '#afcbe4',
-    'violet-ink': '#bcacec',
-    'bubblegum-ink': '#f0c2c7',
-    'silver-ink': '#bdb6ce',
+    'coral-ink': '#fda4af',      // rose-300
+    'tangerine-ink': '#fdba74',  // orange-300
+    'sunflower-ink': '#fcd34d',  // amber-300
+    'mint-ink': '#6ee7b7',       // emerald-300
+    'pitch-ink': '#34d399',      // emerald-400
+    'sky-ink': '#7dd3fc',        // sky-300
+    'violet-ink': '#a5b4fc',     // indigo-300
+    'bubblegum-ink': '#f9a8d4',  // pink-300
+    'silver-ink': '#cbd5e1',     // slate-300
   },
 };
 
@@ -148,6 +194,20 @@ const colors = {
   negative: token('coral'),
   'positive-ink': token('mint-ink'),
   'negative-ink': token('coral-ink'),
+};
+
+// daisyUI's `primary` / `secondary` / `accent` are BRAND slots, not surfaces —
+// nothing in src/ uses a daisyUI component class, so they never have to carry
+// type. Dark therefore hands daisyUI the original brand triple verbatim rather
+// than our deep fill tokens (which are the deep end of each hue only so that
+// near-white type can sit on them). `base-300` is the same story: our
+// `surface-sunk` is a recess that sits BELOW the page, while the original dark
+// theme's third base was slate-700, a step up from the cards.
+const originalDarkBrand = {
+  primary: '#4f46e5',   // indigo-600
+  secondary: '#10b981', // emerald-500
+  accent: '#f43f5e',    // rose-500
+  'base-300': '#334155', // slate-700
 };
 
 const daisyTheme = (mode) => {
@@ -172,6 +232,7 @@ const daisyTheme = (mode) => {
     '--rounded-box': '1.25rem',
     '--rounded-btn': '0.9rem',
     '--rounded-badge': '999px',
+    ...(mode === 'dark' ? originalDarkBrand : {}),
   };
 };
 

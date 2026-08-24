@@ -226,7 +226,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   // document.body sidesteps that entirely.
   if (loading) {
     return createPortal(
-      <div className="fixed inset-0 bg-ink/70 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-scrim/70 flex items-center justify-center z-50 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -242,7 +242,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
   if (error) {
     return createPortal(
-      <div className="fixed inset-0 bg-ink/70 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-scrim/70 flex items-center justify-center z-50 p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -267,7 +267,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   }
 
   return createPortal(
-    <div className="fixed inset-0 bg-ink/70 flex items-center justify-center z-50 p-3 md:p-6">
+    <div className="fixed inset-0 bg-scrim/70 flex items-center justify-center z-50 p-3 md:p-6">
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}

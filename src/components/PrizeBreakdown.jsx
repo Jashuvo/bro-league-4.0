@@ -37,7 +37,7 @@ const PrizeBreakdown = ({ managerName, teamName, prizeData, onClose }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-ink/70 z-50 flex items-center justify-center p-3 md:p-6"
+        className="fixed inset-0 bg-scrim/70 z-50 flex items-center justify-center p-3 md:p-6"
         onClick={onClose}
       >
         <motion.div

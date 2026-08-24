@@ -7,8 +7,8 @@ export function ThemeProvider({ children }) {
         const savedTheme = localStorage.getItem('theme');
         // Light is the fully-realized "Memphis × Football" direction: flat
         // saturated fills need a light cream field to read as cut paper.
-        // Dark is a coherent adapted variant (deep ink base, same hues
-        // lifted for contrast), not the default.
+        // Dark is the app's original indigo/emerald/rose-on-slate theme
+        // (see the `dark` palette in tailwind.config.js), not the default.
         return savedTheme || 'light';
     });
 
