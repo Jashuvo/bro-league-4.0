@@ -25,29 +25,37 @@ export function setCorsHeaders(res) {
  * this uses AbortController instead) and exponential-backoff retries on
  * network errors or non-OK responses.
  *
- * `cache: 'no-store'` is load-bearing, not defensive boilerplate: Vercel's
- * Node runtime applies its own Data Cache to outbound `fetch()` calls
- * regardless of what cache headers FPL's response carries — this app's own
- * KV cache and `force=true` bypass only sit in FRONT of that (in
- * league-complete.js), so they can look like they're forcing a fresh
- * fetch while this layer quietly hands back a memoized response for the
- * exact same URL. That's precisely why `entry/{id}/`'s overall rank could
- * stay pinned to a months-old value while everything sourced from the
- * (differently-cached) standings URL kept moving — confirmed by comparing
- * the frozen number against FPL's own historical record for that
- * manager, then reproducing correct fresh values with an out-of-band
- * curl to the identical URL. `no-store` opts every call here out of that
- * cache explicitly, per Vercel's own documented escape hatch.
+ * The cache-busting query param is load-bearing, not defensive boilerplate.
+ * Root-caused via a temporary debug endpoint that surfaced the raw headers
+ * this function actually received from FPL: `entry/{id}/`'s response
+ * carried `age: 5756`, `x-cache: MISS, MISS, HIT`, and
+ * `edge-control: max-age=1209600` (14 days) — FPL's own Fastly CDN was
+ * serving an hours-old cached copy from whichever edge node Vercel's
+ * requests land on, OVERRIDING the `Cache-Control: no-store` header FPL
+ * sends to browsers (`Edge-Control`/`Surrogate-Control` are Fastly's
+ * origin-to-CDN-only override of the client-facing Cache-Control). An
+ * out-of-band curl to the identical URL got fresh data every time —
+ * proving this is specific to whatever edge node Vercel's traffic hits,
+ * not this app's own caching layers (KV, `force=true`, and even
+ * `cache: 'no-store'` on the fetch itself all sit in FRONT of FPL's CDN
+ * and can't touch a cache decision made on FPL's side).
+ *
+ * A unique query param on every call changes Fastly's cache key so it can
+ * never match whatever stale object is sitting at that edge node — the
+ * standard workaround for an upstream CDN that won't honor no-cache.
+ * `cache: 'no-store'` stays too, as harmless defense-in-depth for
+ * whatever fetch-level caching Vercel's own runtime might apply.
  */
 export async function fetchWithRetry(url, options = {}, retries = 2) {
   const { timeout = 10000, ...rest } = options;
+  const bustedUrl = `${url}${url.includes('?') ? '&' : '?'}_cb=${Date.now()}`;
 
   for (let i = 0; i <= retries; i++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(bustedUrl, {
         ...rest,
         cache: 'no-store',
         signal: controller.signal,
