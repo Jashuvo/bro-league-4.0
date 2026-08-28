@@ -6,6 +6,7 @@ import Card from './ui/Card';
 import Button from './ui/Button';
 import { RankBadge, StandingsScene, Coins, Jersey, Ball } from './ui/Doodles';
 import PrizeBreakdown from './PrizeBreakdown';
+import InsightsFAB from './InsightsFAB';
 import { useExclusion } from '../context/ExclusionContext';
 import RankTrendSparkline from './RankTrendSparkline';
 import { monthlyWindows, prizeStructure } from '../data/leagueData';
@@ -258,6 +259,25 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
   // Cumulative league-position history per manager, derived from
   // gameweekTable — powers the "Rank Trend" sparkline in each expanded row.
   const rankHistoryByManager = useMemo(() => computeRankHistory(gameweekTable), [gameweekTable]);
+
+  // The "magic number": how many points separate the season top-3 cutoff
+  // (prizeStructure.season — the ৳800/600/400 prize) from each manager.
+  // `enhancedStandings` is already in rank order (it's built by mapping
+  // `standings`, which the API returns rank-sorted), so index 2/3 are
+  // literally 3rd and 4th place — no re-sorting needed for this.
+  const magicNumberByManager = useMemo(() => {
+    const map = {};
+    if (enhancedStandings.length < 4) return map;
+    const thirdPlacePoints = enhancedStandings[2]?.totalPoints ?? 0;
+    const fourthPlacePoints = enhancedStandings[3]?.totalPoints ?? 0;
+    enhancedStandings.forEach((manager, index) => {
+      const total = manager.totalPoints || manager.total || 0;
+      map[manager.id] = index < 3
+        ? { onPodium: true, gap: total - fourthPlacePoints }
+        : { onPodium: false, gap: thirdPlacePoints - total };
+    });
+    return map;
+  }, [enhancedStandings]);
 
   // ── The narrative line. Written from the live table, never canned copy:
   // who leads and by how much, whether the chasers have already burned a
@@ -695,6 +715,35 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                             />
                           </div>
 
+                          {/* Prize race — how many points separate this
+                              manager from the season top-3 cutoff, which is
+                              where the real money (৳800/600/400) sits. */}
+                          {magicNumberByManager[manager.id] && (
+                            <div
+                              className={cn(
+                                'rounded-[18px] px-4 py-3.5 mt-3.5 flex items-center gap-3',
+                                magicNumberByManager[manager.id].onPodium ? 'bg-tile-gold' : 'bg-tile-clay'
+                              )}
+                            >
+                              <Coins size={22} className="shrink-0" />
+                              <p className="text-[13.5px] font-bold text-ink leading-snug">
+                                {magicNumberByManager[manager.id].onPodium ? (
+                                  magicNumberByManager[manager.id].gap > 0 ? (
+                                    <><span className="font-display text-[17px]">{magicNumberByManager[manager.id].gap}</span> pts clear of 4th — the podium prize is theirs to lose.</>
+                                  ) : (
+                                    <>Level with 4th on points — the podium is not locked in yet.</>
+                                  )
+                                ) : (
+                                  magicNumberByManager[manager.id].gap > 0 ? (
+                                    <><span className="font-display text-[17px]">{magicNumberByManager[manager.id].gap}</span> pts back from 3rd — still in the podium race.</>
+                                  ) : (
+                                    <>Level with 3rd on points — right on the podium cutoff.</>
+                                  )
+                                )}
+                              </p>
+                            </div>
+                          )}
+
                           {/* Rank trend */}
                           <div className="bg-surface-alt rounded-[18px] p-4 mt-3.5">
                             {history.length < 2 ? (
@@ -796,6 +845,16 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
           onClose={() => setSelectedPrizeManager(null)}
         />
       )}
+
+      {/* Mobile-only shortcut to this gameweek's Insights (story, captain
+          split, live feed, price/fixture watch) — see InsightsFAB.jsx for
+          why this lives on the home destination specifically. */}
+      <InsightsFAB
+        gameweekTable={gameweekTable}
+        gameweek={currentGW}
+        standings={standings}
+        status={gwFinished ? 'completed' : 'current'}
+      />
     </>
   );
 };

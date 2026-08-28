@@ -90,7 +90,19 @@ export default async function handler(req, res) {
           totalPoints: player.total_points || 0,
           nowCost: player.now_cost,
           status: player.status || 'a',
-          chanceOfPlaying: player.chance_of_playing_next_round || 100
+          chanceOfPlaying: player.chance_of_playing_next_round || 100,
+          // Season-level context for the player-detail panel — none of
+          // this was read anywhere in this codebase before now, it's all
+          // sitting on the same bootstrap element already fetched above.
+          news: player.news || '',
+          form: player.form || '0.0',
+          selectedByPercent: player.selected_by_percent || '0.0',
+          pointsPerGame: player.points_per_game || '0.0',
+          goalsScored: player.goals_scored || 0,
+          assists: player.assists || 0,
+          cleanSheets: player.clean_sheets || 0,
+          bonusSeason: player.bonus || 0,
+          minutesSeason: player.minutes || 0
         });
       });
     }
@@ -149,11 +161,28 @@ export default async function handler(req, res) {
           bonus: liveStats.bonus || 0,
           bps: liveStats.bps || 0,
           minutes: liveStats.minutes || 0,
+          // FPL's official Team of the Week for this exact gameweek — it's
+          // right there in the live stats already fetched above, just never
+          // read before now.
+          inDreamTeam: Boolean(liveStats.in_dreamteam),
           totalPoints: playerInfo.totalPoints || 0,
           photo: playerInfo.photo || '',
           nowCost: playerInfo.nowCost || 0,
           status: playerInfo.status || 'a',
-          chanceOfPlaying: playerInfo.chanceOfPlaying || 100
+          chanceOfPlaying: playerInfo.chanceOfPlaying || 100,
+          // Season-level context for the player-detail panel — these were
+          // added to playerInfo above but never actually copied onto the
+          // object sent to the frontend, which is why the panel showed
+          // blanks/dashes for all of them.
+          news: playerInfo.news || '',
+          form: playerInfo.form || '0.0',
+          selectedByPercent: playerInfo.selectedByPercent || '0.0',
+          pointsPerGame: playerInfo.pointsPerGame || '0.0',
+          goalsScored: playerInfo.goalsScored || 0,
+          assists: playerInfo.assists || 0,
+          cleanSheets: playerInfo.cleanSheets || 0,
+          bonusSeason: playerInfo.bonusSeason || 0,
+          minutesSeason: playerInfo.minutesSeason || 0
         };
 
         enrichedPicks.push(enrichedPick);

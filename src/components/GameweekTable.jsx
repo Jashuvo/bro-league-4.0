@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Calendar, ChevronRight, ChevronLeft, ChevronDown, ArrowRight, Repeat, Sparkles
+  Calendar, ChevronRight, ChevronLeft, ChevronDown, ArrowRight, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from './ui/Card';
@@ -9,8 +9,7 @@ import Button from './ui/Button';
 import SectionBanner from './ui/SectionBanner';
 import { Whistle, RankBadge, Coins } from './ui/Doodles';
 import TeamView from './TeamView';
-import WeeklyStory from './WeeklyStory';
-import CaptainWatch from './CaptainWatch';
+import InsightsPanel from './InsightsPanel';
 
 const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = false, bootstrap = {}, standings = [] }) => {
   const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek);
@@ -114,32 +113,6 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
     };
   }, [gameweekTable, bootstrap]);
 
-  // Season-wide transfer activity — reshaped from the per-gameweek
-  // `transfers` figure that's already in gameweekTable, no new fetching.
-  const transferLeaderboard = useMemo(() => {
-    const totals = {};
-    gameweekTable.forEach((gw) => {
-      gw.managers?.forEach((manager) => {
-        const id = manager.id;
-        if (!totals[id]) {
-          totals[id] = {
-            id,
-            name: manager.managerName || manager.name,
-            teamName: manager.teamName,
-            totalTransfers: 0,
-            totalHits: 0
-          };
-        }
-        totals[id].totalTransfers += manager.transfers || 0;
-        totals[id].totalHits += manager.transferCost || 0;
-      });
-    });
-
-    return Object.values(totals)
-      .filter((m) => m.totalTransfers > 0)
-      .sort((a, b) => b.totalTransfers - a.totalTransfers)
-      .slice(0, 5);
-  }, [gameweekTable]);
 
 
   if (loading) {
@@ -291,45 +264,13 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
                 transition={{ duration: 0.25 }}
                 className="overflow-hidden"
               >
-                <div className="px-3 pb-3 space-y-3">
-                  <WeeklyStory gameweekTable={gameweekTable} gameweek={selectedGameweek} />
-
-                  {/* No picks exist yet for a gameweek that hasn't started, so
-                      only fetch once it's underway. */}
-                  <CaptainWatch
-                    standings={standings}
+                <div className="px-3 pb-3">
+                  <InsightsPanel
+                    gameweekTable={gameweekTable}
                     gameweek={selectedGameweek}
-                    enabled={selectedGameweekStatus === 'current' || selectedGameweekStatus === 'completed'}
+                    standings={standings}
+                    status={selectedGameweekStatus}
                   />
-
-                  {transferLeaderboard.length > 0 && (
-                    <Card className="p-5">
-                      <h3 className="text-base font-display font-bold text-ink flex items-center gap-2 mb-3">
-                        <Repeat className="text-mint-ink" size={18} />
-                        Busiest in the transfer market
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        {transferLeaderboard.map((manager, index) => (
-                          <div key={manager.id} className="bg-mint/25 rounded-2xl p-2.5 flex items-center justify-between gap-2 min-w-0">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-7 h-7 rounded-full bg-mint text-ink flex items-center justify-center font-bold text-xs shrink-0">
-                                {index + 1}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="font-bold text-ink text-[13px] truncate">{manager.name}</div>
-                                {manager.totalHits > 0 && (
-                                  <div className="text-[11px] font-bold text-coral-ink">-{manager.totalHits} pts in hits</div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-lg font-display font-bold text-pitch-ink shrink-0 tabular-nums">
-                              {manager.totalTransfers}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </Card>
-                  )}
                 </div>
               </motion.div>
             )}

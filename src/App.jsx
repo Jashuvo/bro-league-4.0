@@ -88,11 +88,19 @@ function AppContent() {
     };
   }, [filteredStandings, leagueStats]);
 
-  const loadData = useCallback(async (forceRefresh = false) => {
-    if (!forceRefresh) {
-      setLoading(true);
-    } else {
-      setIsRefreshing(true);
+  // `silent` is for the background poll below — a scheduled refresh
+  // shouldn't flash every component's loading skeleton every 60 seconds
+  // (several of them, e.g. GameweekTable, key their skeleton off `loading`
+  // alone with no "already have data" guard). It still updates state once
+  // the fetch resolves; it just doesn't touch `loading`/`isRefreshing` to
+  // get there.
+  const loadData = useCallback(async (forceRefresh = false, { silent = false } = {}) => {
+    if (!silent) {
+      if (!forceRefresh) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
     }
 
     setError(null);
@@ -140,19 +148,52 @@ function AppContent() {
 
     } catch (error) {
       console.error('Error loading data:', error);
-      setError('Failed to load data. Please try again.');
-      setAuthStatus({
-        authenticated: false,
-        message: 'Connection failed'
-      });
+      // A silent background poll failing shouldn't put a scary red error
+      // banner over the page the user is currently looking at — whatever
+      // data is already on screen just stays as it is until the next poll,
+      // same as it would if this tick had been skipped entirely.
+      if (!silent) {
+        setError('Failed to load data. Please try again.');
+        setAuthStatus({
+          authenticated: false,
+          message: 'Connection failed'
+        });
+      }
     } finally {
-      setLoading(false);
-      setIsRefreshing(false);
+      if (!silent) {
+        setLoading(false);
+        setIsRefreshing(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     loadData();
+  }, [loadData]);
+
+  // FPL's own site keeps overall rank, live points and bonus moving on
+  // their own; this app only ever fetched once on load and then sat there
+  // until someone hit "Refresh". Poll quietly in the background instead —
+  // every 60s while the tab is actually visible (no point spending a
+  // request on a backgrounded tab nobody's looking at), and once more the
+  // moment it becomes visible again in case it sat hidden through a few
+  // ticks. `initializeWithAuth`'s own 2-minute cache means most of these
+  // calls resolve from cache anyway; this just makes sure one keeps
+  // getting through often enough that the page never goes stale for long.
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === 'visible') {
+        loadData(false, { silent: true });
+      }
+    };
+
+    const interval = setInterval(tick, 60000);
+    document.addEventListener('visibilitychange', tick);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', tick);
+    };
   }, [loadData]);
 
   const handleRefresh = () => {

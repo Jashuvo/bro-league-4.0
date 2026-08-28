@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, AlertCircle, ArrowLeftRight, History as HistoryIcon } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Badge from './ui/Badge';
 import Button from './ui/Button';
 import { Jersey, Ball, PitchGraphic, Confetti } from './ui/Doodles';
 import fplApi from '../services/fplApi';
+import PlayerDetail from './PlayerDetail';
 
 const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) => {
   const [teamData, setTeamData] = useState(null);
@@ -13,6 +14,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState('pitch');
   const [careerHistory, setCareerHistory] = useState(null);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   const currentGameweek = gameweekInfo?.current || 1;
 
@@ -162,12 +164,14 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             'fill-coral';
 
     return (
-      <motion.div
+      <motion.button
+        type="button"
+        onClick={() => setSelectedPlayer(player)}
         className={`flex flex-col items-center w-[74px] group ${player.wasSubbedOut ? 'opacity-60' : ''}`}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: player.wasSubbedOut ? 0.6 : 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-        title={player.wasSubbedOut ? 'Substituted out automatically' : undefined}
+        title={player.wasSubbedOut ? 'Substituted out automatically' : `View ${player.name}'s details`}
       >
         {/* Kit */}
         <div className="relative transition-transform duration-200 group-hover:scale-110">
@@ -208,7 +212,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             <span className="text-xs font-display font-bold text-surface">{points}</span>
           </div>
         </div>
-      </motion.div>
+      </motion.button>
     );
   };
 
@@ -423,13 +427,15 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                 <h3 className="text-[10px] font-display font-bold text-ink-soft uppercase tracking-[0.16em] mb-3 ml-1">Starting XI</h3>
                 <div className="bg-surface-alt rounded-2xl border-2 border-ink/85 shadow-card overflow-hidden">
                   {teamData?.startingXI?.map((player, idx) => (
-                    <motion.div
+                    <motion.button
+                      type="button"
                       key={player.id}
+                      onClick={() => setSelectedPlayer(player)}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
                       className={`
-                        flex items-center justify-between gap-2 p-3 hover:bg-surface-sunk transition-colors
+                        w-full flex items-center justify-between gap-2 p-3 hover:bg-surface-sunk transition-colors text-left
                         ${idx !== teamData.startingXI.length - 1 ? 'border-b border-ink/10' : ''}
                       `}
                     >
@@ -459,7 +465,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                         <div className="font-display font-bold text-ink">{player.points}</div>
                         <div className="text-[10px] font-bold uppercase text-ink-soft">pts</div>
                       </div>
-                    </motion.div>
+                    </motion.button>
                   ))}
                 </div>
               </div>
@@ -469,13 +475,15 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                 <h3 className="text-[10px] font-display font-bold text-ink-soft uppercase tracking-[0.16em] mb-3 ml-1">Bench</h3>
                 <div className="bg-surface-alt rounded-2xl border-2 border-dashed border-ink/40 overflow-hidden">
                   {teamData?.bench?.map((player, idx) => (
-                    <motion.div
+                    <motion.button
+                      type="button"
                       key={player.id}
+                      onClick={() => setSelectedPlayer(player)}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: (idx + 11) * 0.05 }}
                       className={`
-                        flex items-center justify-between gap-2 p-3 hover:bg-surface-sunk transition-colors
+                        w-full flex items-center justify-between gap-2 p-3 hover:bg-surface-sunk transition-colors text-left
                         ${idx !== teamData.bench.length - 1 ? 'border-b border-ink/10' : ''}
                       `}
                     >
@@ -495,7 +503,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
                         <div className="font-display font-bold text-ink">{player.points}</div>
                         <div className="text-[10px] font-bold uppercase text-ink-soft">pts</div>
                       </div>
-                    </motion.div>
+                    </motion.button>
                   ))}
                 </div>
               </div>
@@ -503,6 +511,19 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           )}
         </div>
       </motion.div>
+
+      {/* Sibling to the card rather than nested inside it, so it can cover
+          the full screen (including the header) at its own z-index — a
+          player's detail is its own layer, not scoped to whichever view
+          (pitch/list) was showing when it was tapped. Safe to wrap in
+          AnimatePresence here, unlike InsightsFAB's sheet: this whole tree
+          is already INSIDE the createPortal call, so AnimatePresence's
+          direct child is a plain motion component, not a Portal object. */}
+      <AnimatePresence>
+        {selectedPlayer && (
+          <PlayerDetail player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
+        )}
+      </AnimatePresence>
     </div>,
     document.body
   );

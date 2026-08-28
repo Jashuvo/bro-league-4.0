@@ -59,12 +59,27 @@ class FPLApiService {
     return expiry && Date.now() < expiry;
   }
 
+  // Everything below also mirrors into localStorage (best-effort — wrapped
+  // in try/catch since private browsing, a full quota, or storage being
+  // blocked entirely all throw rather than no-op). The in-memory Map is
+  // what every read actually goes through; localStorage only exists so a
+  // fresh page load can REHYDRATE it instead of starting cold. This is what
+  // makes "weekly" data (a gameweek's captain picks, differentials, dream
+  // team) actually behave weekly: without it, every reload re-fetched
+  // picks for all 15+ managers from scratch even when nothing about that
+  // gameweek could possibly have changed since the last visit.
   setCache(key, data, ttlMinutes = 2) {
+    const expiry = Date.now() + (ttlMinutes * 60 * 1000);
     this.cache.set(key, data);
-    this.cacheExpiry.set(key, Date.now() + (ttlMinutes * 60 * 1000));
-
-    // Log cache status
+    this.cacheExpiry.set(key, expiry);
     console.log(`💾 Cached ${key} for ${ttlMinutes} minutes`);
+
+    try {
+      localStorage.setItem(`fplapi:${key}`, JSON.stringify({ data, expiry }));
+    } catch (error) {
+      // Best-effort only — the in-memory cache above still works for the
+      // rest of this session.
+    }
   }
 
   getCache(key) {
@@ -73,9 +88,29 @@ class FPLApiService {
       return this.cache.get(key);
     }
 
-    // Clean expired cache
+    // Clean expired in-memory cache
     this.cache.delete(key);
     this.cacheExpiry.delete(key);
+
+    // Not in memory — e.g. this is a fresh page load — so check whether a
+    // still-valid copy survived from a previous visit before treating this
+    // as a real miss.
+    try {
+      const raw = localStorage.getItem(`fplapi:${key}`);
+      if (raw) {
+        const { data, expiry } = JSON.parse(raw);
+        if (expiry && Date.now() < expiry) {
+          this.cache.set(key, data);
+          this.cacheExpiry.set(key, expiry);
+          console.log(`✅ Cache hit for ${key} (restored from localStorage)`);
+          return data;
+        }
+        localStorage.removeItem(`fplapi:${key}`);
+      }
+    } catch (error) {
+      // Corrupt entry or storage unavailable — treat as a genuine miss.
+    }
+
     return null;
   }
 
@@ -296,10 +331,18 @@ class FPLApiService {
     });
   }
 
-  async getTeamPicks(managerId, eventId) {
+  // `options.ttlMinutes` lets a caller who knows more about freshness than
+  // this method does override the default. TeamView (watching a possibly
+  // still-live gameweek) doesn't pass one and gets the safe 5-minute
+  // default; useLeaguePicks (backing Captain Watch / the live ticker /
+  // differentials) passes a much longer TTL once the gameweek is finished,
+  // since a finished gameweek's picks cannot change again.
+  async getTeamPicks(managerId, eventId, options = {}) {
     const cacheKey = `picks_${managerId}_${eventId}`
     const cached = this.getCache(cacheKey)
     if (cached) return cached
+
+    const ttlMinutes = options.ttlMinutes ?? 5
 
     return this.queueRequest(async () => {
       try {
@@ -317,7 +360,7 @@ class FPLApiService {
         }
 
         console.log(`✅ Team picks loaded for manager ${managerId}, GW${eventId}`)
-        this.setCache(cacheKey, result.data, 5) // Cache for 5 minutes
+        this.setCache(cacheKey, result.data, ttlMinutes)
         return result.data
 
       } catch (error) {
@@ -325,6 +368,96 @@ class FPLApiService {
         return null
       }
     })
+  }
+
+  // Player price movement (risers/fallers) — season-wide, not tied to a
+  // gameweek. FPL only moves prices once a day (~1:30am UK) and the server
+  // route itself is cached for 30 minutes, so there's nothing to gain from
+  // asking again inside that window — an hour client-side keeps this from
+  // ever being the reason a page load hits the network.
+  async getPriceWatch() {
+    const cacheKey = 'price_watch';
+    const cached = this.getCache(cacheKey);
+    if (cached) return cached;
+
+    return this.queueRequest(async () => {
+      try {
+        console.log('💰 Fetching price watch...');
+        const response = await this.fetchWithRetry(`${this.apiBaseUrl}/price-watch`, { timeout: 15000 });
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Price watch API error');
+        }
+
+        this.setCache(cacheKey, result.data, 60);
+        return result.data;
+      } catch (error) {
+        console.error('❌ Error fetching price watch:', error);
+        return { risers: [], fallers: [], transfersIn: [], transfersOut: [], asOf: null };
+      }
+    });
+  }
+
+  // Blank/double gameweek alerts — a season-wide fixture scan. Fixtures do
+  // get rescheduled occasionally, but never on a timescale that needs
+  // checking more than a few times a day.
+  async getFixtureAlerts() {
+    const cacheKey = 'fixture_alerts';
+    const cached = this.getCache(cacheKey);
+    if (cached) return cached;
+
+    return this.queueRequest(async () => {
+      try {
+        console.log('📅 Fetching fixture alerts...');
+        const response = await this.fetchWithRetry(`${this.apiBaseUrl}/fixture-alerts`, { timeout: 15000 });
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Fixture alerts API error');
+        }
+
+        this.setCache(cacheKey, result.data, 240);
+        return result.data;
+      } catch (error) {
+        console.error('❌ Error fetching fixture alerts:', error);
+        return { currentEvent: null, alerts: [] };
+      }
+    });
+  }
+
+  // Goal/assist/bonus feed for one gameweek. `options.ttlMinutes` works the
+  // same way as getTeamPicks above: short by default (this is live data
+  // while a gameweek is in progress), but the caller can pass a long TTL
+  // once that gameweek is finished — the match events that already
+  // happened aren't going to un-happen.
+  async getGameweekEvents(gameweek, options = {}) {
+    const cacheKey = `gw_events_${gameweek}`;
+    const cached = this.getCache(cacheKey);
+    if (cached) return cached;
+
+    const ttlMinutes = options.ttlMinutes ?? 1;
+
+    return this.queueRequest(async () => {
+      try {
+        console.log(`⚽ Fetching gameweek events for GW${gameweek}...`);
+        const response = await this.fetchWithRetry(
+          `${this.apiBaseUrl}/gameweek-events?gameweek=${gameweek}`,
+          { timeout: 15000 }
+        );
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Gameweek events API error');
+        }
+
+        this.setCache(cacheKey, result.data, ttlMinutes);
+        return result.data;
+      } catch (error) {
+        console.error('❌ Error fetching gameweek events:', error);
+        return { gameweek, events: [] };
+      }
+    });
   }
 
   // Get live league stats
@@ -399,6 +532,17 @@ class FPLApiService {
     this.cache.clear();
     this.cacheExpiry.clear();
     this.performanceMetrics = [];
+
+    // The explicit "Refresh" button is the one place that should always
+    // force a real re-fetch, even of the long-lived weekly stuff below —
+    // so it has to reach into localStorage too, not just the in-memory Map.
+    try {
+      Object.keys(localStorage)
+        .filter((key) => key.startsWith('fplapi:'))
+        .forEach((key) => localStorage.removeItem(key));
+    } catch (error) {
+      // Storage unavailable — nothing to clear there.
+    }
   }
 
   // Get cache status
