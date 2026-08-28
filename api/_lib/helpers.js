@@ -24,6 +24,20 @@ export function setCorsHeaders(res) {
  * fetch() with a real timeout (native fetch ignores a `timeout` option —
  * this uses AbortController instead) and exponential-backoff retries on
  * network errors or non-OK responses.
+ *
+ * `cache: 'no-store'` is load-bearing, not defensive boilerplate: Vercel's
+ * Node runtime applies its own Data Cache to outbound `fetch()` calls
+ * regardless of what cache headers FPL's response carries — this app's own
+ * KV cache and `force=true` bypass only sit in FRONT of that (in
+ * league-complete.js), so they can look like they're forcing a fresh
+ * fetch while this layer quietly hands back a memoized response for the
+ * exact same URL. That's precisely why `entry/{id}/`'s overall rank could
+ * stay pinned to a months-old value while everything sourced from the
+ * (differently-cached) standings URL kept moving — confirmed by comparing
+ * the frozen number against FPL's own historical record for that
+ * manager, then reproducing correct fresh values with an out-of-band
+ * curl to the identical URL. `no-store` opts every call here out of that
+ * cache explicitly, per Vercel's own documented escape hatch.
  */
 export async function fetchWithRetry(url, options = {}, retries = 2) {
   const { timeout = 10000, ...rest } = options;
@@ -35,6 +49,7 @@ export async function fetchWithRetry(url, options = {}, retries = 2) {
     try {
       const response = await fetch(url, {
         ...rest,
+        cache: 'no-store',
         signal: controller.signal,
         headers: {
           'User-Agent': USER_AGENT,
