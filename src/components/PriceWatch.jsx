@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, Coins as CoinsIcon } from 'lucide-react';
+import { TrendingUp, TrendingDown, Coins as CoinsIcon, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import Card from './ui/Card';
 import { cn } from '../utils/cn';
 import fplApi from '../services/fplApi';
@@ -35,8 +35,10 @@ const PriceWatch = () => {
 
   const risers = data?.risers || [];
   const fallers = data?.fallers || [];
+  const transfersIn = data?.transfersIn || [];
+  const transfersOut = data?.transfersOut || [];
 
-  if (risers.length === 0 && fallers.length === 0) {
+  if (risers.length === 0 && fallers.length === 0 && transfersIn.length === 0 && transfersOut.length === 0) {
     return null;
   }
 
@@ -44,51 +46,78 @@ const PriceWatch = () => {
     <Card className="p-5">
       <h3 className="text-base font-display font-bold text-ink flex items-center gap-2">
         <CoinsIcon size={18} className="text-sunflower-ink" />
-        Price watch
+        Price &amp; transfer watch
       </h3>
       <p className="text-[13px] font-bold text-ink-soft mt-2 leading-relaxed">
-        Today&rsquo;s player price movers — see if anyone in your squad just got a pay rise.
+        Today&rsquo;s price movers and this gameweek&rsquo;s most-transferred players, league-wide.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3.5">
         {risers.length > 0 && (
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-mint-ink mb-1.5 flex items-center gap-1">
-              <TrendingUp size={12} /> Risers
-            </div>
-            <div className="space-y-1">
-              {risers.map((p) => (
-                <PriceRow key={p.id} player={p} tint="bg-mint/25" ink="text-mint-ink" />
-              ))}
-            </div>
-          </div>
+          <PriceColumn
+            label="Risers"
+            icon={<TrendingUp size={12} />}
+            players={risers}
+            tint="bg-mint/25"
+            ink="text-mint-ink"
+            renderValue={(p) => `${p.changeToday > 0 ? '+' : ''}${p.changeToday.toFixed(1)}`}
+          />
         )}
 
         {fallers.length > 0 && (
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-coral-ink mb-1.5 flex items-center gap-1">
-              <TrendingDown size={12} /> Fallers
-            </div>
-            <div className="space-y-1">
-              {fallers.map((p) => (
-                <PriceRow key={p.id} player={p} tint="bg-coral/20" ink="text-coral-ink" />
-              ))}
-            </div>
-          </div>
+          <PriceColumn
+            label="Fallers"
+            icon={<TrendingDown size={12} />}
+            players={fallers}
+            tint="bg-coral/20"
+            ink="text-coral-ink"
+            renderValue={(p) => p.changeToday.toFixed(1)}
+          />
+        )}
+
+        {transfersIn.length > 0 && (
+          <PriceColumn
+            label="Most transferred in"
+            icon={<ArrowUpCircle size={12} />}
+            players={transfersIn}
+            tint="bg-sky/25"
+            ink="text-sky-ink"
+            renderValue={(p) => `+${p.count.toLocaleString()}`}
+          />
+        )}
+
+        {transfersOut.length > 0 && (
+          <PriceColumn
+            label="Most transferred out"
+            icon={<ArrowDownCircle size={12} />}
+            players={transfersOut}
+            tint="bg-bubblegum/25"
+            ink="text-bubblegum-ink"
+            renderValue={(p) => `-${p.count.toLocaleString()}`}
+          />
         )}
       </div>
     </Card>
   );
 };
 
-const PriceRow = ({ player, tint, ink }) => (
-  <div className={cn('flex items-center gap-2 rounded-xl px-2.5 py-1.5 min-w-0', tint)}>
-    <span className="text-[12.5px] font-bold text-ink truncate flex-grow min-w-0">
-      {player.name} <span className="text-ink-soft">· {player.team}</span>
-    </span>
-    <span className={cn('text-[12.5px] font-display font-bold tabular-nums shrink-0', ink)}>
-      {player.changeToday > 0 ? '+' : ''}{player.changeToday.toFixed(1)}
-    </span>
+const PriceColumn = ({ label, icon, players, tint, ink, renderValue }) => (
+  <div>
+    <div className={cn('text-[10px] font-bold uppercase tracking-[0.14em] mb-1.5 flex items-center gap-1', ink)}>
+      {icon} {label}
+    </div>
+    <div className="space-y-1">
+      {players.map((p) => (
+        <div key={p.id} className={cn('flex items-center gap-2 rounded-xl px-2.5 py-1.5 min-w-0', tint)}>
+          <span className="text-[12.5px] font-bold text-ink truncate flex-grow min-w-0">
+            {p.name} <span className="text-ink-soft">· {p.team}</span>
+          </span>
+          <span className={cn('text-[12.5px] font-display font-bold tabular-nums shrink-0', ink)}>
+            {renderValue(p)}
+          </span>
+        </div>
+      ))}
+    </div>
   </div>
 );
 

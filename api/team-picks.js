@@ -90,7 +90,19 @@ export default async function handler(req, res) {
           totalPoints: player.total_points || 0,
           nowCost: player.now_cost,
           status: player.status || 'a',
-          chanceOfPlaying: player.chance_of_playing_next_round || 100
+          chanceOfPlaying: player.chance_of_playing_next_round || 100,
+          // Season-level context for the player-detail panel — none of
+          // this was read anywhere in this codebase before now, it's all
+          // sitting on the same bootstrap element already fetched above.
+          news: player.news || '',
+          form: player.form || '0.0',
+          selectedByPercent: player.selected_by_percent || '0.0',
+          pointsPerGame: player.points_per_game || '0.0',
+          goalsScored: player.goals_scored || 0,
+          assists: player.assists || 0,
+          cleanSheets: player.clean_sheets || 0,
+          bonusSeason: player.bonus || 0,
+          minutesSeason: player.minutes || 0
         });
       });
     }

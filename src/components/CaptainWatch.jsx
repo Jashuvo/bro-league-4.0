@@ -9,6 +9,13 @@ import { useLeaguePicks } from '../hooks/useLeaguePicks';
 // legend chips.
 const SPLIT_TINTS = ['bg-sunflower/60', 'bg-mint/55', 'bg-sky/55', 'bg-bubblegum/50', 'bg-tangerine/55'];
 
+// A 1-point captain regret or a single Dream Team pick is completely normal
+// in an 18-manager league — the popular players show up everywhere. Below
+// these, the section is more noise than signal, so it doesn't qualify at
+// all rather than padding out a "show all" list nobody asked to expand.
+const MIN_REGRET_DELTA = 3;
+const MIN_DREAM_TEAM_PLAYERS = 2;
+
 // Aggregates every manager's captain pick for a gameweek (and, as a side
 // effect of already having every manager's 15 picks in hand: who owns the
 // rare players nobody else does, who'd have been better off captaining
@@ -18,6 +25,8 @@ const SPLIT_TINTS = ['bg-sunflower/60', 'bg-mint/55', 'bg-sky/55', 'bg-bubblegum
 const CaptainWatch = ({ standings = [], gameweek, enabled = true, status = 'current' }) => {
   const { loading, rows: picksRows } = useLeaguePicks(standings, gameweek, enabled, status);
   const [showAllDifferentials, setShowAllDifferentials] = useState(false);
+  const [showAllRegrets, setShowAllRegrets] = useState(false);
+  const [showAllDreamTeam, setShowAllDreamTeam] = useState(false);
 
   const { rows, differentials, regrets, dreamTeamManagers } = useMemo(() => {
     const valid = picksRows.filter((r) => r.captain);
@@ -50,7 +59,7 @@ const CaptainWatch = ({ standings = [], gameweek, enabled = true, status = 'curr
         if ((bestPick.eventPoints || 0) <= (r.captain.eventPoints || 0)) return null;
         const wouldHave = (bestPick.eventPoints || 0) * (r.captain.multiplier || 1);
         const delta = wouldHave - (r.captain.points || 0);
-        if (delta <= 0) return null;
+        if (delta < MIN_REGRET_DELTA) return null;
         return { id: r.id, managerName: r.managerName, captain: r.captain, bestPick, wouldHave, delta };
       })
       .filter(Boolean)
@@ -66,7 +75,7 @@ const CaptainWatch = ({ standings = [], gameweek, enabled = true, status = 'curr
         managerName: r.managerName,
         players: r.allPicks.filter((p) => p.inDreamTeam),
       }))
-      .filter((r) => r.players.length > 0)
+      .filter((r) => r.players.length >= MIN_DREAM_TEAM_PLAYERS)
       .sort((a, b) => b.players.length - a.players.length);
 
     return { rows: leaderboard, differentials: rarePlayers, regrets: regretList, dreamTeamManagers: dreamTeamList };
@@ -117,6 +126,8 @@ const CaptainWatch = ({ standings = [], gameweek, enabled = true, status = 'curr
 
   const topCaptain = tally[0];
   const shownDifferentials = showAllDifferentials ? differentials : differentials.slice(0, 4);
+  const shownRegrets = showAllRegrets ? regrets : regrets.slice(0, 4);
+  const shownDreamTeam = showAllDreamTeam ? dreamTeamManagers : dreamTeamManagers.slice(0, 4);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -235,21 +246,29 @@ const CaptainWatch = ({ standings = [], gameweek, enabled = true, status = 'curr
           <p className="text-[13px] font-bold text-ink-soft mt-2 leading-relaxed">
             Someone else in the squad would&rsquo;ve worn the armband better.
           </p>
-          <div className="space-y-1.5 mt-3">
-            {regrets.map((r) => (
-              <div key={r.id} className="flex items-center gap-2.5 rounded-2xl bg-surface-alt px-2.5 py-2 min-w-0">
-                <span className="min-w-0 flex-grow">
-                  <span className="block text-[13px] font-bold text-ink truncate">{r.managerName}</span>
-                  <span className="block text-[11px] font-bold text-ink-soft truncate">
-                    Captained {r.captain.name} ({r.captain.points}) — {r.bestPick.name} would&rsquo;ve scored {r.wouldHave}
-                  </span>
-                </span>
-                <span className="font-display font-bold text-coral-ink tabular-nums shrink-0">
-                  +{r.delta}
-                </span>
-              </div>
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {shownRegrets.map((r) => (
+              <span
+                key={r.id}
+                title={`Captained ${r.captain.name} (${r.captain.points}) — ${r.bestPick.name} would've scored ${r.wouldHave}`}
+                className="text-[11px] bg-surface-alt text-ink rounded-full px-2.5 py-1 max-w-full truncate"
+              >
+                <span className="font-bold">{r.managerName}</span>
+                <span className="text-ink-soft"> · left </span>
+                <span className="font-bold">{r.bestPick.name}</span>
+                <span className="text-coral-ink font-bold"> +{r.delta}</span>
+              </span>
             ))}
           </div>
+          {regrets.length > 4 && (
+            <button
+              type="button"
+              onClick={() => setShowAllRegrets((open) => !open)}
+              className="mt-3 text-[11px] font-bold uppercase tracking-[0.12em] text-violet-ink hover:text-ink"
+            >
+              {showAllRegrets ? 'Show fewer' : `Show all ${regrets.length}`}
+            </button>
+          )}
         </Card>
       )}
 
@@ -262,19 +281,27 @@ const CaptainWatch = ({ standings = [], gameweek, enabled = true, status = 'curr
           <p className="text-[13px] font-bold text-ink-soft mt-2 leading-relaxed">
             Whose squad has the most players in FPL&rsquo;s official Team of the Week.
           </p>
-          <div className="space-y-1.5 mt-3">
-            {dreamTeamManagers.map((r) => (
-              <div key={r.id} className="flex items-center gap-2.5 rounded-2xl bg-surface-alt px-2.5 py-2 min-w-0">
-                <span className="text-[13px] font-bold text-ink truncate flex-grow min-w-0">{r.managerName}</span>
-                <span className="text-[11px] font-bold text-ink-soft truncate max-w-[50%]">
-                  {r.players.map((p) => p.name).join(', ')}
-                </span>
-                <span className="font-display font-bold text-sunflower-ink tabular-nums shrink-0">
-                  {r.players.length}
-                </span>
-              </div>
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {shownDreamTeam.map((r) => (
+              <span
+                key={r.id}
+                title={r.players.map((p) => p.name).join(', ')}
+                className="text-[11px] bg-surface-alt text-ink rounded-full px-2.5 py-1 max-w-full truncate"
+              >
+                <span className="font-bold">{r.managerName}</span>
+                <span className="text-sunflower-ink font-bold"> · {r.players.length}</span>
+              </span>
             ))}
           </div>
+          {dreamTeamManagers.length > 4 && (
+            <button
+              type="button"
+              onClick={() => setShowAllDreamTeam((open) => !open)}
+              className="mt-3 text-[11px] font-bold uppercase tracking-[0.12em] text-violet-ink hover:text-ink"
+            >
+              {showAllDreamTeam ? 'Show fewer' : `Show all ${dreamTeamManagers.length}`}
+            </button>
+          )}
         </Card>
       )}
     </div>

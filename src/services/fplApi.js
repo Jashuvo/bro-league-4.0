@@ -394,7 +394,7 @@ class FPLApiService {
         return result.data;
       } catch (error) {
         console.error('❌ Error fetching price watch:', error);
-        return { risers: [], fallers: [], asOf: null };
+        return { risers: [], fallers: [], transfersIn: [], transfersOut: [], asOf: null };
       }
     });
   }
