@@ -22,7 +22,7 @@ const InsightsPanel = ({ gameweekTable = [], gameweek, standings = [], status = 
       <WeeklyStory gameweekTable={gameweekTable} gameweek={gameweek} />
       <LiveTicker standings={standings} gameweek={gameweek} enabled={picksEnabled} status={status} />
       <CaptainWatch standings={standings} gameweek={gameweek} enabled={picksEnabled} status={status} />
-      <PriceWatch />
+      <PriceWatch gameweek={gameweek} />
       <TransferLeaderboard gameweekTable={gameweekTable} />
     </div>
   );

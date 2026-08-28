@@ -1,12 +1,16 @@
 // api/price-watch.js
 //
 // Player price movement — `cost_change_event` (today's rise/fall, in 0.1m
-// steps) and `cost_change_start` (season-to-date) — plus this gameweek's
-// most-transferred-in/out players (`transfers_in_event`/
-// `transfers_out_event`). All four sit on every element in bootstrap-static
-// and none had ever been read anywhere in this codebase. This reshapes just
-// the movers into a small payload rather than shipping all ~700 players to
-// the client.
+// steps) and `cost_change_start` (season-to-date). Both sit on every
+// element in bootstrap-static and had never been read anywhere in this
+// codebase. This reshapes just the movers into a small payload rather than
+// shipping all ~700 players to the client.
+//
+// Most-transferred-in/out used to live here too, sourced from
+// `transfers_in_event`/`transfers_out_event` — but those are FPL-wide
+// counts across ~10M managers, which drowns out anything specific to an
+// 18-manager private league. That's api/league-transfers.js now, scoped to
+// just this league's managers.
 import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
 
 export default async function handler(req, res) {
@@ -58,38 +62,13 @@ export default async function handler(req, res) {
       .sort((a, b) => a.changeToday - b.changeToday || b.selectedByPercent - a.selectedByPercent)
       .slice(0, 8);
 
-    const transfersIn = [...elements]
-      .filter((el) => (el.transfers_in_event || 0) > 0)
-      .sort((a, b) => b.transfers_in_event - a.transfers_in_event)
-      .slice(0, 8)
-      .map((el) => ({
-        id: el.id,
-        name: el.web_name,
-        team: teamsMap.get(el.team) || 'UNK',
-        count: el.transfers_in_event
-      }));
-
-    const transfersOut = [...elements]
-      .filter((el) => (el.transfers_out_event || 0) > 0)
-      .sort((a, b) => b.transfers_out_event - a.transfers_out_event)
-      .slice(0, 8)
-      .map((el) => ({
-        id: el.id,
-        name: el.web_name,
-        team: teamsMap.get(el.team) || 'UNK',
-        count: el.transfers_out_event
-      }));
-
-    // Price changes land once a day (~1:30am UK); transfer counts move all
-    // week, right up to the deadline, so this is a compromise rather than a
-    // perfect cache window for that half of the payload — see fplApi.js's
-    // getPriceWatch() for the matching client-side TTL and why it's set
-    // where it is.
+    // Price changes land once a day (~1:30am UK) — no need to hit FPL again
+    // until the next one plausibly could have happened.
     res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=3600');
 
     return res.status(200).json({
       success: true,
-      data: { risers, fallers, transfersIn, transfersOut, asOf: new Date().toISOString() }
+      data: { risers, fallers, asOf: new Date().toISOString() }
     });
   } catch (error) {
     console.error('❌ Error fetching price watch:', error);

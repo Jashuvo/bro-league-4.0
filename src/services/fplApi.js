@@ -399,6 +399,38 @@ class FPLApiService {
     });
   }
 
+  // Most-transferred-in/out players for ONE gameweek, scoped to just this
+  // league's managers (api/league-transfers.js — entry/{id}/transfers/,
+  // not bootstrap-static's FPL-wide transfers_in_event/transfers_out_event).
+  // Transfers land continuously through the week, so a shorter TTL than
+  // price watch's (that one only changes once a day).
+  async getLeagueTransfers(gameweek) {
+    const cacheKey = `league_transfers_${this.leagueId}_${gameweek}`;
+    const cached = this.getCache(cacheKey);
+    if (cached) return cached;
+
+    return this.queueRequest(async () => {
+      try {
+        console.log(`🔁 Fetching league transfers for GW${gameweek}...`);
+        const response = await this.fetchWithRetry(
+          `${this.apiBaseUrl}/league-transfers?leagueId=${this.leagueId}&gameweek=${gameweek}`,
+          { timeout: 20000 }
+        );
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'League transfers API error');
+        }
+
+        this.setCache(cacheKey, result.data, 15);
+        return result.data;
+      } catch (error) {
+        console.error('❌ Error fetching league transfers:', error);
+        return { gameweek, transfersIn: [], transfersOut: [] };
+      }
+    });
+  }
+
   // Blank/double gameweek alerts — a season-wide fixture scan. Fixtures do
   // get rescheduled occasionally, but never on a timescale that needs
   // checking more than a few times a day.
