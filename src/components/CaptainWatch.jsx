@@ -1,95 +1,92 @@
-import React, { useEffect, useState } from 'react';
-import { Star, Gem } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Star, Gem, Frown, Sparkles } from 'lucide-react';
 import Card from './ui/Card';
 import { TrophyCup, Jersey } from './ui/Doodles';
 import { cn } from '../utils/cn';
-import fplApi from '../services/fplApi';
+import { useLeaguePicks } from '../hooks/useLeaguePicks';
 
 // Dusty fills, in the artboards' own order, for the captain-split bar and its
 // legend chips.
 const SPLIT_TINTS = ['bg-sunflower/60', 'bg-mint/55', 'bg-sky/55', 'bg-bubblegum/50', 'bg-tangerine/55'];
 
 // Aggregates every manager's captain pick for a gameweek (and, as a side
-// effect of already having every manager's 15 picks in hand, who owns the
-// rare players nobody else does). Only fetches when `enabled` — there's no
-// picks data to fetch for a gameweek that hasn't started yet.
-const CaptainWatch = ({ standings = [], gameweek, enabled = true }) => {
-  const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState([]);
-  const [differentials, setDifferentials] = useState([]);
+// effect of already having every manager's 15 picks in hand: who owns the
+// rare players nobody else does, who'd have been better off captaining
+// someone else, and who has the most players in FPL's official Team of the
+// Week). Only fetches when `enabled` — there's no picks data to fetch for a
+// gameweek that hasn't started yet.
+const CaptainWatch = ({ standings = [], gameweek, enabled = true, status = 'current' }) => {
+  const { loading, rows: picksRows } = useLeaguePicks(standings, gameweek, enabled, status);
   const [showAllDifferentials, setShowAllDifferentials] = useState(false);
 
-  useEffect(() => {
-    if (!enabled || !gameweek || standings.length === 0) {
-      setLoading(false);
-      setRows([]);
-      setDifferentials([]);
-      return undefined;
-    }
+  const { rows, differentials, regrets, dreamTeamManagers } = useMemo(() => {
+    const valid = picksRows.filter((r) => r.captain);
 
-    let cancelled = false;
-    setLoading(true);
+    const leaderboard = [...valid].sort((a, b) => (b.captain.points || 0) - (a.captain.points || 0));
 
-    const load = async () => {
-      const results = await Promise.all(
-        standings.map(async (manager) => {
-          const id = manager.id || manager.entry;
-          const picks = await fplApi.getTeamPicks(id, gameweek);
-          if (!picks || !picks.captain) return null;
-          return {
-            id,
-            managerName: manager.managerName || manager.player_name,
-            captain: picks.captain,
-            allPicks: picks.picks || [],
-          };
-        })
-      );
-
-      if (cancelled) return;
-
-      const valid = results.filter(Boolean);
-
-      const leaderboard = [...valid].sort(
-        (a, b) => (b.captain.points || 0) - (a.captain.points || 0)
-      );
-      setRows(leaderboard);
-
-      // League-wide ownership across everyone's 15 picks — players only
-      // one manager has this gameweek.
-      const ownership = {};
-      valid.forEach((r) => {
-        r.allPicks.forEach((p) => {
-          if (!ownership[p.id]) ownership[p.id] = { name: p.name, owners: [] };
-          ownership[p.id].owners.push(r.managerName);
-        });
+    // League-wide ownership across everyone's 15 picks — players only one
+    // manager has this gameweek.
+    const ownership = {};
+    valid.forEach((r) => {
+      r.allPicks.forEach((p) => {
+        if (!ownership[p.id]) ownership[p.id] = { name: p.name, owners: [] };
+        ownership[p.id].owners.push(r.managerName);
       });
+    });
+    const rarePlayers = Object.values(ownership)
+      .filter((o) => o.owners.length === 1)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, 8);
 
-      const rare = Object.values(ownership)
-        .filter((o) => o.owners.length === 1)
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .slice(0, 8);
-      setDifferentials(rare);
+    // Captain regret: the highest RAW scorer in a manager's own squad,
+    // compared against what the armband actually returned. Only counts if
+    // someone else in the squad would genuinely have out-scored the
+    // captain's raw total — a captain who was already the best pick has
+    // nothing to regret.
+    const regretList = valid
+      .map((r) => {
+        const bestPick = [...r.allPicks].sort((a, b) => (b.eventPoints || 0) - (a.eventPoints || 0))[0];
+        if (!bestPick || bestPick.id === r.captain.id) return null;
+        if ((bestPick.eventPoints || 0) <= (r.captain.eventPoints || 0)) return null;
+        const wouldHave = (bestPick.eventPoints || 0) * (r.captain.multiplier || 1);
+        const delta = wouldHave - (r.captain.points || 0);
+        if (delta <= 0) return null;
+        return { id: r.id, managerName: r.managerName, captain: r.captain, bestPick, wouldHave, delta };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.delta - a.delta)
+      .slice(0, 5);
 
-      setLoading(false);
-    };
+    // Dream Team watch: how many of each manager's 15 made FPL's official
+    // Team of the Week for this gameweek (`inDreamTeam`, surfaced in
+    // api/team-picks.js from the live stats already fetched there).
+    const dreamTeamList = valid
+      .map((r) => ({
+        id: r.id,
+        managerName: r.managerName,
+        players: r.allPicks.filter((p) => p.inDreamTeam),
+      }))
+      .filter((r) => r.players.length > 0)
+      .sort((a, b) => b.players.length - a.players.length);
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled, gameweek, standings]);
+    return { rows: leaderboard, differentials: rarePlayers, regrets: regretList, dreamTeamManagers: dreamTeamList };
+  }, [picksRows]);
 
   if (!enabled) return null;
 
   if (loading) {
     return (
-      <Card>
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-14 bg-surface-sunk rounded-2xl animate-pulse" />
-          ))}
-        </div>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {[...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <div className="space-y-3">
+              {[...Array(3)].map((_, j) => (
+                <div key={j} className="h-14 bg-surface-sunk rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          </Card>
+        ))}
+      </div>
     );
   }
 
@@ -226,6 +223,58 @@ const CaptainWatch = ({ standings = [], gameweek, enabled = true }) => {
               {showAllDifferentials ? 'Show fewer' : `Show all ${differentials.length}`}
             </button>
           )}
+        </Card>
+      )}
+
+      {regrets.length > 0 && (
+        <Card className="p-5" tone="coral">
+          <h3 className="text-base font-display font-bold text-ink flex items-center gap-2">
+            <Frown size={18} className="text-coral-ink" />
+            Captain regret
+          </h3>
+          <p className="text-[13px] font-bold text-ink-soft mt-2 leading-relaxed">
+            Someone else in the squad would&rsquo;ve worn the armband better.
+          </p>
+          <div className="space-y-1.5 mt-3">
+            {regrets.map((r) => (
+              <div key={r.id} className="flex items-center gap-2.5 rounded-2xl bg-surface-alt px-2.5 py-2 min-w-0">
+                <span className="min-w-0 flex-grow">
+                  <span className="block text-[13px] font-bold text-ink truncate">{r.managerName}</span>
+                  <span className="block text-[11px] font-bold text-ink-soft truncate">
+                    Captained {r.captain.name} ({r.captain.points}) — {r.bestPick.name} would&rsquo;ve scored {r.wouldHave}
+                  </span>
+                </span>
+                <span className="font-display font-bold text-coral-ink tabular-nums shrink-0">
+                  +{r.delta}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {dreamTeamManagers.length > 0 && (
+        <Card className="p-5" tone="sunflower">
+          <h3 className="text-base font-display font-bold text-ink flex items-center gap-2">
+            <Sparkles size={18} className="text-sunflower-ink" />
+            Dream Team watch
+          </h3>
+          <p className="text-[13px] font-bold text-ink-soft mt-2 leading-relaxed">
+            Whose squad has the most players in FPL&rsquo;s official Team of the Week.
+          </p>
+          <div className="space-y-1.5 mt-3">
+            {dreamTeamManagers.map((r) => (
+              <div key={r.id} className="flex items-center gap-2.5 rounded-2xl bg-surface-alt px-2.5 py-2 min-w-0">
+                <span className="text-[13px] font-bold text-ink truncate flex-grow min-w-0">{r.managerName}</span>
+                <span className="text-[11px] font-bold text-ink-soft truncate max-w-[50%]">
+                  {r.players.map((p) => p.name).join(', ')}
+                </span>
+                <span className="font-display font-bold text-sunflower-ink tabular-nums shrink-0">
+                  {r.players.length}
+                </span>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
     </div>

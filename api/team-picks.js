@@ -149,6 +149,10 @@ export default async function handler(req, res) {
           bonus: liveStats.bonus || 0,
           bps: liveStats.bps || 0,
           minutes: liveStats.minutes || 0,
+          // FPL's official Team of the Week for this exact gameweek — it's
+          // right there in the live stats already fetched above, just never
+          // read before now.
+          inDreamTeam: Boolean(liveStats.in_dreamteam),
           totalPoints: playerInfo.totalPoints || 0,
           photo: playerInfo.photo || '',
           nowCost: playerInfo.nowCost || 0,
