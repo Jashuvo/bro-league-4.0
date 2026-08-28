@@ -348,6 +348,11 @@ export default async function handler(req, res) {
         dataCompleteness: transformedStandings.length === 0 ? 0 : Math.round(
           (transformedStandings.filter(m => m.hasData).length / transformedStandings.length) * 100
         ),
+        // Vercel sets this automatically for every deployment — no config
+        // needed. Exists so "is production actually running the commit I
+        // just shipped" is a response field, not a guess from a deploy
+        // dashboard.
+        buildSha: (process.env.VERCEL_GIT_COMMIT_SHA || 'unknown').slice(0, 7),
         cacheEnabled: !!kv
       },
       timestamp: new Date().toISOString(),
