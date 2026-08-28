@@ -169,7 +169,20 @@ export default async function handler(req, res) {
           photo: playerInfo.photo || '',
           nowCost: playerInfo.nowCost || 0,
           status: playerInfo.status || 'a',
-          chanceOfPlaying: playerInfo.chanceOfPlaying || 100
+          chanceOfPlaying: playerInfo.chanceOfPlaying || 100,
+          // Season-level context for the player-detail panel — these were
+          // added to playerInfo above but never actually copied onto the
+          // object sent to the frontend, which is why the panel showed
+          // blanks/dashes for all of them.
+          news: playerInfo.news || '',
+          form: playerInfo.form || '0.0',
+          selectedByPercent: playerInfo.selectedByPercent || '0.0',
+          pointsPerGame: playerInfo.pointsPerGame || '0.0',
+          goalsScored: playerInfo.goalsScored || 0,
+          assists: playerInfo.assists || 0,
+          cleanSheets: playerInfo.cleanSheets || 0,
+          bonusSeason: playerInfo.bonusSeason || 0,
+          minutesSeason: playerInfo.minutesSeason || 0
         };
 
         enrichedPicks.push(enrichedPick);
