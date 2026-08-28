@@ -128,7 +128,15 @@ export default async function handler(req, res) {
     // Use concurrency limiter for manager data fetching
     const limiter = new ConcurrencyLimiter(3); // Max 3 concurrent requests
     
-    const managerPromises = managers.map(entry => 
+    // Debug-only, opt-in via ?debugManager=<entryId>: surfaces exactly what
+    // this function saw from FPL for one manager's entry/{id}/ call, since
+    // there's no other way to inspect that from outside a Vercel dashboard
+    // this session doesn't have access to. Temporary — remove once the
+    // stale-overall-rank investigation is resolved.
+    const debugManagerId = req.query.debugManager ? parseInt(req.query.debugManager, 10) : null;
+    let debugInfo = null;
+
+    const managerPromises = managers.map(entry =>
       limiter.run(async () => {
         try {
           const [managerResponse, historyResponse] = await Promise.all([
@@ -149,6 +157,18 @@ export default async function handler(req, res) {
 
           if (managerResponse.ok) {
             const manager = await managerResponse.json();
+
+            if (debugManagerId && entry.entry === debugManagerId) {
+              debugInfo = {
+                httpStatus: managerResponse.status,
+                headers: Object.fromEntries(managerResponse.headers.entries()),
+                rawSummaryOverallRank: manager.summary_overall_rank,
+                rawSummaryOverallPoints: manager.summary_overall_points,
+                rawCurrentEvent: manager.current_event,
+                fetchedAt: new Date().toISOString()
+              };
+            }
+
             managerData = {
               firstName: manager.player_first_name || '',
               lastName: manager.player_last_name || '',
@@ -356,7 +376,8 @@ export default async function handler(req, res) {
         cacheEnabled: !!kv
       },
       timestamp: new Date().toISOString(),
-      fromCache: false
+      fromCache: false,
+      ...(debugInfo ? { debug: debugInfo } : {})
     };
 
     // Try to store in cache if KV is available
