@@ -22,6 +22,14 @@ const TIME_FORMAT = { hour: '2-digit', minute: '2-digit' };
 
 const dayKey = (iso) => new Date(iso).toDateString();
 
+// FPL's `finished` flag only flips once bonus points are officially locked
+// in — which can lag the final whistle by hours (sometimes into the next
+// day). `finished_provisional` flips the moment the match actually ends.
+// Using `finished` alone for "is this still being played" would show a
+// pulsing live/minutes badge on a match that plainly ended yesterday —
+// exactly the kind of stale-looking state this tab exists to avoid.
+const isMatchOver = (fixture) => fixture.finished || fixture.finishedProvisional;
+
 const FixturesView = ({ gameweekInfo = {}, bootstrap = {} }) => {
   const currentGW = gameweekInfo.current || 1;
   const totalGW = gameweekInfo.total || bootstrap.totalGameweeks || 38;
@@ -187,7 +195,8 @@ const TeamLabel = ({ team, align }) => (
 );
 
 const FixtureRow = ({ fixture, onSelect }) => {
-  const isLive = fixture.started && !fixture.finished;
+  const over = isMatchOver(fixture);
+  const isLive = fixture.started && !over;
   const hasScore = fixture.started;
 
   return (
@@ -216,7 +225,7 @@ const FixtureRow = ({ fixture, onSelect }) => {
             {fixture.minutes}&rsquo;
           </span>
         )}
-        {fixture.finished && (
+        {over && (
           <span className="text-[10px] font-bold text-ink-soft uppercase tracking-wide mt-0.5">FT</span>
         )}
       </span>
@@ -229,7 +238,8 @@ const FixtureRow = ({ fixture, onSelect }) => {
 /* ────────────────────────────── detail modal ──────────────────────────*/
 
 const FixtureDetail = ({ fixture, onClose }) => {
-  const isLive = fixture.started && !fixture.finished;
+  const over = isMatchOver(fixture);
+  const isLive = fixture.started && !over;
 
   return createPortal(
     <div className="fixed inset-0 bg-scrim/70 flex items-center justify-center z-50 p-3 md:p-6">
@@ -243,7 +253,7 @@ const FixtureDetail = ({ fixture, onClose }) => {
         <div className="bg-tile-peach p-4 shrink-0 border-b-2 border-ink/85">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
-              {fixture.finished ? (
+              {over ? (
                 <Badge variant="success">Full time</Badge>
               ) : isLive ? (
                 <Badge variant="gold" className="flex items-center gap-1">
