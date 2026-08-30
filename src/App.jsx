@@ -113,38 +113,55 @@ function AppContent() {
 
       const loadTime = Math.round(performance.now() - startTime);
 
-      setAuthStatus({
-        authenticated: result.authenticated,
-        message: result.authenticated
-          ? 'Live FPL data loaded successfully'
-          : 'Using cached data'
-      });
-
-      if (result.standings && result.standings.length > 0) {
-        setStandings(result.standings);
-      }
-
-      if (result.bootstrap) {
-        setBootstrap(result.bootstrap);
-        const currentGW = result.bootstrap.currentGameweek || 1;
-        const currentGWData = result.bootstrap.gameweeks?.find(gw => gw.id === currentGW);
-        setGameweekInfo({
-          current: currentGW,
-          total: result.bootstrap.totalGameweeks || 38,
-          isFinished: currentGWData?.finished || false
+      // A failed fetch resolves here too — fplApi falls back internally
+      // rather than throwing — with `authenticated: false` and empty/
+      // default data (bootstrap.currentGameweek pinned to 1, gameweekTable:
+      // [], leagueStats: {}, all of which are truthy and would otherwise
+      // sail straight past the `if (result.x)` checks below and overwrite
+      // a perfectly good screen with a blank one). Only apply the payload
+      // when it's actually live data. A SILENT background poll additionally
+      // leaves the status pill alone on that path too — same reasoning as
+      // the catch block further down: one 60-second tick failing shouldn't
+      // flip "Live data" to "Offline" out from under data that's still
+      // sitting there correctly; let the next successful tick speak for
+      // itself, same as if this one had been skipped entirely.
+      if (!silent || result.authenticated) {
+        setAuthStatus({
+          authenticated: result.authenticated,
+          message: result.authenticated
+            ? 'Live FPL data loaded successfully'
+            : 'Using cached data'
         });
       }
 
-      if (result.gameweekTable) {
-        setGameweekTable(result.gameweekTable);
-      }
+      if (result.authenticated) {
+        if (result.standings && result.standings.length > 0) {
+          setStandings(result.standings);
+        }
 
-      if (result.leagueStats) {
-        setLeagueStats(result.leagueStats);
+        if (result.bootstrap) {
+          setBootstrap(result.bootstrap);
+          const currentGW = result.bootstrap.currentGameweek || 1;
+          const currentGWData = result.bootstrap.gameweeks?.find(gw => gw.id === currentGW);
+          setGameweekInfo({
+            current: currentGW,
+            total: result.bootstrap.totalGameweeks || 38,
+            isFinished: currentGWData?.finished || false
+          });
+        }
+
+        if (result.gameweekTable) {
+          setGameweekTable(result.gameweekTable);
+        }
+
+        if (result.leagueStats) {
+          setLeagueStats(result.leagueStats);
+        }
+
+        setLastUpdated(new Date());
       }
 
       setPerformanceInfo({ loadTime, fromCache: result.fromCache });
-      setLastUpdated(new Date());
 
     } catch (error) {
       console.error('Error loading data:', error);

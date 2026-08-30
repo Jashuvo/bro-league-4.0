@@ -84,10 +84,11 @@ const firstNameOf = (name = '') => {
 const netGwPoints = (manager) =>
   (manager.gameweekPoints || manager.event_total || 0) - (manager.gameweekHits || 0);
 
-// `teamValue` arrives from api/league-complete.js straight off FPL's history
-// endpoint, which reports it in tenths of a million (1005 -> £100.5m).
+// `teamValue` arrives from api/league-complete.js already converted out of
+// FPL's raw tenths-of-a-million units (see the `value: gw.value / 10` line
+// in league-complete.js) — it's already £m here (100.3, not 1003).
 const formatTeamValue = (value) =>
-  value == null ? null : `£${(value / 10).toFixed(1)}m`;
+  value == null ? null : `£${value.toFixed(1)}m`;
 
 /* ─────────────────────────────── component ───────────────────────────────*/
 
