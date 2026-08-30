@@ -462,11 +462,16 @@ class FPLApiService {
   // api/fixtures.js. Cached briefly while the gameweek's still live (scores
   // can still move), much longer once every fixture in it has finished —
   // that data isn't going to change again, so there's no reason to keep
-  // re-fetching it every time this gameweek is revisited.
-  async getFixtures(gameweek) {
+  // re-fetching it every time this gameweek is revisited. `force` skips
+  // straight past that cache — used for the live poll while a gameweek is
+  // actually in progress, so scores/stats keep moving without waiting out
+  // the 1-minute TTL.
+  async getFixtures(gameweek, { force = false } = {}) {
     const cacheKey = `fixtures_${gameweek}`;
-    const cached = this.getCache(cacheKey);
-    if (cached) return cached;
+    if (!force) {
+      const cached = this.getCache(cacheKey);
+      if (cached) return cached;
+    }
 
     return this.queueRequest(async () => {
       try {
