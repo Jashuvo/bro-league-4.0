@@ -1,12 +1,11 @@
 // src/hooks/useLeaguePicks.js
 //
-// Fetches every manager's picks for one gameweek — extracted from
-// CaptainWatch so a second consumer (the live goal ticker) can read the same
-// data without re-deriving the fetch loop. Both go through
-// fplApi.getTeamPicks, which caches per manager+gameweek (see `status`
-// below for how long), so calling this twice for the same gameweek (e.g.
-// once from CaptainWatch, once from LiveTicker) costs one network round
-// trip per manager, not two.
+// Fetches every manager's picks for one gameweek — extracted out of
+// CaptainWatch so any consumer that needs the same data can read it without
+// re-deriving the fetch loop. Goes through fplApi.getTeamPicks, which
+// caches per manager+gameweek (see `status` below for how long), so two
+// consumers reading the same gameweek still cost one network round trip
+// per manager, not two.
 import { useEffect, useState } from 'react';
 import fplApi from '../services/fplApi';
 

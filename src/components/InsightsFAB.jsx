@@ -10,7 +10,7 @@ import InsightsPanel from './InsightsPanel';
 // On desktop, Insights lives one click away inside the Gameweeks destination.
 // On mobile that's still true, but it's also the destination people open
 // LEAST — Standings is home, and getting to this week's story/captain
-// split/live feed from there means switching tabs first. A floating button
+// split from there means switching tabs first. A floating button
 // on the home screen — the same shape as a Stories bubble — turns that into
 // one tap from wherever a mobile visitor actually lands.
 //
@@ -70,7 +70,7 @@ const InsightsFAB = ({ gameweekTable = [], gameweek, standings = [], status = 'c
               </span>
               <div className="min-w-0 flex-grow">
                 <h2 className="font-display font-bold text-lg text-ink leading-tight">This gameweek&rsquo;s insights</h2>
-                <p className="text-[11px] font-bold text-ink-soft truncate">Gameweek {gameweek} — story, captains, live feed &amp; more</p>
+                <p className="text-[11px] font-bold text-ink-soft truncate">Gameweek {gameweek} — story, captains &amp; more</p>
               </div>
               <button
                 type="button"

@@ -84,6 +84,11 @@ const firstNameOf = (name = '') => {
 const netGwPoints = (manager) =>
   (manager.gameweekPoints || manager.event_total || 0) - (manager.gameweekHits || 0);
 
+// `teamValue` arrives from api/league-complete.js straight off FPL's history
+// endpoint, which reports it in tenths of a million (1005 -> £100.5m).
+const formatTeamValue = (value) =>
+  value == null ? null : `£${(value / 10).toFixed(1)}m`;
+
 /* ─────────────────────────────── component ───────────────────────────────*/
 
 const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
@@ -531,9 +536,10 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
 
           {/* Column headings — the full set only from `lg`, where the grid
               below actually renders. */}
-          <div className="hidden lg:grid grid-cols-[46px_minmax(0,1fr)_104px_62px_92px_52px_72px_62px_16px] gap-2.5 items-center px-5 pb-3 text-[11.5px] font-bold uppercase tracking-[0.04em] text-ink-soft">
+          <div className="hidden lg:grid grid-cols-[46px_minmax(0,1fr)_76px_104px_62px_92px_52px_72px_62px_16px] gap-2.5 items-center px-5 pb-3 text-[11.5px] font-bold uppercase tracking-[0.04em] text-ink-soft">
             <span>Shirt</span>
             <span>Manager &amp; team</span>
+            <span className="text-right">Value</span>
             <span className="text-center">Chip</span>
             <span className="text-center">Bench</span>
             <span className="text-right">Overall rank</span>
@@ -580,7 +586,7 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                       'hover:brightness-[0.98]'
                     )}
                   >
-                    <div className="hidden lg:grid grid-cols-[46px_minmax(0,1fr)_104px_62px_92px_52px_72px_62px_16px] gap-2.5 items-center px-3.5 py-2.5">
+                    <div className="hidden lg:grid grid-cols-[46px_minmax(0,1fr)_76px_104px_62px_92px_52px_72px_62px_16px] gap-2.5 items-center px-3.5 py-2.5">
                       <RankBadge rank={position} size={44} />
 
                       <div className="flex items-center gap-3 min-w-0">
@@ -599,6 +605,10 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                           </span>
                         </span>
                       </div>
+
+                      <span className="text-right text-[13px] font-bold text-ink-soft tabular-nums">
+                        {formatTeamValue(manager.teamValue) || '—'}
+                      </span>
 
                       <span className="text-center">
                         {manager.chipThisGw ? (
@@ -656,6 +666,11 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                           <span className="text-[11.5px] font-bold text-ink-soft truncate">
                             {manager.managerName || manager.player_name}
                           </span>
+                          {formatTeamValue(manager.teamValue) && (
+                            <span className="shrink-0 bg-tile-sand rounded-full px-1.5 text-[9.5px] font-bold text-ink-soft tabular-nums">
+                              {formatTeamValue(manager.teamValue)}
+                            </span>
+                          )}
                           {manager.chipThisGw && (
                             <span className="shrink-0 bg-tone-2 border-[1.5px] border-ink/85 rounded-full px-1.5 text-[9.5px] font-bold text-ink">
                               {CHIP_SHORT[manager.chipThisGw.name] || chipLabel(manager.chipThisGw.name)}
@@ -847,8 +862,8 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
       )}
 
       {/* Mobile-only shortcut to this gameweek's Insights (story, captain
-          split, live feed, price/fixture watch) — see InsightsFAB.jsx for
-          why this lives on the home destination specifically. */}
+          split, price/fixture watch) — see InsightsFAB.jsx for why this
+          lives on the home destination specifically. */}
       <InsightsFAB
         gameweekTable={gameweekTable}
         gameweek={currentGW}
