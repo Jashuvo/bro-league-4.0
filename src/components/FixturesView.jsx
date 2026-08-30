@@ -40,24 +40,24 @@ const dayKey = (iso) => new Date(iso).toDateString();
 // exactly the kind of stale-looking state this tab exists to avoid.
 const isMatchOver = (fixture) => fixture.finished || fixture.finishedProvisional;
 
-// identifier -> how its section looks: an icon, a tint, and whether the
+// identifier -> how its section looks: a small muted icon, and whether the
 // number next to a name is a POINTS value (bonus/BPS — always worth
 // showing, even "1") or an occurrence COUNT (goals/cards/etc — only worth
 // showing past 1, since a bare name already means "happened once").
 const STAT_STYLE = {
-  goals_scored: { icon: <Ball size={15} />, tint: 'bg-mint/35', alwaysShowValue: false },
-  assists: { icon: <Zap size={14} className="text-sky-ink" />, tint: 'bg-sky/30', alwaysShowValue: false },
-  own_goals: { icon: <AlertTriangle size={14} className="text-coral-ink" />, tint: 'bg-coral/25', alwaysShowValue: false },
-  penalties_saved: { icon: <ShieldCheck size={14} className="text-mint-ink" />, tint: 'bg-mint/30', alwaysShowValue: false },
-  penalties_missed: { icon: <XCircle size={14} className="text-coral-ink" />, tint: 'bg-coral/25', alwaysShowValue: false },
-  yellow_cards: { icon: <span className="w-2.5 h-3.5 rounded-[2px] bg-sunflower border border-ink/70 shrink-0" />, tint: 'bg-sunflower/30', alwaysShowValue: false },
-  red_cards: { icon: <span className="w-2.5 h-3.5 rounded-[2px] bg-coral border border-ink/70 shrink-0" />, tint: 'bg-coral/35', alwaysShowValue: false },
-  saves: { icon: <Hand size={14} className="text-sky-ink" />, tint: 'bg-sky/25', alwaysShowValue: false },
-  bonus: { icon: <Coins size={16} />, tint: 'bg-sunflower/40', alwaysShowValue: true },
-  bps: { icon: <Coins size={16} />, tint: 'bg-tile-peach', alwaysShowValue: true },
-  defensive_contribution: { icon: <Shield size={14} className="text-violet-ink" />, tint: 'bg-violet/20', alwaysShowValue: false },
+  goals_scored: { icon: <Ball size={12} />, alwaysShowValue: false },
+  assists: { icon: <Zap size={12} className="text-sky-ink" />, alwaysShowValue: false },
+  own_goals: { icon: <AlertTriangle size={12} className="text-coral-ink" />, alwaysShowValue: false },
+  penalties_saved: { icon: <ShieldCheck size={12} className="text-mint-ink" />, alwaysShowValue: false },
+  penalties_missed: { icon: <XCircle size={12} className="text-coral-ink" />, alwaysShowValue: false },
+  yellow_cards: { icon: <span className="w-2 h-2.5 rounded-[1.5px] bg-sunflower border border-ink/70 shrink-0" />, alwaysShowValue: false },
+  red_cards: { icon: <span className="w-2 h-2.5 rounded-[1.5px] bg-coral border border-ink/70 shrink-0" />, alwaysShowValue: false },
+  saves: { icon: <Hand size={12} className="text-sky-ink" />, alwaysShowValue: false },
+  bonus: { icon: <Coins size={13} />, alwaysShowValue: true },
+  bps: { icon: <Coins size={13} />, alwaysShowValue: true },
+  defensive_contribution: { icon: <Shield size={12} className="text-violet-ink" />, alwaysShowValue: false },
 };
-const DEFAULT_STYLE = { icon: <Ball size={15} />, tint: 'bg-surface-sunk', alwaysShowValue: false };
+const DEFAULT_STYLE = { icon: <Ball size={12} />, alwaysShowValue: false };
 
 const FixturesView = ({ gameweekInfo = {}, bootstrap = {} }) => {
   const currentGW = gameweekInfo.current || 1;
@@ -139,7 +139,7 @@ const FixturesView = ({ gameweekInfo = {}, bootstrap = {} }) => {
   }, [data]);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto space-y-5">
       {/* Gameweek switcher — same shape as the Gameweeks tab's own, so
           moving between the two destinations doesn't relearn a control. */}
       <div className="flex items-center gap-2 sm:gap-4 bg-surface-alt p-2.5 sm:p-3 rounded-3xl border-2 border-ink/85">
@@ -316,16 +316,16 @@ const FixtureStats = ({ fixture }) => {
   }
 
   return (
-    <div className="px-1 sm:px-2 pb-3 pt-1 space-y-2.5">
+    <div className="px-3 sm:px-4 pb-2.5 pt-1 divide-y divide-ink/10">
       {fixture.stats.map((stat) => {
         const style = STAT_STYLE[stat.identifier] || DEFAULT_STYLE;
         return (
-          <div key={stat.identifier} className="rounded-2xl overflow-hidden border-2 border-ink/10">
-            <div className={cn('flex items-center gap-2 px-3 py-1.5', style.tint)}>
-              <span className="shrink-0 flex items-center justify-center">{style.icon}</span>
-              <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-ink">{stat.label}</span>
+          <div key={stat.identifier} className="py-2 first:pt-1">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="shrink-0 flex items-center justify-center opacity-70">{style.icon}</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-ink-soft">{stat.label}</span>
             </div>
-            <div className="grid grid-cols-2 divide-x-2 divide-ink/10 bg-surface-alt">
+            <div className="grid grid-cols-2 gap-x-3">
               <StatColumn entries={stat.home} alwaysShowValue={style.alwaysShowValue} />
               <StatColumn entries={stat.away} alwaysShowValue={style.alwaysShowValue} />
             </div>
@@ -337,12 +337,12 @@ const FixtureStats = ({ fixture }) => {
 };
 
 const StatColumn = ({ entries, alwaysShowValue }) => (
-  <div className="p-2.5 space-y-1.5 min-h-[1px]">
+  <div className="min-h-[1px]">
     {entries.map((entry, i) => (
-      <div key={`${entry.playerId}-${i}`} className="flex items-center justify-between gap-2">
-        <span className="text-[12.5px] font-bold text-ink truncate">{entry.name}</span>
+      <div key={`${entry.playerId}-${i}`} className="flex items-center justify-between gap-2 leading-[1.5]">
+        <span className="text-[12px] font-bold text-ink truncate">{entry.name}</span>
         {(alwaysShowValue || entry.value > 1) && (
-          <span className="text-[11px] font-bold text-ink-soft tabular-nums shrink-0">
+          <span className="text-[10.5px] font-bold text-ink-soft tabular-nums shrink-0">
             {alwaysShowValue ? entry.value : `×${entry.value}`}
           </span>
         )}
