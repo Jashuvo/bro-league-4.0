@@ -51,9 +51,20 @@ export default async function handler(req, res) {
     // pointer has already rolled over to the next event but this app's
     // own state hasn't caught up yet), which is exactly the "every
     // player shows 0 but the team total is correct" bug this used to have.
-    const [bootstrapResponse, liveResponse] = await Promise.all([
+    // Also fetch the manager's own /entry/ summary. picksData.entry_history
+    // (used below) is a periodically-refreshed FPL snapshot — while this
+    // gameweek is still being played, its points/total_points/rank can sit
+    // badly behind reality (confirmed by curling FPL directly: /entry/{id}/
+    // already reported the correct 55-point gameweek and 119 total while
+    // the picks endpoint's entry_history was still stuck on 12 and 76,
+    // left over from earlier in the live gameweek). /entry/{id}/ itself
+    // stays live throughout, so when this request is for the manager's
+    // current gameweek (the only case this app actually requests — see
+    // TeamView.jsx), its summary_* fields replace the stale snapshot below.
+    const [bootstrapResponse, liveResponse, entrySummaryResponse] = await Promise.all([
       fetchWithRetry('https://fantasy.premierleague.com/api/bootstrap-static/', { timeout: 15000 }),
-      fetchWithRetry(`https://fantasy.premierleague.com/api/event/${eventId}/live/`, { timeout: 15000 }, 1)
+      fetchWithRetry(`https://fantasy.premierleague.com/api/event/${eventId}/live/`, { timeout: 15000 }, 1),
+      fetchWithRetry(`https://fantasy.premierleague.com/api/entry/${managerId}/`, { timeout: 10000 }, 1)
     ]);
 
     if (!bootstrapResponse.ok) {
@@ -65,6 +76,24 @@ export default async function handler(req, res) {
     // for it yet) shouldn't fail the whole request — every player just
     // scores 0, same as before a gameweek's matches kick off.
     const liveData = liveResponse.ok ? await liveResponse.json() : { elements: [] };
+
+    // A failed/omitted fetch here just means we fall back to picksData's
+    // own (possibly stale) entry_history below — never fatal.
+    let liveEntrySummary = null;
+    if (entrySummaryResponse?.ok) {
+      try {
+        const entryData = await entrySummaryResponse.json();
+        if (entryData.current_event === parseInt(eventId)) {
+          liveEntrySummary = {
+            points: entryData.summary_event_points,
+            totalPoints: entryData.summary_overall_points,
+            overallRank: entryData.summary_overall_rank
+          };
+        }
+      } catch (err) {
+        console.warn(`⚠️ Could not parse /entry/ summary for manager ${managerId}:`, err.message);
+      }
+    }
 
     // Live per-player stats for this exact gameweek, keyed by player id.
     const liveStatsMap = new Map();
@@ -193,29 +222,29 @@ export default async function handler(req, res) {
       });
     }
 
-    // Apply automatic substitutions so the pitch/list view shows who
-    // actually played, not just the pre-deadline selection. FPL applies
-    // a sub when a starter (position 1-11) didn't play (0 minutes) and a
-    // bench player of a legal replacement position did — automatic_subs
-    // is FPL's own record of exactly which swaps it made, so just mirror
-    // those swaps by position rather than re-deriving the eligibility
-    // rules ourselves.
+    // Tag who was swapped in/out by automatic substitution, for the pitch
+    // view's IN/OUT badges. Note this does NOT swap pick.position: FPL's
+    // picks/ endpoint already returns `position` reflecting the FINAL,
+    // post-auto-sub lineup (1-11 is who actually played, 12-15 is who
+    // ended up benched) — verified directly against the live API for a
+    // manager with real auto-subs this season. An earlier version of this
+    // code swapped positions itself using automatic_subs, assuming
+    // `position` was still the pre-sub selection — that assumption no
+    // longer holds, and swapping on top of an already-swapped lineup
+    // inverted the XI and bench for anyone who'd actually had a sub (it
+    // moved the subbed-OUT player back into the "XI" and the subbed-IN
+    // player onto the "bench"), which also silently corrupted
+    // points-left-on-the-bench for those managers.
     (picksData.automatic_subs || []).forEach(sub => {
       const outPick = enrichedPicks.find(p => p.id === sub.element_out);
       const inPick = enrichedPicks.find(p => p.id === sub.element_in);
       if (!outPick || !inPick) return;
-      // Swap their pitch positions (1-11 vs 12-15) so the starter who
-      // didn't play moves to the bench slot and the sub who came on
-      // takes their spot in the XI.
-      const outPosition = outPick.position;
-      outPick.position = inPick.position;
-      inPick.position = outPosition;
       outPick.wasSubbedOut = true;
       inPick.wasSubbedIn = true;
     });
 
-    // Separate starting XI and bench — position 1-11 after the swaps
-    // above reflects who actually played this gameweek. Bench Boost
+    // Separate starting XI and bench — position 1-11 reflects who actually
+    // played this gameweek (see the automatic_subs comment above). Bench Boost
     // (bboost) counts all 15 regardless, so the XI/bench split is purely
     // cosmetic in that case (auto-subs also don't apply — everyone
     // already scores).
@@ -236,6 +265,15 @@ export default async function handler(req, res) {
     // Process entry history
     const entryHistory = picksData.entry_history || {};
 
+    // Points left on the bench, computed live from this gameweek's actual
+    // stats rather than trusted from entry_history.points_on_bench (which
+    // carries the same staleness risk as points/total_points above) — the
+    // bench array already reflects the post-auto-sub bench, and a bench
+    // pick's `points` field is its raw event score (FPL sets a benched
+    // pick's multiplier to 0, which the `> 1` check above deliberately
+    // leaves un-multiplied rather than zeroed).
+    const liveBenchPoints = bench.reduce((sum, p) => sum + (p.points || 0), 0);
+
     // Enrich automatic substitutions with readable player names — the raw
     // FPL payload only gives player IDs (element_in/element_out), and the
     // player lookup we need is already built above for the picks list.
@@ -253,15 +291,15 @@ export default async function handler(req, res) {
       automaticSubs,
       entryHistory: {
         event: entryHistory.event || parseInt(eventId),
-        points: entryHistory.points || 0,
-        totalPoints: entryHistory.total_points || 0,
+        points: liveEntrySummary?.points ?? entryHistory.points ?? 0,
+        totalPoints: liveEntrySummary?.totalPoints ?? entryHistory.total_points ?? 0,
         rank: entryHistory.rank || 0,
-        overallRank: entryHistory.overall_rank || 0,
+        overallRank: liveEntrySummary?.overallRank ?? entryHistory.overall_rank ?? 0,
         bank: entryHistory.bank || 0,
         value: entryHistory.value || 1000,
         eventTransfers: entryHistory.event_transfers || 0,
         eventTransfersCost: entryHistory.event_transfers_cost || 0,
-        pointsOnBench: entryHistory.points_on_bench || 0
+        pointsOnBench: liveBenchPoints
       },
       picks: enrichedPicks,
       startingXI: startingXI,

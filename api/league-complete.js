@@ -118,20 +118,59 @@ export default async function handler(req, res) {
       })) || []
     };
 
+    // FPL's own /entry/{id}/history/ endpoint (fetched per manager below)
+    // is a periodically-refreshed snapshot — while the current gameweek is
+    // still being played (or its bonus points haven't been locked in yet,
+    // i.e. `data_checked` is false), that snapshot's points/total_points/
+    // points_on_bench for THIS gameweek can sit badly behind the live
+    // totals the standings endpoint already has (same kind of FPL-side lag
+    // FixturesView.jsx works around with finished vs finished_provisional —
+    // confirmed here by curling FPL directly: standings already reported a
+    // manager's correct 55-point gameweek while /history/ was still stuck
+    // reporting 12, carried over from earlier in the live gameweek). The
+    // standings endpoint used above already gives us a live, correct
+    // points/total per manager, so gameweekTable below prefers that over
+    // /history/ for the current row — but bench points have no standings
+    // equivalent, so when the gameweek isn't finalized yet we also pull
+    // each manager's live picks + this gameweek's live stats and recompute
+    // points-left-on-the-bench ourselves (mirroring the auto-sub-aware
+    // logic in api/team-picks.js) instead of trusting the stale snapshot.
+    const currentGwMeta = bootstrapData.events?.find(event => event.id === currentGameweek);
+    const currentGwIsFinal = Boolean(currentGwMeta?.data_checked);
+
+    const currentGwLiveStatsMap = new Map();
+    if (!currentGwIsFinal) {
+      try {
+        const liveResponse = await fetchWithRetry(
+          `https://fantasy.premierleague.com/api/event/${currentGameweek}/live/`,
+          { timeout: 15000 },
+          1
+        );
+        if (liveResponse.ok) {
+          const liveData = await liveResponse.json();
+          (liveData.elements || []).forEach((el) => {
+            currentGwLiveStatsMap.set(el.id, el.stats?.total_points || 0);
+          });
+        }
+      } catch (err) {
+        console.warn('⚠️ Could not fetch live stats for current-gameweek bench recompute:', err.message);
+      }
+    }
+
     // Cap the manager-detail fan-out so a large league can't blow the
     // function's time budget — standings above this cut are still counted
     // in totalManagers below but won't have per-manager history/chips data.
     const MAX_MANAGERS = 20;
     const totalManagers = standingsData.standings.results.length;
     const managers = standingsData.standings.results.slice(0, MAX_MANAGERS);
-    
+
     // Use concurrency limiter for manager data fetching
     const limiter = new ConcurrencyLimiter(3); // Max 3 concurrent requests
-    
+
     const managerPromises = managers.map(entry =>
       limiter.run(async () => {
         try {
-          const [managerResponse, historyResponse] = await Promise.all([
+          const fetchList = [
             fetchWithRetry(
               `https://fantasy.premierleague.com/api/entry/${entry.entry}/`,
               { timeout: 8000 },
@@ -142,10 +181,24 @@ export default async function handler(req, res) {
               { timeout: 8000 },
               1
             )
-          ]);
+          ];
+          // Only fetched while the current gameweek's own numbers aren't
+          // final yet — see the comment above currentGwIsFinal.
+          if (!currentGwIsFinal) {
+            fetchList.push(
+              fetchWithRetry(
+                `https://fantasy.premierleague.com/api/entry/${entry.entry}/event/${currentGameweek}/picks/`,
+                { timeout: 8000 },
+                1
+              )
+            );
+          }
+
+          const [managerResponse, historyResponse, picksResponse] = await Promise.all(fetchList);
 
           let managerData = null;
           let historyData = null;
+          let liveBenchPoints = null;
 
           if (managerResponse.ok) {
             const manager = await managerResponse.json();
@@ -180,17 +233,34 @@ export default async function handler(req, res) {
             };
           }
 
+          if (picksResponse?.ok) {
+            try {
+              const picksData = await picksResponse.json();
+              // picks[].position already reflects the FINAL, post-auto-sub
+              // lineup (1-11 = who actually played, 12-15 = who ended up
+              // benched) — no need to interpret automatic_subs ourselves
+              // here, see the comment in api/team-picks.js.
+              liveBenchPoints = (picksData.picks || [])
+                .filter(p => p.position >= 12 && p.position <= 15)
+                .reduce((sum, p) => sum + (currentGwLiveStatsMap.get(p.element) || 0), 0);
+            } catch (err) {
+              console.warn(`⚠️ Could not recompute live bench points for manager ${entry.entry}:`, err.message);
+            }
+          }
+
           return {
             ...entry,
             managerData,
-            historyData
+            historyData,
+            liveBenchPoints
           };
         } catch (error) {
           console.warn(`⚠️ Partial data for manager ${entry.entry}:`, error.message);
           return {
             ...entry,
             managerData: null,
-            historyData: null
+            historyData: null,
+            liveBenchPoints: null
           };
         }
       })
@@ -260,17 +330,24 @@ export default async function handler(req, res) {
       managersWithData.forEach(manager => {
         const gwHistory = manager.historyData?.currentSeason?.find(h => h.event === gw);
         if (gwHistory) {
+          // This row is the live, in-progress gameweek — prefer the
+          // already-fresh standings/entry figures (and our own recomputed
+          // bench points) over the /history/ snapshot for it. See the
+          // currentGwIsFinal comment above managerPromises.
+          const isLiveCurrentGw = gw === currentGameweek && !currentGwIsFinal;
           gwData.managers.push({
             id: manager.entry,
             name: manager.entry_name || manager.player_name,
             managerName: manager.player_name || manager.entry_name,
             teamName: manager.entry_name,
-            points: gwHistory.points,
-            totalPoints: gwHistory.total_points,
-            rank: gwHistory.overall_rank,
+            points: isLiveCurrentGw ? (manager.event_total ?? gwHistory.points) : gwHistory.points,
+            totalPoints: isLiveCurrentGw ? (manager.total ?? gwHistory.total_points) : gwHistory.total_points,
+            rank: isLiveCurrentGw ? (manager.managerData?.overallRank || gwHistory.overall_rank) : gwHistory.overall_rank,
             transfers: gwHistory.event_transfers,
             transferCost: gwHistory.event_transfers_cost,
-            benchPoints: gwHistory.points_on_bench
+            benchPoints: isLiveCurrentGw && manager.liveBenchPoints != null
+              ? manager.liveBenchPoints
+              : gwHistory.points_on_bench
           });
         }
       });
