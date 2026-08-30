@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import CommandBar from './components/CommandBar';
 import LeagueTable from './components/LeagueTable';
 import GameweekTable from './components/GameweekTable';
+import FixturesView from './components/FixturesView';
 import PrizesHub from './components/PrizesHub';
 import MoreHub from './components/MoreHub';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -238,6 +239,13 @@ function AppContent() {
             loading={loading}
             bootstrap={bootstrap}
             standings={filteredStandings}
+          />
+        );
+      case 'fixtures':
+        return (
+          <FixturesView
+            gameweekInfo={gameweekInfo}
+            bootstrap={bootstrap}
           />
         );
       case 'prizes':

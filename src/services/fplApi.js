@@ -458,36 +458,34 @@ class FPLApiService {
     });
   }
 
-  // Goal/assist/bonus feed for one gameweek. `options.ttlMinutes` works the
-  // same way as getTeamPicks above: short by default (this is live data
-  // while a gameweek is in progress), but the caller can pass a long TTL
-  // once that gameweek is finished — the match events that already
-  // happened aren't going to un-happen.
-  async getGameweekEvents(gameweek, options = {}) {
-    const cacheKey = `gw_events_${gameweek}`;
+  // Fixture list + full per-match stat breakdown for one gameweek — see
+  // api/fixtures.js. Cached briefly while the gameweek's still live (scores
+  // can still move), much longer once every fixture in it has finished —
+  // that data isn't going to change again, so there's no reason to keep
+  // re-fetching it every time this gameweek is revisited.
+  async getFixtures(gameweek) {
+    const cacheKey = `fixtures_${gameweek}`;
     const cached = this.getCache(cacheKey);
     if (cached) return cached;
 
-    const ttlMinutes = options.ttlMinutes ?? 1;
-
     return this.queueRequest(async () => {
       try {
-        console.log(`⚽ Fetching gameweek events for GW${gameweek}...`);
+        console.log(`⚽ Fetching fixtures for GW${gameweek}...`);
         const response = await this.fetchWithRetry(
-          `${this.apiBaseUrl}/gameweek-events?gameweek=${gameweek}`,
-          { timeout: 15000 }
+          `${this.apiBaseUrl}/fixtures?event=${gameweek}`,
+          { timeout: 20000 }
         );
         const result = await response.json();
 
         if (!result.success) {
-          throw new Error(result.error || 'Gameweek events API error');
+          throw new Error(result.error || 'Fixtures API error');
         }
 
-        this.setCache(cacheKey, result.data, ttlMinutes);
+        this.setCache(cacheKey, result.data, result.data.finished ? 240 : 1);
         return result.data;
       } catch (error) {
-        console.error('❌ Error fetching gameweek events:', error);
-        return { gameweek, events: [] };
+        console.error('❌ Error fetching fixtures:', error);
+        return { gameweek, fixtures: [] };
       }
     });
   }

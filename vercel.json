@@ -12,6 +12,9 @@
     "api/team-picks.js": {
       "maxDuration": 30
     },
+    "api/fixtures.js": {
+      "maxDuration": 30
+    },
     "api/league-complete.js": {
       "maxDuration": 60
     },

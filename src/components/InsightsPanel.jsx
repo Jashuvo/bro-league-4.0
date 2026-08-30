@@ -18,7 +18,7 @@ const InsightsPanel = ({ gameweekTable = [], gameweek, standings = [], status = 
   return (
     <div className="space-y-3">
       <FixtureAlerts />
-      <WeeklyStory gameweekTable={gameweekTable} gameweek={gameweek} />
+      <WeeklyStory gameweekTable={gameweekTable} gameweek={gameweek} standings={standings} />
       <CaptainWatch standings={standings} gameweek={gameweek} enabled={picksEnabled} status={status} />
       <PriceWatch gameweek={gameweek} />
       <TransferLeaderboard gameweekTable={gameweekTable} />

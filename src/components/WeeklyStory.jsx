@@ -9,7 +9,7 @@ import { computeRankHistory } from '../utils/rankHistory';
 // data the app already has (gameweekTable), no extra fetching. The whole
 // point is to turn a leaderboard into something worth screenshotting into
 // the group chat.
-const WeeklyStory = ({ gameweekTable = [], gameweek }) => {
+const WeeklyStory = ({ gameweekTable = [], gameweek, standings = [] }) => {
   const beats = useMemo(() => {
     const gw = gameweekTable.find((g) => g.gameweek === gameweek);
     const managers = (gw?.managers || []).map((m) => ({
@@ -66,7 +66,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek }) => {
     }
 
     // Biggest league-position mover, compared to the previous gameweek.
-    const rankHistory = computeRankHistory(gameweekTable);
+    const rankHistory = computeRankHistory(gameweekTable, standings);
     const movers = Object.entries(rankHistory)
       .map(([id, hist]) => {
         const idx = hist.findIndex((h) => h.gw === gameweek);
@@ -94,7 +94,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek }) => {
     }
 
     return list;
-  }, [gameweekTable, gameweek]);
+  }, [gameweekTable, gameweek, standings]);
 
   if (beats.length === 0) return null;
 
