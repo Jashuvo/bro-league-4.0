@@ -108,7 +108,7 @@ const SeasonAwards = ({ standings = [], gameweekTable = [], loading = false, emb
         });
       }
 
-      const rankHistory = computeRankHistory(gameweekTable);
+      const rankHistory = computeRankHistory(gameweekTable, standings);
       const movers = Object.entries(rankHistory)
         .filter(([, h]) => h.length >= 2)
         .map(([id, h]) => ({ id, delta: h[0].rank - h[h.length - 1].rank }));

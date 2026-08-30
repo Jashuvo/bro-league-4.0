@@ -264,7 +264,10 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
 
   // Cumulative league-position history per manager, derived from
   // gameweekTable — powers the "Rank Trend" sparkline in each expanded row.
-  const rankHistoryByManager = useMemo(() => computeRankHistory(gameweekTable), [gameweekTable]);
+  const rankHistoryByManager = useMemo(
+    () => computeRankHistory(gameweekTable, standings),
+    [gameweekTable, standings]
+  );
 
   // The "magic number": how many points separate the season top-3 cutoff
   // (prizeStructure.season — the ৳800/600/400 prize) from each manager.
