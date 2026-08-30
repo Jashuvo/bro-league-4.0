@@ -152,6 +152,10 @@ export default async function handler(req, res) {
           fullName: playerInfo.fullName || playerInfo.name || 'Unknown',
           team: teamInfo.shortName || 'UNK',
           teamName: teamInfo.name || 'Unknown',
+          // FPL's own kit-image CDN is keyed by this, not `team.id` (which
+          // is competition-scoped and can shift season to season) — see
+          // TeamView.jsx's shirt image.
+          teamCode: teamInfo.code || null,
           positionType: positionTypes[playerInfo.position] || 'UNK',
           isCaptain: Boolean(pick.is_captain),
           isViceCaptain: Boolean(pick.is_vice_captain),

@@ -8,6 +8,15 @@ import { Jersey, Ball, PitchGraphic, Confetti } from './ui/Doodles';
 import fplApi from '../services/fplApi';
 import PlayerDetail from './PlayerDetail';
 
+// FPL's own kit-image CDN — the same one fantasy.premierleague.com's pitch
+// view points <img> tags at, keyed by team.code (api/team-picks.js already
+// carries this through as `teamCode`). Goalkeepers get a separate kit per
+// team (the `_1` suffix); everyone else shares the outfield shirt.
+const shirtUrl = (teamCode, isGoalkeeper) =>
+  teamCode
+    ? `https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_${teamCode}${isGoalkeeper ? '_1' : ''}-110.png`
+    : null;
+
 const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) => {
   const [teamData, setTeamData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -146,9 +155,12 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
     }
   };
 
-  // Component: Pitch Player Card — a flat drawn kit with a paper name plate
-  // under it. Same outline/fill language as the rest of the illustration set.
+  // Component: Pitch Player Card — the player's real club kit (falling back
+  // to the flat drawn jersey, position-tinted, if the image 404s or hasn't
+  // loaded) with a paper name plate underneath.
   const PitchPlayer = ({ player }) => {
+    const [shirtFailed, setShirtFailed] = useState(false);
+
     if (!player) return null;
 
     const isCaptain = player.isCaptain;
@@ -163,6 +175,8 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
           player.positionType === 'MID' ? 'fill-mint' :
             'fill-coral';
 
+    const shirtSrc = !shirtFailed ? shirtUrl(player.teamCode, player.positionType === 'GK') : null;
+
     return (
       <motion.button
         type="button"
@@ -175,7 +189,16 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
       >
         {/* Kit */}
         <div className="relative transition-transform duration-200 group-hover:scale-110">
-          <Jersey size={40} tone={kitTone} />
+          {shirtSrc ? (
+            <img
+              src={shirtSrc}
+              alt=""
+              className="w-10 h-10 object-contain drop-shadow-sm"
+              onError={() => setShirtFailed(true)}
+            />
+          ) : (
+            <Jersey size={40} tone={kitTone} />
+          )}
 
           {/* Badges */}
           {isCaptain && (
