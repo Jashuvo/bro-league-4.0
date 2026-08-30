@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, AlertCircle, Sparkles } from 'lucide-react';
 import { Jersey } from './ui/Doodles';
 import { cn } from '../utils/cn';
+
+// Same crest CDN FixturesView points at, keyed by team.code — see
+// api/fixtures.js for where this pattern first got verified.
+const crestUrl = (teamCode) =>
+  teamCode ? `https://resources.premierleague.com/premierleague/badges/70/t${teamCode}.png` : null;
 
 // One player, tapped from either the pitch or the list view in TeamView.
 // Every field here already rides through api/team-picks.js's enrichedPick —
@@ -10,6 +15,8 @@ import { cn } from '../utils/cn';
 // unread on the same bootstrap element that was already being fetched for
 // the player's name and price.
 const PlayerDetail = ({ player, onClose }) => {
+  const [crestFailed, setCrestFailed] = useState(false);
+
   if (!player) return null;
 
   const kitTone =
@@ -17,6 +24,8 @@ const PlayerDetail = ({ player, onClose }) => {
       player.positionType === 'DEF' ? 'fill-sky' :
         player.positionType === 'MID' ? 'fill-mint' :
           'fill-coral';
+
+  const crestSrc = !crestFailed ? crestUrl(player.teamCode) : null;
 
   const hasFlag = player.status !== 'a' || player.news;
 
@@ -39,8 +48,17 @@ const PlayerDetail = ({ player, onClose }) => {
         className="relative w-full md:max-w-sm max-h-[85vh] md:max-h-[600px] overflow-y-auto bg-surface rounded-t-3xl md:rounded-3xl border-2 border-ink/85 shadow-pop-lg"
       >
         <div className="sticky top-0 bg-violet text-white p-4 border-b-2 border-ink/85 flex items-start gap-3">
-          <span className="w-12 h-12 shrink-0 rounded-2xl bg-surface-alt border-2 border-ink/85 flex items-center justify-center">
-            <Jersey size={30} tone={kitTone} />
+          <span className="w-12 h-12 shrink-0 rounded-2xl bg-surface-alt border-2 border-ink/85 flex items-center justify-center overflow-hidden">
+            {crestSrc ? (
+              <img
+                src={crestSrc}
+                alt=""
+                className="w-8 h-8 object-contain"
+                onError={() => setCrestFailed(true)}
+              />
+            ) : (
+              <Jersey size={30} tone={kitTone} />
+            )}
           </span>
           <div className="min-w-0 flex-grow">
             <h2 className="font-display font-bold text-lg leading-tight truncate">{player.fullName || player.name}</h2>
