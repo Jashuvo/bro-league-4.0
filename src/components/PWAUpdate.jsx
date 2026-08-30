@@ -18,13 +18,32 @@ const BANNER_POSITION =
 
 const INSTALL_DISMISSED_KEY = 'pwaInstallDismissed'
 
-export default function PWAUpdate() {
+// `authenticated`: whether the app's own data fetch most recently
+// succeeded (App.jsx's authStatus.authenticated) — passed in so a stuck
+// `navigator.onLine` reading can be corrected against something more
+// trustworthy than the browser's own flag (see the effect below).
+export default function PWAUpdate({ authenticated = false }) {
   const [showUpdateBanner, setShowUpdateBanner] = useState(false)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [justReconnected, setJustReconnected] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const updateSWRef = useRef(null)
+
+  // `navigator.onLine` is notoriously unreliable on mobile browsers — it
+  // can start (or get stuck) reporting false after a flaky radio handoff
+  // or captive-portal blip, with no further 'online' event ever firing to
+  // correct it, even while the app goes right on successfully fetching
+  // live data the whole time. That would pin the "You're offline" banner
+  // up top indefinitely over a screen that plainly isn't offline. A
+  // successful authenticated load is stronger, more direct evidence of
+  // real connectivity than the browser's own flag, so let it correct a
+  // stuck-false reading rather than trusting `navigator.onLine` alone.
+  useEffect(() => {
+    if (authenticated) {
+      setIsOnline((wasOnline) => (wasOnline ? wasOnline : true))
+    }
+  }, [authenticated])
 
   useEffect(() => {
     // Registers the service worker vite-plugin-pwa builds, and calls back

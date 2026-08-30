@@ -263,45 +263,53 @@ function AppContent() {
   };
 
   if (loading && standings.length === 0) {
-    return <LoadingSpinner fullScreen />;
+    return (
+      <>
+        <PWAUpdate authenticated={authStatus.authenticated} />
+        <LoadingSpinner fullScreen />
+      </>
+    );
   }
 
   return (
-    <Layout
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      authStatus={authStatus}
-      lastUpdated={lastUpdated}
-      gameweekInfo={gameweekInfo}
-      standings={filteredStandings}
-      bootstrap={bootstrap}
-      leagueStats={leagueStats}
-    >
-      {/* One condensed strip above whichever destination is showing, in place
-          of the full-height hero that every tab used to sit below. */}
-      <CommandBar
+    <>
+      <PWAUpdate authenticated={authStatus.authenticated} />
+      <Layout
         activeTab={activeTab}
-        standings={filteredStandings}
-        gameweekInfo={gameweekInfo}
+        onTabChange={setActiveTab}
         authStatus={authStatus}
+        lastUpdated={lastUpdated}
+        gameweekInfo={gameweekInfo}
+        standings={filteredStandings}
         bootstrap={bootstrap}
-        leagueStats={filteredLeagueStats}
-        isRefreshing={isRefreshing}
-        onRefresh={handleRefresh}
-      />
+        leagueStats={leagueStats}
+      >
+        {/* One condensed strip above whichever destination is showing, in
+            place of the full-height hero that every tab used to sit below. */}
+        <CommandBar
+          activeTab={activeTab}
+          standings={filteredStandings}
+          gameweekInfo={gameweekInfo}
+          authStatus={authStatus}
+          bootstrap={bootstrap}
+          leagueStats={filteredLeagueStats}
+          isRefreshing={isRefreshing}
+          onRefresh={handleRefresh}
+        />
 
-      <div className="max-w-[1500px] mx-auto px-4 lg:px-6 pt-5 pb-28 lg:pb-14">
-        {error && (
-          <ErrorMessage
-            message={error}
-            onRetry={() => loadData(true)}
-          />
-        )}
-        <div className="animate-fade-in">
-          {renderTabContent()}
+        <div className="max-w-[1500px] mx-auto px-4 lg:px-6 pt-5 pb-28 lg:pb-14">
+          {error && (
+            <ErrorMessage
+              message={error}
+              onRetry={() => loadData(true)}
+            />
+          )}
+          <div className="animate-fade-in">
+            {renderTabContent()}
+          </div>
         </div>
-      </div>
-    </Layout>
+      </Layout>
+    </>
   );
 }
 
@@ -309,7 +317,6 @@ function App() {
   return (
     <ThemeProvider>
       <ExclusionProvider>
-        <PWAUpdate />
         <AppContent />
       </ExclusionProvider>
     </ThemeProvider>
