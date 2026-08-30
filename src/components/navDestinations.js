@@ -1,4 +1,4 @@
-import { Standings, Whistle, Coins, MoreDots } from './ui/Doodles';
+import { Standings, Whistle, CornerFlags, Coins, MoreDots } from './ui/Doodles';
 
 // ─── THE APP'S FOUR DESTINATIONS ────────────────────────────────────────────
 //
@@ -18,6 +18,7 @@ import { Standings, Whistle, Coins, MoreDots } from './ui/Doodles';
 export const DESTINATIONS = [
   { id: 'standings', name: 'Standings', short: 'Table', icon: Standings, tone: 'bg-sunflower', blurb: 'Who is winning' },
   { id: 'gameweeks', name: 'Gameweeks', short: 'Weeks', icon: Whistle, tone: 'bg-sky', blurb: 'Week by week' },
+  { id: 'fixtures', name: 'Fixtures', short: 'Fixtures', icon: CornerFlags, tone: 'bg-tangerine', blurb: 'Live scores' },
   { id: 'prizes', name: 'Prizes', short: 'Prizes', icon: Coins, tone: 'bg-mint', blurb: 'Money on the table' },
   { id: 'more', name: 'More', short: 'More', icon: MoreDots, tone: 'bg-bubblegum', blurb: 'Chips, H2H, awards' },
 ];
