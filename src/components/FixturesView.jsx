@@ -40,24 +40,26 @@ const dayKey = (iso) => new Date(iso).toDateString();
 // exactly the kind of stale-looking state this tab exists to avoid.
 const isMatchOver = (fixture) => fixture.finished || fixture.finishedProvisional;
 
-// identifier -> how its section looks: a small muted icon, and whether the
-// number next to a name is a POINTS value (bonus/BPS — always worth
-// showing, even "1") or an occurrence COUNT (goals/cards/etc — only worth
-// showing past 1, since a bare name already means "happened once").
+// identifier -> how its section looks: an icon on a small tinted badge (the
+// colour is what makes categories scannable at a glance — a run of same-size
+// grey text reads as one undifferentiated block), and whether the number
+// next to a name is a POINTS value (bonus/BPS — always worth showing, even
+// "1") or an occurrence COUNT (goals/cards/etc — only worth showing past 1,
+// since a bare name already means "happened once").
 const STAT_STYLE = {
-  goals_scored: { icon: <Ball size={12} />, alwaysShowValue: false },
-  assists: { icon: <Zap size={12} className="text-sky-ink" />, alwaysShowValue: false },
-  own_goals: { icon: <AlertTriangle size={12} className="text-coral-ink" />, alwaysShowValue: false },
-  penalties_saved: { icon: <ShieldCheck size={12} className="text-mint-ink" />, alwaysShowValue: false },
-  penalties_missed: { icon: <XCircle size={12} className="text-coral-ink" />, alwaysShowValue: false },
-  yellow_cards: { icon: <span className="w-2 h-2.5 rounded-[1.5px] bg-sunflower border border-ink/70 shrink-0" />, alwaysShowValue: false },
-  red_cards: { icon: <span className="w-2 h-2.5 rounded-[1.5px] bg-coral border border-ink/70 shrink-0" />, alwaysShowValue: false },
-  saves: { icon: <Hand size={12} className="text-sky-ink" />, alwaysShowValue: false },
-  bonus: { icon: <Coins size={13} />, alwaysShowValue: true },
-  bps: { icon: <Coins size={13} />, alwaysShowValue: true },
-  defensive_contribution: { icon: <Shield size={12} className="text-violet-ink" />, alwaysShowValue: false },
+  goals_scored: { icon: <Ball size={12} />, tint: 'bg-mint/45', alwaysShowValue: false },
+  assists: { icon: <Zap size={12} className="text-sky-ink" />, tint: 'bg-sky/40', alwaysShowValue: false },
+  own_goals: { icon: <AlertTriangle size={12} className="text-coral-ink" />, tint: 'bg-coral/35', alwaysShowValue: false },
+  penalties_saved: { icon: <ShieldCheck size={12} className="text-mint-ink" />, tint: 'bg-mint/40', alwaysShowValue: false },
+  penalties_missed: { icon: <XCircle size={12} className="text-coral-ink" />, tint: 'bg-coral/35', alwaysShowValue: false },
+  yellow_cards: { icon: <span className="w-2 h-2.5 rounded-[1.5px] bg-sunflower border border-ink/70 shrink-0" />, tint: 'bg-sunflower/45', alwaysShowValue: false },
+  red_cards: { icon: <span className="w-2 h-2.5 rounded-[1.5px] bg-coral border border-ink/70 shrink-0" />, tint: 'bg-coral/45', alwaysShowValue: false },
+  saves: { icon: <Hand size={12} className="text-sky-ink" />, tint: 'bg-sky/35', alwaysShowValue: false },
+  bonus: { icon: <Coins size={13} />, tint: 'bg-sunflower/50', alwaysShowValue: true },
+  bps: { icon: <Coins size={13} />, tint: 'bg-tangerine/45', alwaysShowValue: true },
+  defensive_contribution: { icon: <Shield size={12} className="text-violet-ink" />, tint: 'bg-violet/35', alwaysShowValue: false },
 };
-const DEFAULT_STYLE = { icon: <Ball size={12} />, alwaysShowValue: false };
+const DEFAULT_STYLE = { icon: <Ball size={12} />, tint: 'bg-surface-sunk', alwaysShowValue: false };
 
 const FixturesView = ({ gameweekInfo = {}, bootstrap = {} }) => {
   const currentGW = gameweekInfo.current || 1;
@@ -322,7 +324,9 @@ const FixtureStats = ({ fixture }) => {
         return (
           <div key={stat.identifier} className="py-2 first:pt-1">
             <div className="flex items-center gap-1.5 mb-1">
-              <span className="shrink-0 flex items-center justify-center opacity-70">{style.icon}</span>
+              <span className={cn('shrink-0 w-5 h-5 rounded-full flex items-center justify-center', style.tint)}>
+                {style.icon}
+              </span>
               <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-ink-soft">{stat.label}</span>
             </div>
             <div className="grid grid-cols-2 gap-x-3">
