@@ -11,7 +11,7 @@ import { Whistle, RankBadge, Coins } from './ui/Doodles';
 import TeamView from './TeamView';
 import InsightsPanel from './InsightsPanel';
 
-const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = false, bootstrap = {}, standings = [] }) => {
+const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, currentGameweekFinished = false, loading = false, bootstrap = {}, standings = [] }) => {
   const [selectedGameweek, setSelectedGameweek] = useState(currentGameweek);
   const [expandedRow, setExpandedRow] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -25,7 +25,12 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, loading = fals
 
   const getGameweekStatus = (gameweekId) => {
     const gameweekData = bootstrap?.gameweeks?.find(gw => gw.id === gameweekId);
-    if (gameweekData?.finished) return 'completed';
+    // FPL's own `finished` flag on the current gameweek only flips once
+    // bonus points are officially locked in, hours after the last whistle
+    // — `currentGameweekFinished` (App.jsx) corrects that lag using each
+    // fixture's `finishedProvisional` instead, so a gameweek that's
+    // plainly over doesn't sit on "In progress" waiting for FPL to catch up.
+    if (gameweekData?.finished || (gameweekId === currentGameweek && currentGameweekFinished)) return 'completed';
     if (gameweekData?.is_current) return 'current';
     if (gameweekData?.is_next) return 'next';
     if (gameweekId < currentGameweek) return 'completed';

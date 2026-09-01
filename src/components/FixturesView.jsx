@@ -93,7 +93,14 @@ const FixturesView = ({ gameweekInfo = {}, bootstrap = {} }) => {
   }, [selectedGameweek]);
 
   const gwMeta = bootstrap?.gameweeks?.find((gw) => gw.id === selectedGameweek);
-  const status = gwMeta?.finished
+  // `gwMeta.finished` is FPL's official flag — it only flips once bonus
+  // points are locked in, hours (sometimes a day) after the last whistle.
+  // `data.finishedProvisional` flips the moment every fixture has actually
+  // ended, so it's what decides whether this still counts as "in progress"
+  // — otherwise a gameweek that's plainly over keeps showing as live for
+  // however long FPL takes to finalise it.
+  const matchesActuallyOver = gwMeta?.finished || (data?.gameweek === selectedGameweek && data?.finishedProvisional);
+  const status = matchesActuallyOver
     ? 'completed'
     : gwMeta?.is_current
       ? 'current'

@@ -144,11 +144,15 @@ function AppContent() {
           setBootstrap(result.bootstrap);
           const currentGW = result.bootstrap.currentGameweek || 1;
           const currentGWData = result.bootstrap.gameweeks?.find(gw => gw.id === currentGW);
-          setGameweekInfo({
+          // Merge with, rather than replace, any `isFinished: true` the
+          // fixtures-polling effect below already established for this
+          // same gameweek — otherwise every refresh here would stomp that
+          // correction back to false until FPL's own flag catches up.
+          setGameweekInfo((prev) => ({
             current: currentGW,
             total: result.bootstrap.totalGameweeks || 38,
-            isFinished: currentGWData?.finished || false
-          });
+            isFinished: !!(currentGWData?.finished || (prev.current === currentGW && prev.isFinished))
+          }));
         }
 
         if (result.gameweekTable) {
@@ -188,6 +192,39 @@ function AppContent() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // `gameweekInfo.isFinished` above comes straight from FPL's own event
+  // `finished` flag, which only flips once bonus points are officially
+  // locked in — that can lag the actual final whistle by hours (see the
+  // same reasoning in FixturesView.jsx). Left alone, that pins every
+  // "finished" badge in the app (League Table, Gameweeks tab) on "in
+  // progress" long after every match has plainly ended. Fixtures already
+  // expose `finishedProvisional`, which flips the moment every match in
+  // the gameweek actually ends — poll that here (same 60s cadence as the
+  // rest of the app's live polling) and let it correct the flag locally.
+  // Self-terminating: once `isFinished` flips true this effect's own
+  // condition tears its interval down.
+  useEffect(() => {
+    if (!gameweekInfo.current || gameweekInfo.isFinished) return undefined;
+
+    let cancelled = false;
+    const check = () => {
+      fplApi.getFixtures(gameweekInfo.current).then((data) => {
+        if (!cancelled && data?.finishedProvisional) {
+          setGameweekInfo((prev) =>
+            prev.current === gameweekInfo.current ? { ...prev, isFinished: true } : prev
+          );
+        }
+      });
+    };
+
+    check();
+    const interval = setInterval(check, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [gameweekInfo.current, gameweekInfo.isFinished]);
 
   // FPL's own site keeps overall rank, live points and bonus moving on
   // their own; this app only ever fetched once on load and then sat there
@@ -236,6 +273,7 @@ function AppContent() {
           <GameweekTable
             gameweekTable={filteredGameweekTable}
             currentGameweek={gameweekInfo.current}
+            currentGameweekFinished={gameweekInfo.isFinished}
             loading={loading}
             bootstrap={bootstrap}
             standings={filteredStandings}

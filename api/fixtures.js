@@ -133,6 +133,13 @@ export default async function handler(req, res) {
     // minute), much longer once every fixture in it is finished — that
     // data isn't going to change again.
     const allFinished = shapedFixtures.length > 0 && shapedFixtures.every((f) => f.finished);
+    // `finished` only flips once bonus points are officially locked in,
+    // which can lag the final whistle by hours. `finishedProvisional`
+    // flips the moment each match actually ends, so "every fixture is at
+    // least provisionally over" is the right signal for "is this gameweek
+    // actually done", as opposed to "has FPL finished processing it".
+    const allFinishedProvisional =
+      shapedFixtures.length > 0 && shapedFixtures.every((f) => f.finished || f.finishedProvisional);
     res.setHeader(
       'Cache-Control',
       allFinished
@@ -146,6 +153,7 @@ export default async function handler(req, res) {
         gameweek: parseInt(event, 10),
         deadline_time: gwMeta?.deadline_time || null,
         finished: allFinished,
+        finishedProvisional: allFinishedProvisional,
         fixtures: shapedFixtures,
       }
     });
