@@ -85,7 +85,15 @@ const CommandBar = ({
               <button
                 type="button"
                 onClick={onOpenSeasonArchive}
-                className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-soft mt-1 truncate block"
+                // relative + z-20: the stat-chip cluster's own chips are
+                // `position: relative` (for their live-dot badge), which
+                // paints them above any `position: static` sibling that
+                // happens to overlap on screen — verified live via
+                // elementFromPoint that a StatChip was intercepting clicks
+                // meant for this button at some viewport widths. Matching
+                // (and outranking) that stacking context here is what
+                // actually makes it clickable, not just visible.
+                className="relative z-20 text-[10px] font-bold uppercase tracking-[0.16em] text-ink-soft mt-1 truncate block"
                 aria-label={`Open ${leagueConfig.season} season archive`}
               >
                 {totalManagers || '–'} bros • <span className="underline decoration-dotted underline-offset-2">{leagueConfig.season}</span>
