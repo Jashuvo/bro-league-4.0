@@ -90,6 +90,61 @@ const HeadToHead = ({ standings = [], gameweekTable = [], gameweekInfo = {}, loa
         />
       )}
 
+      {/* The table itself, front and center — this is the thing people
+          actually open H2H for, so it comes before the fixture list now
+          instead of after it (used to need a scroll past 9 match rows to
+          reach it). */}
+      <Card className="p-0 overflow-hidden">
+        <div className="p-4 pb-0 flex items-center justify-between gap-3">
+          <h3 className="text-lg font-display font-bold text-ink flex items-center gap-2">
+            <Trophy size={20} />
+            H2H Table
+          </h3>
+          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-wider">Win 3 · Draw 1 · Loss 0</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm mt-3">
+            <thead>
+              <tr className="border-b-2 border-ink/85 text-left bg-surface-sunk">
+                <th className="p-2 sm:p-3 w-[40px]"></th>
+                <th className="p-2 sm:p-3 text-ink font-display font-bold">Manager</th>
+                <th className="p-2 sm:p-3 text-ink font-display font-bold text-center">P</th>
+                <th className="p-2 sm:p-3 text-ink font-display font-bold text-center">W</th>
+                <th className="p-2 sm:p-3 text-ink font-display font-bold text-center">D</th>
+                <th className="p-2 sm:p-3 text-ink font-display font-bold text-center">L</th>
+                <th className="p-2 sm:p-3 text-ink font-display font-bold text-center">Pts</th>
+                <th className="p-2 sm:p-3 text-ink-soft font-display font-bold text-center hidden sm:table-cell">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {table.map((row, i) => {
+                const manager = managerById.get(row.managerId);
+                if (!manager) return null;
+                return (
+                  <tr key={row.managerId} className="border-b border-ink/10 last:border-0">
+                    <td className="p-2 sm:p-3"><RankBadge rank={i + 1} size={28} /></td>
+                    <td className="p-2 sm:p-3 min-w-0">
+                      <div className="font-bold text-ink truncate">{manager.managerName || manager.player_name}</div>
+                      <div className="text-[10px] font-bold text-ink-soft truncate">{manager.teamName || manager.entry_name}</div>
+                    </td>
+                    <td className="p-2 sm:p-3 text-center text-ink-soft font-semibold">{row.played}</td>
+                    <td className="p-2 sm:p-3 text-center text-pitch-ink font-bold">{row.wins}</td>
+                    <td className="p-2 sm:p-3 text-center text-ink-soft font-bold">{row.draws}</td>
+                    <td className="p-2 sm:p-3 text-center text-coral-ink font-bold">{row.losses}</td>
+                    <td className="p-2 sm:p-3 text-center font-display font-bold text-lg text-violet-ink">{row.h2hPoints}</td>
+                    <td className="p-2 sm:p-3 text-center text-ink-soft font-semibold hidden sm:table-cell">{row.seasonTotal.toLocaleString()}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="px-4 py-3 text-[11px] font-semibold text-ink-soft border-t-2 border-dashed border-ink/15 mt-1">
+          Fixtures are a simulated season-long schedule (round-robin, same for everyone) since this league isn&rsquo;t
+          FPL&rsquo;s own H2H mode — scoring and tiebreaks (season total points) follow FPL&rsquo;s real H2H rules exactly.
+        </p>
+      </Card>
+
       {/* Gameweek navigation — same prev/next pattern as GameweekTable.jsx,
           so past weeks' results are one tap away instead of only ever
           showing whichever gameweek is currently live. */}
@@ -172,57 +227,6 @@ const HeadToHead = ({ standings = [], gameweekTable = [], gameweekInfo = {}, loa
           </div>
         </Card>
       )}
-
-      <Card className="p-0 overflow-hidden">
-        <div className="p-4 pb-0 flex items-center justify-between gap-3">
-          <h3 className="text-lg font-display font-bold text-ink flex items-center gap-2">
-            <Trophy size={20} />
-            H2H Table
-          </h3>
-          <span className="text-[10px] font-bold text-ink-soft uppercase tracking-wider">Win 3 · Draw 1 · Loss 0</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm mt-3">
-            <thead>
-              <tr className="border-b-2 border-ink/85 text-left bg-surface-sunk">
-                <th className="p-2 sm:p-3 w-[40px]"></th>
-                <th className="p-2 sm:p-3 text-ink font-display font-bold">Manager</th>
-                <th className="p-2 sm:p-3 text-ink font-display font-bold text-center">P</th>
-                <th className="p-2 sm:p-3 text-ink font-display font-bold text-center">W</th>
-                <th className="p-2 sm:p-3 text-ink font-display font-bold text-center">D</th>
-                <th className="p-2 sm:p-3 text-ink font-display font-bold text-center">L</th>
-                <th className="p-2 sm:p-3 text-ink font-display font-bold text-center">Pts</th>
-                <th className="p-2 sm:p-3 text-ink-soft font-display font-bold text-center hidden sm:table-cell">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {table.map((row, i) => {
-                const manager = managerById.get(row.managerId);
-                if (!manager) return null;
-                return (
-                  <tr key={row.managerId} className="border-b border-ink/10 last:border-0">
-                    <td className="p-2 sm:p-3"><RankBadge rank={i + 1} size={28} /></td>
-                    <td className="p-2 sm:p-3 min-w-0">
-                      <div className="font-bold text-ink truncate">{manager.managerName || manager.player_name}</div>
-                      <div className="text-[10px] font-bold text-ink-soft truncate">{manager.teamName || manager.entry_name}</div>
-                    </td>
-                    <td className="p-2 sm:p-3 text-center text-ink-soft font-semibold">{row.played}</td>
-                    <td className="p-2 sm:p-3 text-center text-pitch-ink font-bold">{row.wins}</td>
-                    <td className="p-2 sm:p-3 text-center text-ink-soft font-bold">{row.draws}</td>
-                    <td className="p-2 sm:p-3 text-center text-coral-ink font-bold">{row.losses}</td>
-                    <td className="p-2 sm:p-3 text-center font-display font-bold text-lg text-violet-ink">{row.h2hPoints}</td>
-                    <td className="p-2 sm:p-3 text-center text-ink-soft font-semibold hidden sm:table-cell">{row.seasonTotal.toLocaleString()}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <p className="px-4 py-3 text-[11px] font-semibold text-ink-soft border-t-2 border-dashed border-ink/15 mt-1">
-          Fixtures are a simulated season-long schedule (round-robin, same for everyone) since this league isn&rsquo;t
-          FPL&rsquo;s own H2H mode — scoring and tiebreaks (season total points) follow FPL&rsquo;s real H2H rules exactly.
-        </p>
-      </Card>
     </motion.div>
   );
 };
