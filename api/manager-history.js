@@ -1,5 +1,6 @@
 // api/manager-history.js - Vercel Serverless Function for Manager History Data
 import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
+import { kv } from './_lib/kv.js';
 
 export default async function handler(req, res) {
   setCorsHeaders(res);
@@ -14,17 +15,29 @@ export default async function handler(req, res) {
   }
 
   const { managerId } = req.query;
-  
+
   if (!managerId) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Manager ID is required' 
+    return res.status(400).json({
+      success: false,
+      error: 'Manager ID is required'
     });
   }
 
+  res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+  const cacheKey = `fpl:manager-history:${managerId}`;
+
   try {
+    if (kv) {
+      try {
+        const cached = await kv.get(cacheKey);
+        if (cached) return res.status(200).json({ success: true, data: cached, fromCache: true });
+      } catch (cacheError) {
+        console.error('Manager-history cache read error:', cacheError);
+      }
+    }
+
     console.log(`📈 Fetching history for manager ${managerId} server-side...`);
-    
+
     const response = await fetchWithRetry(
       `https://fantasy.premierleague.com/api/entry/${managerId}/history/`,
       { timeout: 15000 }
@@ -35,7 +48,7 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
-    
+
     // Process gameweek history
     const gameweekHistory = data.current?.map(gw => ({
       gameweek: gw.event,
@@ -65,24 +78,32 @@ export default async function handler(req, res) {
     })) || [];
 
     console.log(`✅ Manager history processed - ${gameweekHistory.length} gameweeks`);
-    
-    // Cache for 5 minutes (history data doesn't change often)
-    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
-    
+
+    const responseData = {
+      managerId: parseInt(managerId),
+      gameweeks: gameweekHistory,
+      chips: chipsUsed,
+      seasonHistory: seasonHistory
+    };
+
+    if (kv) {
+      try {
+        // 5 minutes, matching the Cache-Control header above.
+        await kv.set(cacheKey, responseData, { ex: 300 });
+      } catch (cacheError) {
+        console.error('Manager-history cache write error:', cacheError);
+      }
+    }
+
     return res.status(200).json({
       success: true,
-      data: {
-        managerId: parseInt(managerId),
-        gameweeks: gameweekHistory,
-        chips: chipsUsed,
-        seasonHistory: seasonHistory
-      },
+      data: responseData,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     console.error('❌ Error fetching manager history:', error);
-    
+
     return res.status(500).json({
       success: false,
       error: 'Failed to fetch manager history',

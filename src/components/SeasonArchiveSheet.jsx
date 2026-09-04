@@ -5,6 +5,7 @@ import Badge from './ui/Badge';
 import SegmentedControl from './ui/SegmentedControl';
 import { Whistle, CalendarDoodle, TrophyCup } from './ui/Doodles';
 import { leagueConfig } from '../data/leagueData';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 // This project's own permanent record — weekly winners, monthly winners,
 // and the full per-gameweek standings table — captured daily into
@@ -109,6 +110,8 @@ const SeasonArchiveSheet = ({ open, onClose, seasonArchive = [], standings = [] 
         .sort((a, b) => (a.final_rank || 0) - (b.final_rank || 0)),
     };
   }, [seasonRows]);
+
+  useEscapeKey(onClose, open);
 
   if (!open) return null;
 

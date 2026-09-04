@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { X, AlertCircle, Sparkles } from 'lucide-react';
 import { Jersey } from './ui/Doodles';
 import { cn } from '../utils/cn';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 // Same crest CDN FixturesView points at, keyed by team.code — see
 // api/fixtures.js for where this pattern first got verified.
@@ -16,6 +17,10 @@ const crestUrl = (teamCode) =>
 // the player's name and price.
 const PlayerDetail = ({ player, onClose }) => {
   const [crestFailed, setCrestFailed] = useState(false);
+  // `active` guards the listener rather than skipping the hook call
+  // itself — the early `return null` below would otherwise make this a
+  // conditional hook call whenever `player` toggles.
+  useEscapeKey(onClose, !!player);
 
   if (!player) return null;
 

@@ -18,7 +18,26 @@
 //    stopped exposing it. A no-op until Supabase is configured
 //    (VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).
 import { fetchWithRetry } from './_lib/helpers.js';
-import { monthlyWindows, weeklyPrize, monthlyRegularPrizes, monthlyFinalPrizes, seasonPrizes, getWeeklyWinner, getMonthlyTop } from './_lib/prizeConfig.js';
+import { monthlyWindows, weeklyPrize, monthlyRegularPrizes, monthlyFinalPrizes, seasonPrizes, getWeeklyWinner, getMonthlyTop, getInLeagueRanks, isSeasonFinalGameweek } from './_lib/prizeConfig.js';
+
+// So "is the daily archive job actually succeeding" is a query
+// (scripts/cache-status.js) instead of trawling Vercel logs — this is the
+// only visibility into cron health this project has (no external
+// monitoring/alerting service is wired up). Best-effort: a logging
+// failure here is swallowed rather than failing the cron run it's trying
+// to record.
+async function logCronRun(success, message) {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) return;
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(supabaseUrl, serviceKey);
+    await supabase.from('cron_runs').insert({ success, message });
+  } catch (error) {
+    console.error('⚠️ Failed to log cron run (non-fatal):', error.message);
+  }
+}
 
 async function snapshotResults({ leagueId, season, bootstrap, gameweekTable: rawGameweekTable }) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -124,18 +143,11 @@ async function snapshotResults({ leagueId, season, bootstrap, gameweekTable: raw
   // Champion after gameweek 2.
   const finalGwNumber = bootstrap.totalGameweeks || 38;
   gameweekTable.forEach((gw) => {
-    const isFinalGameweek = gw.gameweek === finalGwNumber && gwByNumber.get(gw.gameweek)?.data_checked;
-
-    // NOTE: manager.rank in gameweekTable is FPL's GLOBAL overall rank
-    // (among millions of players) — not this mini-league's rank, and
-    // useless here. The in-league rank for every gameweek (not just the
-    // final one) has to be computed by sorting this gameweek's own
-    // managers by cumulative total_points, same as the final-gameweek
-    // season-prize ranking below.
-    const inLeagueRanked = [...(gw.managers || [])].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+    const isFinalGameweek = isSeasonFinalGameweek(gw.gameweek, finalGwNumber, gwByNumber.get(gw.gameweek)?.data_checked);
+    const inLeagueRanks = getInLeagueRanks(gw.managers);
 
     (gw.managers || []).forEach((m) => {
-      const inLeagueRank = inLeagueRanked.findIndex((x) => x.id === m.id) + 1;
+      const inLeagueRank = inLeagueRanks.get(m.id);
       const prize = isFinalGameweek && seasonPrizes.find((p) => p.position === inLeagueRank);
       rows.push({
         league_id: String(leagueId),
@@ -236,6 +248,11 @@ export default async function handler(req, res) {
       snapshot = { error: snapshotError.message };
     }
 
+    const snapshotSummary = snapshot.error
+      ? `cache warmed, archive failed: ${snapshot.error}`
+      : `cache warmed, ${snapshot.rowsWritten ?? 0} archive row(s) written`;
+    await logCronRun(!snapshot.error, snapshotSummary);
+
     return res.status(200).json({
       success: true,
       message: 'Cache warmed',
@@ -244,6 +261,7 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('❌ Cache warming failed:', error);
+    await logCronRun(false, error.message);
 
     return res.status(500).json({
       success: false,

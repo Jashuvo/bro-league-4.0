@@ -91,20 +91,20 @@ async function testEndpoint(name, url) {
 async function runTests() {
   const tests = [
     {
-      name: 'Bootstrap Data',
-      url: `${BASE_URL}/api/bootstrap`
-    },
-    {
-      name: 'League Data',
-      url: `${BASE_URL}/api/league?leagueId=${LEAGUE_ID}`
-    },
-    {
       name: 'Complete League Data (Optimized)',
       url: `${BASE_URL}/api/league-complete?leagueId=${LEAGUE_ID}`
     },
     {
+      name: 'Fixtures (GW1)',
+      url: `${BASE_URL}/api/fixtures?event=1`
+    },
+    {
       name: 'Manager History (Sample)',
       url: `${BASE_URL}/api/manager-history?managerId=1827725`
+    },
+    {
+      name: 'Season Archive',
+      url: `${BASE_URL}/api/season-archive?leagueId=${LEAGUE_ID}`
     }
   ];
   

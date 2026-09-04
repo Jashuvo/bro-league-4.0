@@ -7,6 +7,7 @@
 // transfer figures used elsewhere are per-manager COUNTS
 // (event_transfers/event_transfers_cost), never which players moved.
 import { fetchWithRetry, setCorsHeaders, ConcurrencyLimiter } from './_lib/helpers.js';
+import { kv } from './_lib/kv.js';
 
 export default async function handler(req, res) {
   setCorsHeaders(res);
@@ -25,7 +26,21 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'leagueId and gameweek are required' });
   }
 
+  const cacheKey = `fpl:league-transfers:${leagueId}:${gameweek}`;
+
   try {
+    if (kv) {
+      try {
+        const cached = await kv.get(cacheKey);
+        if (cached) {
+          res.setHeader('Cache-Control', 'public, max-age=600, stale-while-revalidate=1800');
+          return res.status(200).json({ success: true, data: cached, fromCache: true });
+        }
+      } catch (cacheError) {
+        console.error('League-transfers cache read error:', cacheError);
+      }
+    }
+
     const [standingsResponse, bootstrapResponse] = await Promise.all([
       fetchWithRetry(`https://fantasy.premierleague.com/api/leagues-classic/${leagueId}/standings/`, { timeout: 15000 }),
       fetchWithRetry('https://fantasy.premierleague.com/api/bootstrap-static/', { timeout: 15000 })
@@ -111,14 +126,21 @@ export default async function handler(req, res) {
     // which only changes once a day.
     res.setHeader('Cache-Control', 'public, max-age=600, stale-while-revalidate=1800');
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        gameweek: gwNumber,
-        transfersIn: shape(inCounts),
-        transfersOut: shape(outCounts)
+    const responseData = {
+      gameweek: gwNumber,
+      transfersIn: shape(inCounts),
+      transfersOut: shape(outCounts)
+    };
+
+    if (kv) {
+      try {
+        await kv.set(cacheKey, responseData, { ex: 600 });
+      } catch (cacheError) {
+        console.error('League-transfers cache write error:', cacheError);
       }
-    });
+    }
+
+    return res.status(200).json({ success: true, data: responseData });
   } catch (error) {
     console.error('❌ Error fetching league transfers:', error);
     return res.status(500).json({

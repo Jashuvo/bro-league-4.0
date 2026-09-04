@@ -1,0 +1,35 @@
+name: CI
+
+# Lint + unit tests + build, on every push and PR. No secrets needed —
+# verified locally that `npm run build` succeeds with zero VITE_* env vars
+# set (leagueData.js and friends all fall back gracefully; the build step
+# only bundles code, it never executes the app against real FPL/Supabase
+# data). Deploys stay on Vercel's own git integration — this workflow
+# never deploys anything, just catches a broken lint/test/build before
+# Vercel does.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build

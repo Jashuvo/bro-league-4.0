@@ -12,6 +12,9 @@
 // 18-manager private league. That's api/league-transfers.js now, scoped to
 // just this league's managers.
 import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
+import { kv } from './_lib/kv.js';
+
+const CACHE_KEY = 'fpl:price-watch';
 
 export default async function handler(req, res) {
   setCorsHeaders(res);
@@ -24,7 +27,20 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Price changes land once a day (~1:30am UK) — no need to hit FPL again
+  // until the next one plausibly could have happened.
+  res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=3600');
+
   try {
+    if (kv) {
+      try {
+        const cached = await kv.get(CACHE_KEY);
+        if (cached) return res.status(200).json({ success: true, data: cached, fromCache: true });
+      } catch (cacheError) {
+        console.error('Price-watch cache read error:', cacheError);
+      }
+    }
+
     const response = await fetchWithRetry('https://fantasy.premierleague.com/api/bootstrap-static/', {
       timeout: 15000
     });
@@ -62,14 +78,17 @@ export default async function handler(req, res) {
       .sort((a, b) => a.changeToday - b.changeToday || b.selectedByPercent - a.selectedByPercent)
       .slice(0, 8);
 
-    // Price changes land once a day (~1:30am UK) — no need to hit FPL again
-    // until the next one plausibly could have happened.
-    res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=3600');
+    const responseData = { risers, fallers, asOf: new Date().toISOString() };
 
-    return res.status(200).json({
-      success: true,
-      data: { risers, fallers, asOf: new Date().toISOString() }
-    });
+    if (kv) {
+      try {
+        await kv.set(CACHE_KEY, responseData, { ex: 1800 });
+      } catch (cacheError) {
+        console.error('Price-watch cache write error:', cacheError);
+      }
+    }
+
+    return res.status(200).json({ success: true, data: responseData });
   } catch (error) {
     console.error('❌ Error fetching price watch:', error);
     return res.status(500).json({

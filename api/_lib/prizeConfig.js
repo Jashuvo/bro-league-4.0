@@ -80,3 +80,29 @@ export function getMonthlyTop(gameweekTable, window, prizeCount) {
     .sort((a, b) => b.totalPoints - a.totalPoints)
     .slice(0, prizeCount);
 }
+
+/**
+ * This mini-league's rank for one gameweek, from that gameweek's own
+ * cumulative total_points — NOT `manager.rank` in gameweekTable, which is
+ * FPL's GLOBAL overall rank among millions of players (a real bug caught
+ * live in production: it showed as final_rank values like 6382778).
+ * Returns a Map<managerId, rank> (rank 1 = highest total_points).
+ */
+export function getInLeagueRanks(gwManagers) {
+  const ranked = [...(gwManagers || [])].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+  return new Map(ranked.map((m, i) => [m.id, i + 1]));
+}
+
+/**
+ * Whether `gameweekNumber` is the season's actual final, settled
+ * gameweek — i.e. safe to crown season-end (Champion/Runner-up/Third)
+ * prizes. `finalGwNumber` must come from the season's own total gameweek
+ * count (bootstrap.totalGameweeks, normally 38) — NOT from "the highest
+ * gameweek currently in gameweekTable", which early in a season is just
+ * "the most recent one played so far" and would otherwise crown a
+ * Champion after gameweek 2. This was a real bug caught live before it
+ * shipped — see api/warm-cache.js's history.
+ */
+export function isSeasonFinalGameweek(gameweekNumber, finalGwNumber, dataChecked) {
+  return gameweekNumber === finalGwNumber && Boolean(dataChecked);
+}

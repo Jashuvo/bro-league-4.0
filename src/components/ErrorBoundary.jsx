@@ -29,12 +29,44 @@ class ErrorBoundary extends React.Component {
 
   handleReset = () => {
     this.setState({ hasError: false, error: null, errorInfo: null });
-    // Optionally reload the page
-    window.location.reload();
+    // The root boundary (main.jsx) reloads the whole page — reasonable
+    // when literally anything could have crashed. A `compact` boundary
+    // wraps one destination (see App.jsx's per-tab boundaries below); its
+    // "Try again" should only re-render that one subtree, not blow away
+    // the rest of the app (and its in-memory data) over one bad tab.
+    if (!this.props.compact) {
+      window.location.reload();
+    }
   };
 
   render() {
     if (this.state.hasError) {
+      if (this.props.compact) {
+        return (
+          <div className="rounded-3xl border-2 border-ink/85 bg-surface-alt p-6 text-center">
+            <div className="w-12 h-12 mx-auto mb-3 bg-coral/15 border-2 border-ink/85 rounded-full flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 text-coral-ink" />
+            </div>
+            <p className="font-display font-bold text-ink mb-1">This section hit a snag</p>
+            <p className="text-sm text-ink-soft font-medium mb-4">
+              The rest of the app is unaffected — try again, or switch to another tab.
+            </p>
+            {import.meta.env.VITE_DEV_MODE === 'true' && this.state.error && (
+              <pre className="text-xs text-coral-ink overflow-auto text-left mb-4 p-3 paper-inset">
+                {this.state.error.toString()}
+              </pre>
+            )}
+            <button
+              onClick={this.handleReset}
+              className="btn-pop inline-flex items-center gap-2 px-5 py-2.5 bg-violet text-white rounded-2xl border-2 border-ink/85 font-display font-bold text-sm"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Try again
+            </button>
+          </div>
+        );
+      }
+
       return (
         <div className="min-h-screen bg-surface flex items-center justify-center p-4">
           <div className="max-w-2xl w-full">

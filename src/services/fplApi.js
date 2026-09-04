@@ -267,34 +267,6 @@ class FPLApiService {
     });
   }
 
-  // Get bootstrap data
-  async getBootstrapData() {
-    const cacheKey = 'bootstrap';
-    const cached = this.getCache(cacheKey);
-    if (cached) return cached;
-
-    try {
-      console.log('📊 Fetching bootstrap data...');
-      const response = await this.fetchWithRetry(`${this.apiBaseUrl}/bootstrap`, {
-        timeout: 15000
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Bootstrap API error');
-      }
-
-      console.log('✅ Bootstrap data loaded');
-      this.setCache(cacheKey, result.data, 5);
-      return result.data;
-
-    } catch (error) {
-      console.error('❌ Error fetching bootstrap:', error);
-      return this.getFallbackBootstrap();
-    }
-  }
-
   // Get manager history
   async getManagerHistory(managerId) {
     const cacheKey = `history_${managerId}`;
@@ -606,38 +578,6 @@ class FPLApiService {
       } catch (error) {
         console.error('❌ Error fetching fixtures:', error);
         return { gameweek, fixtures: [] };
-      }
-    });
-  }
-
-  // Get live league stats
-  async getLiveLeagueStats(gameweekId) {
-    const cacheKey = `live_stats_${this.leagueId}_${gameweekId}`;
-    const cached = this.getCache(cacheKey);
-    if (cached) return cached;
-
-    return this.queueRequest(async () => {
-      try {
-        console.log(`🔴 Fetching live stats for GW${gameweekId}...`);
-        const response = await this.fetchWithRetry(
-          `${this.apiBaseUrl}/live-stats?leagueId=${this.leagueId}&gameweek=${gameweekId}`,
-          { timeout: 20000 }
-        );
-
-        const result = await response.json();
-
-        if (!result.success) {
-          throw new Error(result.error || 'Live stats API error');
-        }
-
-        console.log(`✅ Live stats loaded for GW${gameweekId}`);
-        // Cache for 1 minute only as it's live data
-        this.setCache(cacheKey, result, 1);
-        return result;
-
-      } catch (error) {
-        console.error('❌ Error fetching live stats:', error);
-        return null;
       }
     });
   }

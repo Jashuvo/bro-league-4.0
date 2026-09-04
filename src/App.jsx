@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import fplApi from './services/fplApi';
 import { ThemeProvider } from './context/ThemeContext';
@@ -6,15 +6,23 @@ import { ExclusionProvider, useExclusion } from './context/ExclusionContext';
 
 import Layout from './components/Layout';
 import CommandBar from './components/CommandBar';
-import LeagueTable from './components/LeagueTable';
-import GameweekTable from './components/GameweekTable';
-import FixturesView from './components/FixturesView';
-import PrizesHub from './components/PrizesHub';
-import MoreHub from './components/MoreHub';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
+import ErrorBoundary from './components/ErrorBoundary';
 import PWAUpdate from './components/PWAUpdate';
 import SeasonArchiveSheet from './components/SeasonArchiveSheet';
+
+// One destination's code loads only when someone actually opens it,
+// instead of the whole app shipping as one bundle up front — the app has
+// five destinations and any one visit typically only ever opens one or
+// two of them. `activeTab` starts on 'standings', so that chunk starts
+// fetching immediately on load rather than waiting for a click; the
+// Suspense fallback below only shows for the other four.
+const LeagueTable = lazy(() => import('./components/LeagueTable'));
+const GameweekTable = lazy(() => import('./components/GameweekTable'));
+const FixturesView = lazy(() => import('./components/FixturesView'));
+const PrizesHub = lazy(() => import('./components/PrizesHub'));
+const MoreHub = lazy(() => import('./components/MoreHub'));
 
 function AppContent() {
   const { excludedTeamIds } = useExclusion();
@@ -375,7 +383,18 @@ function AppContent() {
             />
           )}
           <div className="animate-fade-in">
-            {renderTabContent()}
+            {/* `key={activeTab}` remounts the boundary on every tab switch —
+                without it, a crash in Standings would leave the boundary
+                stuck in its error state even after navigating to Fixtures,
+                showing the wrong tab's error message over a perfectly
+                healthy one. `compact` keeps the sidebar/CommandBar/bottom
+                nav usable instead of the root boundary's full-page wipe —
+                see ErrorBoundary.jsx. */}
+            <ErrorBoundary compact key={activeTab}>
+              <Suspense fallback={<LoadingSpinner size="small" message="Loading…" submessage="" />}>
+                {renderTabContent()}
+              </Suspense>
+            </ErrorBoundary>
           </div>
         </div>
       </Layout>

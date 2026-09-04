@@ -7,6 +7,7 @@ import Button from './ui/Button';
 import { Jersey, Ball, PitchGraphic, Confetti } from './ui/Doodles';
 import fplApi from '../services/fplApi';
 import PlayerDetail from './PlayerDetail';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 // FPL's own kit-image CDN — the same one fantasy.premierleague.com's pitch
 // view points <img> tags at, keyed by team.code (api/team-picks.js already
@@ -24,6 +25,13 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   const [viewMode, setViewMode] = useState('pitch');
   const [careerHistory, setCareerHistory] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+
+  // `active: !selectedPlayer` — while a player's own detail sheet is open
+  // on top of this one, THIS listener is deliberately not attached at all,
+  // so Escape only ever reaches PlayerDetail's own useEscapeKey call (which
+  // closes just the player sheet) instead of also closing TeamView
+  // underneath it in the same keystroke.
+  useEscapeKey(onClose, !selectedPlayer);
 
   const currentGameweek = gameweekInfo?.current || 1;
 

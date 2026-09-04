@@ -17,7 +17,11 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 const jsAndJsxFiles = ['**/*.{js,jsx}']
 
 export default [
-  { ignores: ['dist'] },
+  // `.claude` covers this tool's own worktrees (temporary git checkouts for
+  // background agent sessions) — those are full copies of the repo,
+  // `dist` included, and without this `npm run lint` picks up hundreds of
+  // errors from old build output that isn't even this checkout's code.
+  { ignores: ['dist', 'node_modules', '.claude', '.vercel'] },
   { files: jsAndJsxFiles, ...js.configs.recommended },
   { files: jsAndJsxFiles, ...react.configs.flat.recommended },
   { files: jsAndJsxFiles, ...react.configs.flat['jsx-runtime'] },

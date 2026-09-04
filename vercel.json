@@ -1,11 +1,5 @@
 {
   "functions": {
-    "api/bootstrap.js": {
-      "maxDuration": 30
-    },
-    "api/league.js": {
-      "maxDuration": 30
-    },
     "api/manager-history.js": {
       "maxDuration": 30
     },
@@ -16,9 +10,6 @@
       "maxDuration": 30
     },
     "api/league-complete.js": {
-      "maxDuration": 60
-    },
-    "api/live-stats.js": {
       "maxDuration": 60
     },
     "api/warm-cache.js": {

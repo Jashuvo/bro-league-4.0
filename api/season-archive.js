@@ -18,6 +18,34 @@
 // expected state, not an error.
 import { setCorsHeaders } from './_lib/helpers.js';
 
+// A 6-digit numeric PIN is scriptable (1M combinations) — cap repeated
+// wrong guesses per rolling window instead of leaving the check
+// unthrottled. `rate_limits` holds one row per key; a correct PIN resets
+// the counter, so this only ever throttles someone actually guessing.
+const PIN_RATE_LIMIT = { key: 'exclusion_pin', windowMinutes: 15, maxAttempts: 10 };
+
+async function checkAndRecordPinAttempt(writeClient, wasCorrect) {
+  const { key, windowMinutes, maxAttempts } = PIN_RATE_LIMIT;
+  const { data: row } = await writeClient.from('rate_limits').select('*').eq('key', key).maybeSingle();
+
+  const windowExpired = !row || (Date.now() - new Date(row.window_start).getTime()) > windowMinutes * 60 * 1000;
+  const currentCount = windowExpired ? 0 : row.attempt_count;
+
+  if (!windowExpired && currentCount >= maxAttempts) {
+    return { limited: true, retryAfterMinutes: windowMinutes };
+  }
+
+  // A correct PIN clears the counter; a wrong one increments it (starting
+  // a fresh window if the old one had expired).
+  await writeClient.from('rate_limits').upsert({
+    key,
+    attempt_count: wasCorrect ? 0 : currentCount + 1,
+    window_start: windowExpired ? new Date().toISOString() : (row?.window_start || new Date().toISOString()),
+  });
+
+  return { limited: false };
+}
+
 async function handleSeasonArchive(req, res, supabase, leagueId) {
   const { season } = req.query;
   let query = supabase.from('season_archive').select('*').eq('league_id', String(leagueId));
@@ -40,27 +68,35 @@ async function handleExclusions(req, res, supabase, leagueId) {
     return res.status(200).json({ success: true, data: data || [] });
   }
 
-  // POST (exclude) / DELETE (restore) both change shared state everyone
-  // sees, so they're gated by a shared PIN instead of the anon key alone
-  // (which is public-read only, by RLS design — see the migration). Not
-  // real auth, just enough friction that this stays a deliberate action
-  // on a private league nobody outside the group has a link to.
-  const pin = process.env.EXCLUSION_PIN;
-  if (pin && req.headers['x-exclusion-pin'] !== pin) {
-    return res.status(401).json({ success: false, error: 'Wrong or missing PIN' });
-  }
-
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) {
     return res.status(503).json({ success: false, error: 'Exclusions are read-only until SUPABASE_SERVICE_ROLE_KEY is configured' });
   }
   // Re-create the client with the service-role key for this write — the
   // caller-supplied `supabase` above was built with the anon key, which
-  // RLS blocks from writing here on purpose.
+  // RLS blocks from writing here on purpose. Needed for the rate-limit
+  // check below too (rate_limits has no anon policy either).
   const { createClient } = await import('@supabase/supabase-js');
   const writeClient = createClient(process.env.VITE_SUPABASE_URL, serviceKey, {
     auth: { persistSession: false },
   });
+
+  // POST (exclude) / DELETE (restore) both change shared state everyone
+  // sees, so they're gated by a shared PIN instead of the anon key alone
+  // (which is public-read only, by RLS design — see the migration). Not
+  // real auth, just enough friction that this stays a deliberate action
+  // on a private league nobody outside the group has a link to.
+  const pin = process.env.EXCLUSION_PIN;
+  if (pin) {
+    const wasCorrect = req.headers['x-exclusion-pin'] === pin;
+    const { limited, retryAfterMinutes } = await checkAndRecordPinAttempt(writeClient, wasCorrect);
+    if (limited) {
+      return res.status(429).json({ success: false, error: `Too many wrong PIN attempts — try again in ${retryAfterMinutes} minutes` });
+    }
+    if (!wasCorrect) {
+      return res.status(401).json({ success: false, error: 'Wrong or missing PIN' });
+    }
+  }
 
   if (req.method === 'POST') {
     const { managerId, managerName } = req.body || {};

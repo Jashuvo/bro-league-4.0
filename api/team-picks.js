@@ -1,5 +1,6 @@
 // api/team-picks.js - COMPLETE FIXED VERSION
 import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
+import { kv } from './_lib/kv.js';
 
 export default async function handler(req, res) {
   setCorsHeaders(res);
@@ -22,7 +23,21 @@ export default async function handler(req, res) {
     });
   }
 
+  const cacheKey = `fpl:team-picks:${managerId}:${eventId}`;
+
   try {
+    if (kv) {
+      try {
+        const cached = await kv.get(cacheKey);
+        if (cached) {
+          res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=300');
+          return res.status(200).json({ success: true, data: cached, fromCache: true });
+        }
+      } catch (cacheError) {
+        console.error('Team-picks cache read error:', cacheError);
+      }
+    }
+
     console.log(`⚽ Fetching team picks for manager ${managerId}, GW${eventId}...`);
 
     // Fetch team picks for specific gameweek
@@ -317,6 +332,16 @@ export default async function handler(req, res) {
 
     // Set cache headers
     res.setHeader('Cache-Control', 'public, max-age=120, stale-while-revalidate=300');
+
+    if (kv) {
+      try {
+        // Slightly under the 120s Cache-Control above, so KV never serves
+        // something staler than the header already promises.
+        await kv.set(cacheKey, responseData, { ex: 110 });
+      } catch (cacheError) {
+        console.error('Team-picks cache write error:', cacheError);
+      }
+    }
 
     return res.status(200).json({
       success: true,

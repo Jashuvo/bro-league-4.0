@@ -6,6 +6,9 @@
 // called anywhere else here. This counts fixtures per team per gameweek and
 // flags any gameweek where a team has zero (blank) or two-plus (double).
 import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
+import { kv } from './_lib/kv.js';
+
+const CACHE_KEY = 'fpl:fixture-alerts';
 
 export default async function handler(req, res) {
   setCorsHeaders(res);
@@ -18,7 +21,21 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Fixtures do get reshuffled (postponements, cup-replay clashes) —
+  // stale-while-revalidate keeps this cheap without risking a stale alert
+  // sitting for hours after a reschedule.
+  res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=3600');
+
   try {
+    if (kv) {
+      try {
+        const cached = await kv.get(CACHE_KEY);
+        if (cached) return res.status(200).json({ success: true, data: cached, fromCache: true });
+      } catch (cacheError) {
+        console.error('Fixture-alerts cache read error:', cacheError);
+      }
+    }
+
     const [fixturesResponse, bootstrapResponse] = await Promise.all([
       fetchWithRetry('https://fantasy.premierleague.com/api/fixtures/', { timeout: 15000 }),
       fetchWithRetry('https://fantasy.premierleague.com/api/bootstrap-static/', { timeout: 15000 })
@@ -66,15 +83,17 @@ export default async function handler(req, res) {
         }
       });
 
-    // Fixtures do get reshuffled (postponements, cup-replay clashes) —
-    // stale-while-revalidate keeps this cheap without risking a stale alert
-    // sitting for hours after a reschedule.
-    res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=3600');
+    const responseData = { currentEvent, alerts };
 
-    return res.status(200).json({
-      success: true,
-      data: { currentEvent, alerts }
-    });
+    if (kv) {
+      try {
+        await kv.set(CACHE_KEY, responseData, { ex: 1800 });
+      } catch (cacheError) {
+        console.error('Fixture-alerts cache write error:', cacheError);
+      }
+    }
+
+    return res.status(200).json({ success: true, data: responseData });
   } catch (error) {
     console.error('❌ Error fetching fixture alerts:', error);
     return res.status(500).json({
