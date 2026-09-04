@@ -497,51 +497,67 @@ class FPLApiService {
   // error, Supabase not configured) rather than swallowing it — the
   // caller needs to know an exclude/restore didn't actually take, unlike
   // the read paths above which degrade silently.
+  // A plain fetch, deliberately NOT going through fetchWithRetry — that
+  // helper throws a generic "HTTP {status}: {statusText}" the moment a
+  // response comes back non-ok, before any caller gets a chance to read
+  // the JSON body. Fine for read paths (they just want to know "did it
+  // work"), wrong for these three: a 401/429 response body carries the
+  // actual reason ("Wrong or missing PIN", "Too many attempts...") that
+  // PinPrompt.jsx shows the user — losing it to a generic "HTTP 401:" was
+  // a real, live bug (caught by actually clicking through the new PIN
+  // modal, not just reading the code).
+  async _exclusionWriteFetch(url, options) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    let response;
+    try {
+      response = await fetch(url, { ...options, signal: controller.signal });
+    } catch (error) {
+      throw error.name === 'AbortError' ? new Error('Request timed out') : error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error(`Request failed (HTTP ${response.status})`);
+    }
+    if (!result.success) throw new Error(result.error || `Request failed (HTTP ${response.status})`);
+    return result;
+  }
+
   async addExclusion(managerId, managerName, pin) {
-    // retries: 0 — a write shouldn't get silently retried 2-3x on a wrong
-    // PIN (401) or a slow server; the caller sees the failure immediately.
-    const response = await this.fetchWithRetry(
+    await this._exclusionWriteFetch(
       `${this.apiBaseUrl}/season-archive?leagueId=${this.leagueId}&resource=exclusions`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-exclusion-pin': pin },
         body: JSON.stringify({ managerId, managerName }),
-        timeout: 15000
-      },
-      0
+      }
     );
-    const result = await response.json();
-    if (!result.success) throw new Error(result.error || 'Failed to exclude manager');
     this.cacheExpiry.delete(`exclusions_${this.leagueId}`);
   }
 
   async removeExclusion(managerId, pin) {
-    const response = await this.fetchWithRetry(
+    await this._exclusionWriteFetch(
       `${this.apiBaseUrl}/season-archive?leagueId=${this.leagueId}&resource=exclusions&managerId=${managerId}`,
       {
         method: 'DELETE',
         headers: { 'x-exclusion-pin': pin },
-        timeout: 15000
-      },
-      0
+      }
     );
-    const result = await response.json();
-    if (!result.success) throw new Error(result.error || 'Failed to restore manager');
     this.cacheExpiry.delete(`exclusions_${this.leagueId}`);
   }
 
   async clearAllExclusions(pin) {
-    const response = await this.fetchWithRetry(
+    await this._exclusionWriteFetch(
       `${this.apiBaseUrl}/season-archive?leagueId=${this.leagueId}&resource=exclusions&all=true`,
       {
         method: 'DELETE',
         headers: { 'x-exclusion-pin': pin },
-        timeout: 15000
-      },
-      0
+      }
     );
-    const result = await response.json();
-    if (!result.success) throw new Error(result.error || 'Failed to clear exclusions');
     this.cacheExpiry.delete(`exclusions_${this.leagueId}`);
   }
 
