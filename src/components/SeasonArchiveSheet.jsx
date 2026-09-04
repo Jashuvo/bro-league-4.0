@@ -90,15 +90,22 @@ const SeasonArchiveSheet = ({ open, onClose, seasonArchive = [], standings = [] 
   // every past gameweek's full table lives in the same rows (the whole
   // point of capturing it daily), but this sheet shows "where things
   // stand" for the picked season rather than a 38-gameweek scrollback.
-  // For a past, fully-archived season that's just its actual final table.
+  //
+  // A season backfilled after the fact (scripts/backfill-last-season.js)
+  // only ever has `final_standing` rows — FPL's own API doesn't expose
+  // past seasons' per-gameweek detail, only the final total — and those
+  // rows carry no real `period` (the column's -1 sentinel default). Treat
+  // that as "the season's one and only standing" rather than a gameweek.
   const standingsView = useMemo(() => {
-    const rows = seasonRows.filter((r) => r.category === 'total_standing');
-    if (rows.length === 0) return { period: null, rows: [] };
+    const total = seasonRows.filter((r) => r.category === 'total_standing');
+    const isFinalOnly = total.length === 0;
+    const rows = isFinalOnly ? seasonRows.filter((r) => r.category === 'final_standing') : total;
+    if (rows.length === 0) return { period: null, isFinalOnly, rows: [] };
     const latestPeriod = Math.max(...rows.map((r) => r.period || 0));
     return {
-      period: latestPeriod,
-      rows: rows
-        .filter((r) => r.period === latestPeriod)
+      period: isFinalOnly ? null : latestPeriod,
+      isFinalOnly,
+      rows: (isFinalOnly ? rows : rows.filter((r) => r.period === latestPeriod))
         .sort((a, b) => (a.final_rank || 0) - (b.final_rank || 0)),
     };
   }, [seasonRows]);
@@ -223,7 +230,9 @@ const SeasonArchiveSheet = ({ open, onClose, seasonArchive = [], standings = [] 
                   ) : (
                     <>
                       <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft px-1">
-                        {isCurrentSeason ? `As of GW${standingsView.period}` : `Final table — GW${standingsView.period}`}
+                        {standingsView.isFinalOnly
+                          ? 'Final table'
+                          : isCurrentSeason ? `As of GW${standingsView.period}` : `Final table — GW${standingsView.period}`}
                       </p>
                       {standingsView.rows.map((row) => (
                         <ArchiveRow
