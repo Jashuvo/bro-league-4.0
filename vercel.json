@@ -24,16 +24,12 @@
     "api/warm-cache.js": {
       "maxDuration": 60
     },
-    "api/snapshot-results.js": {
-      "maxDuration": 60
-    },
     "api/season-archive.js": {
       "maxDuration": 15
     }
   },
   "crons": [
-    { "path": "/api/warm-cache", "schedule": "0 6 * * *" },
-    { "path": "/api/snapshot-results", "schedule": "0 7 * * *" }
+    { "path": "/api/warm-cache", "schedule": "0 6 * * *" }
   ],
   "headers": [
     {
