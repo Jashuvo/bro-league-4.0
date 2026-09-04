@@ -16,6 +16,8 @@
     "cache-status": "node scripts/cache-status.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.115.0",
+    "@vercel/functions": "^3.9.5",
     "@vercel/kv": "^1.0.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.24",

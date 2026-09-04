@@ -458,6 +458,37 @@ class FPLApiService {
     });
   }
 
+  // Past-season final standings (and, from 2026/27 onward, weekly/monthly
+  // winners) — see api/season-archive.js and SUPABASE_ARCHIVE_PLAN.md. Long
+  // TTL: this data never changes once a season is archived. Always resolves
+  // to an array, never throws — an empty archive is a normal, expected
+  // state (nothing archived yet), not an error.
+  async getSeasonArchive() {
+    const cacheKey = `season_archive_${this.leagueId}`;
+    const cached = this.getCache(cacheKey);
+    if (cached) return cached;
+
+    return this.queueRequest(async () => {
+      try {
+        const response = await this.fetchWithRetry(
+          `${this.apiBaseUrl}/season-archive?leagueId=${this.leagueId}`,
+          { timeout: 15000 }
+        );
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Season archive API error');
+        }
+
+        this.setCache(cacheKey, result.data, 60);
+        return result.data;
+      } catch (error) {
+        console.error('❌ Error fetching season archive:', error);
+        return [];
+      }
+    });
+  }
+
   // Fixture list + full per-match stat breakdown for one gameweek — see
   // api/fixtures.js. Cached briefly while the gameweek's still live (scores
   // can still move), much longer once every fixture in it has finished —

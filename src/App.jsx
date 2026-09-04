@@ -27,6 +27,11 @@ function AppContent() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [authStatus, setAuthStatus] = useState({ authenticated: false, message: '' });
   const [lastUpdated, setLastUpdated] = useState(null);
+  // Past-season archive (see SUPABASE_ARCHIVE_PLAN.md) — fetched once,
+  // independent of loadData/initializeWithAuth entirely: it never touches
+  // standings/gameweekTable/leagueStats, and an empty result (nothing
+  // archived yet, or Supabase not configured) is a normal, silent state.
+  const [seasonArchive, setSeasonArchive] = useState([]);
   // Load timing is logged rather than held in state: the old CompactHero was
   // the only thing that ever rendered it, and the CommandBar that replaced it
   // shows the live/offline pill and last-sync time instead.
@@ -193,6 +198,10 @@ function AppContent() {
     loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    fplApi.getSeasonArchive().then(setSeasonArchive);
+  }, []);
+
   // `gameweekInfo.isFinished` above comes straight from FPL's own event
   // `finished` flag, which only flips once bonus points are officially
   // locked in — that can lag the actual final whistle by hours (see the
@@ -293,6 +302,7 @@ function AppContent() {
             standings={filteredStandings}
             gameweekInfo={gameweekInfo}
             loading={loading}
+            seasonArchive={seasonArchive}
           />
         );
       case 'more':

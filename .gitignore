@@ -16,6 +16,11 @@ dist-ssr
 # that used to be committed here — see git history if you ever need it.
 .env*
 
+# Supabase CLI's local cache (project ref, pooler URL, tool versions) —
+# machine-local state, not project config. The linked project ref lives in
+# .env.local's VITE_SUPABASE_URL instead, which every checkout already needs.
+supabase/.temp
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

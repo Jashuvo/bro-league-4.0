@@ -9,6 +9,21 @@
 // Fixtures tab's match list and its per-match detail drill-down.
 import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
 
+// Try to import KV, but don't fail if it's not available — same
+// soft-fail-everywhere pattern as league-complete.js. Without this, every
+// single fixtures request (live or long-finished) re-fetched the ENTIRE
+// bootstrap-static payload from FPL just to resolve player/team names,
+// relying solely on the CDN-level Cache-Control header below to avoid
+// redoing that work — which only helps repeat hits on the same Vercel edge
+// node, not the first request after it expires.
+let kv = null;
+try {
+  const kvModule = await import('@vercel/kv');
+  kv = kvModule.kv;
+} catch (error) {
+  console.log('⚠️ Redis/KV not available for fixtures, running without cache');
+}
+
 // identifier -> the label FPL's own app uses. Order here is the order
 // sections render in on the frontend. An identifier FPL adds later that
 // isn't in this list still comes through (see the fallback below) rather
@@ -56,7 +71,26 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'event (gameweek) is required' });
   }
 
+  const cacheKey = `fpl:fixtures:${event}`;
+
   try {
+    if (kv) {
+      try {
+        const cached = await kv.get(cacheKey);
+        if (cached) {
+          res.setHeader(
+            'Cache-Control',
+            cached.finished
+              ? 'public, s-maxage=3600, stale-while-revalidate=86400'
+              : 'public, s-maxage=30, stale-while-revalidate=60'
+          );
+          return res.status(200).json({ success: true, data: cached });
+        }
+      } catch (cacheError) {
+        console.error('Fixtures cache read error:', cacheError);
+      }
+    }
+
     const [fixturesResponse, bootstrapResponse] = await Promise.all([
       fetchWithRetry(`https://fantasy.premierleague.com/api/fixtures/?event=${event}`, { timeout: 15000 }),
       fetchWithRetry('https://fantasy.premierleague.com/api/bootstrap-static/', { timeout: 15000 })
@@ -147,15 +181,29 @@ export default async function handler(req, res) {
         : 'public, s-maxage=30, stale-while-revalidate=60'
     );
 
+    const responseBody = {
+      gameweek: parseInt(event, 10),
+      deadline_time: gwMeta?.deadline_time || null,
+      finished: allFinished,
+      finishedProvisional: allFinishedProvisional,
+      fixtures: shapedFixtures,
+    };
+
+    if (kv) {
+      try {
+        // Once every fixture is finished this data never changes again —
+        // keep it a long time. While live, a short TTL matching the
+        // Cache-Control freshness window above so KV never serves scores
+        // staler than the header already promises.
+        await kv.set(cacheKey, responseBody, { ex: allFinished ? 86400 : 25 });
+      } catch (cacheError) {
+        console.error('Fixtures cache write error:', cacheError);
+      }
+    }
+
     return res.status(200).json({
       success: true,
-      data: {
-        gameweek: parseInt(event, 10),
-        deadline_time: gwMeta?.deadline_time || null,
-        finished: allFinished,
-        finishedProvisional: allFinishedProvisional,
-        fixtures: shapedFixtures,
-      }
+      data: responseBody
     });
   } catch (error) {
     console.error('❌ Error fetching fixtures:', error);
