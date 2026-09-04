@@ -23,14 +23,20 @@ const PinPrompt = ({ request, onDone }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!pin) return;
+    console.log('[PinPrompt] submit start, request=', request);
     setSubmitting(true);
     setError(null);
     try {
-      await request.action(pin);
+      console.log('[PinPrompt] calling request.action...');
+      const actionResult = await request.action(pin);
+      console.log('[PinPrompt] action resolved', actionResult);
       sessionStorage.setItem('exclusionPin', pin);
       setPin('');
+      console.log('[PinPrompt] calling onDone');
       onDone();
+      console.log('[PinPrompt] onDone called');
     } catch (err) {
+      console.log('[PinPrompt] action threw', err);
       setError(err.message || 'Something went wrong — try again.');
       setSubmitting(false);
     }
