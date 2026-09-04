@@ -20,12 +20,38 @@
 import { fetchWithRetry } from './_lib/helpers.js';
 import { monthlyWindows, weeklyPrize, monthlyRegularPrizes, monthlyFinalPrizes, seasonPrizes, getWeeklyWinner, getMonthlyTop } from './_lib/prizeConfig.js';
 
-async function snapshotResults({ leagueId, season, bootstrap, gameweekTable }) {
+async function snapshotResults({ leagueId, season, bootstrap, gameweekTable: rawGameweekTable }) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceKey) {
     return { skipped: 'Supabase not configured' };
   }
+
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabase = createClient(supabaseUrl, serviceKey);
+
+  // Exclusions apply here exactly like they do live in the app (App.jsx's
+  // filteredStandings/filteredGameweekTable) — "completely excluded from
+  // all rankings, statistics, and prize calculations", per LeagueTable.jsx's
+  // own copy for the feature. Filtering the raw gameweekTable before ANY of
+  // the computations below means an excluded manager can never end up
+  // recorded as a weekly/monthly/season winner — or even show up in
+  // total_standing — matching what every viewer already sees live. This is
+  // also why exclusions had to stop being browser-only localStorage: this
+  // cron has no browser, so it needs a shared, server-visible list.
+  const { data: excludedRows, error: exclusionError } = await supabase
+    .from('excluded_managers')
+    .select('manager_id')
+    .eq('league_id', String(leagueId));
+  if (exclusionError) throw exclusionError;
+  const excludedIds = new Set((excludedRows || []).map((r) => Number(r.manager_id)));
+
+  const gameweekTable = excludedIds.size === 0
+    ? rawGameweekTable
+    : rawGameweekTable.map((gw) => ({
+      ...gw,
+      managers: (gw.managers || []).filter((m) => !excludedIds.has(Number(m.id))),
+    }));
 
   const gwByNumber = new Map((bootstrap.gameweeks || []).map((gw) => [gw.id, gw]));
   const rows = [];
@@ -131,17 +157,28 @@ async function snapshotResults({ leagueId, season, bootstrap, gameweekTable }) {
     return { rowsWritten: 0 };
   }
 
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabase = createClient(supabaseUrl, serviceKey);
-
-  // The dedupe unique index makes this idempotent — a rerun on a GW/month
-  // that's already archived just updates it in place. period is always set
-  // on every row above, and the unique index is a plain column list (see
-  // migration 20260904000001) — no coalesce expression to worry about.
-  const { error } = await supabase
+  // Delete-and-replace this SEASON's rows, not upsert — caught live in
+  // testing: upsert only ever adds/updates a row for the exact manager_id
+  // it's given, so when the actual winner for a period CHANGES (an
+  // exclusion added, a bonus-point correction reshuffling rank), the
+  // previous winner's row for that same period just sits there forever as
+  // a second, stale "winner" — there's no unique constraint stopping two
+  // different managers both holding a weekly_winner row for the same
+  // gameweek. At this data volume (well under a season's ~700 rows, see
+  // SUPABASE_ARCHIVE_PLAN.md's storage math) a full wipe-and-reinsert of
+  // just this season's rows is cheap and can't drift out of sync with
+  // whatever gameweekTable says right now — it never has to reconcile
+  // against what was written yesterday. Other seasons' rows are untouched
+  // (the league_id+season filter is load-bearing here).
+  const { error: deleteError } = await supabase
     .from('season_archive')
-    .upsert(rows, { onConflict: 'league_id,season,category,period,manager_id' });
-  if (error) throw error;
+    .delete()
+    .eq('league_id', String(leagueId))
+    .eq('season', season);
+  if (deleteError) throw deleteError;
+
+  const { error: insertError } = await supabase.from('season_archive').insert(rows);
+  if (insertError) throw insertError;
 
   return { rowsWritten: rows.length };
 }

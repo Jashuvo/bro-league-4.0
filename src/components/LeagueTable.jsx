@@ -99,7 +99,7 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
   const [showExclusionSettings, setShowExclusionSettings] = useState(false);
   const [query, setQuery] = useState('');
   const [sortBy, setSortBy] = useState('total');
-  const { excludeTeam, includeTeam, excludedTeamIds, clearExclusions } = useExclusion();
+  const { excludeTeam, includeTeam, excludedTeamIds, excludedManagers, clearExclusions } = useExclusion();
 
   const currentGW = gameweekInfo.current || 1;
   const gwFinished = !!gameweekInfo.isFinished;
@@ -464,21 +464,25 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {excludedTeamIds.map(id => (
-                    <div
-                      key={id}
-                      className="px-3 py-1.5 bg-surface-alt border-2 border-coral rounded-xl flex items-center gap-2 text-sm font-bold text-coral-ink"
-                    >
-                      <span>ID: {id}</span>
-                      <button
-                        onClick={() => includeTeam(id)}
-                        className="p-1 hover:bg-coral/20 rounded-full transition-colors"
-                        title="Restore Team"
+                  {excludedTeamIds.map(id => {
+                    const record = excludedManagers.find(m => Number(m.manager_id) === id);
+                    const label = record?.manager_name || `Manager ${id}`;
+                    return (
+                      <div
+                        key={id}
+                        className="px-3 py-1.5 bg-surface-alt border-2 border-coral rounded-xl flex items-center gap-2 text-sm font-bold text-coral-ink"
                       >
-                        <UserCheck size={14} />
-                      </button>
-                    </div>
-                  ))}
+                        <span>{label}</span>
+                        <button
+                          onClick={() => includeTeam(id)}
+                          className="p-1 hover:bg-coral/20 rounded-full transition-colors"
+                          title="Restore Team"
+                        >
+                          <UserCheck size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
                 <p className="mt-4 text-xs text-ink-soft font-medium">
                   These teams are completely excluded from all rankings, statistics, and prize calculations.
@@ -641,6 +645,9 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
 
                       <span className="text-right font-display font-bold text-[26px] leading-none text-pitch-ink tabular-nums">
                         {manager.totalPoints || manager.total || 0}
+                        {manager.totalPrizesWon > 0 && (
+                          <span className="block text-[10px] font-bold text-sunflower-ink leading-none mt-1">৳{manager.totalPrizesWon}</span>
+                        )}
                       </span>
 
                       <span className="flex justify-center">
@@ -689,6 +696,9 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                         <span className={cn('block text-[10px] font-bold mt-0.5 tabular-nums', benchInk)}>
                           {benched == null ? `${gwNet} GW` : `${benched} benched`}
                         </span>
+                        {manager.totalPrizesWon > 0 && (
+                          <span className="block text-[9.5px] font-bold text-sunflower-ink mt-0.5">৳{manager.totalPrizesWon} won</span>
+                        )}
                       </span>
                       <ChevronRight
                         size={16}
@@ -828,7 +838,7 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (confirm(`Exclude ${manager.managerName || manager.player_name} from all rankings and prize calculations?`)) {
-                                  excludeTeam(manager.id);
+                                  excludeTeam(manager.id, manager.managerName || manager.player_name);
                                 }
                               }}
                             >

@@ -377,6 +377,7 @@ function AppContent() {
             open={showSeasonArchive}
             onClose={() => setShowSeasonArchive(false)}
             seasonArchive={seasonArchive}
+            standings={filteredStandings}
           />
         )}
       </AnimatePresence>

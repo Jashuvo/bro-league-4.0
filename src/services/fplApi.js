@@ -491,6 +491,86 @@ class FPLApiService {
     });
   }
 
+  // The shared "excluded from prizes" list — same underlying table
+  // (excluded_managers) and endpoint as getSeasonArchive, just a
+  // different `resource`. This is the single source of truth now; it used
+  // to live only in this browser's localStorage. Short TTL since, unlike
+  // the archive, this can change at any moment someone excludes/restores
+  // a manager and everyone should see that promptly.
+  async getExclusions() {
+    const cacheKey = `exclusions_${this.leagueId}`;
+    const cached = this.getCache(cacheKey);
+    if (cached) return cached;
+
+    return this.queueRequest(async () => {
+      try {
+        const response = await this.fetchWithRetry(
+          `${this.apiBaseUrl}/season-archive?leagueId=${this.leagueId}&resource=exclusions`,
+          { timeout: 15000 }
+        );
+        const result = await response.json();
+        if (!result.success) throw new Error(result.error || 'Exclusions API error');
+        this.setCache(cacheKey, result.data, 1);
+        return result.data;
+      } catch (error) {
+        console.error('❌ Error fetching exclusions:', error);
+        return [];
+      }
+    });
+  }
+
+  // Both PIN-gated writes below throw on failure (wrong PIN, network
+  // error, Supabase not configured) rather than swallowing it — the
+  // caller needs to know an exclude/restore didn't actually take, unlike
+  // the read paths above which degrade silently.
+  async addExclusion(managerId, managerName, pin) {
+    // retries: 0 — a write shouldn't get silently retried 2-3x on a wrong
+    // PIN (401) or a slow server; the caller sees the failure immediately.
+    const response = await this.fetchWithRetry(
+      `${this.apiBaseUrl}/season-archive?leagueId=${this.leagueId}&resource=exclusions`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-exclusion-pin': pin },
+        body: JSON.stringify({ managerId, managerName }),
+        timeout: 15000
+      },
+      0
+    );
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'Failed to exclude manager');
+    this.cacheExpiry.delete(`exclusions_${this.leagueId}`);
+  }
+
+  async removeExclusion(managerId, pin) {
+    const response = await this.fetchWithRetry(
+      `${this.apiBaseUrl}/season-archive?leagueId=${this.leagueId}&resource=exclusions&managerId=${managerId}`,
+      {
+        method: 'DELETE',
+        headers: { 'x-exclusion-pin': pin },
+        timeout: 15000
+      },
+      0
+    );
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'Failed to restore manager');
+    this.cacheExpiry.delete(`exclusions_${this.leagueId}`);
+  }
+
+  async clearAllExclusions(pin) {
+    const response = await this.fetchWithRetry(
+      `${this.apiBaseUrl}/season-archive?leagueId=${this.leagueId}&resource=exclusions&all=true`,
+      {
+        method: 'DELETE',
+        headers: { 'x-exclusion-pin': pin },
+        timeout: 15000
+      },
+      0
+    );
+    const result = await response.json();
+    if (!result.success) throw new Error(result.error || 'Failed to clear exclusions');
+    this.cacheExpiry.delete(`exclusions_${this.leagueId}`);
+  }
+
   // Fixture list + full per-match stat breakdown for one gameweek — see
   // api/fixtures.js. Cached briefly while the gameweek's still live (scores
   // can still move), much longer once every fixture in it has finished —
