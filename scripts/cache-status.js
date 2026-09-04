@@ -10,17 +10,13 @@
 //   node --env-file=.env.local scripts/cache-status.js
 // (needs VITE_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY — the service role
 // key so this can read kv_cache/cron_runs, which anon can't per RLS)
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServiceClient } from '../api/_lib/supabase.js';
 
-const url = process.env.VITE_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!url || !serviceKey) {
+const supabase = await getSupabaseServiceClient();
+if (!supabase) {
   console.error('❌ VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set.');
   process.exit(1);
 }
-
-const supabase = createClient(url, serviceKey, { auth: { persistSession: false } });
 
 function fmtBytes(n) {
   if (n < 1024) return `${n} B`;
@@ -40,7 +36,7 @@ function fmtAgo(iso) {
 }
 
 async function main() {
-  console.log(`🔎 Cache status for ${url}\n`);
+  console.log(`🔎 Cache status for ${process.env.VITE_SUPABASE_URL}\n`);
 
   const { data: rows, error } = await supabase
     .from('kv_cache')

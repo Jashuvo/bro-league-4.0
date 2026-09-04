@@ -13,8 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test-api": "node scripts/test-api.js",
-    "optimize": "npm run build && npm run analyze",
-    "analyze": "npx vite-bundle-analyzer dist",
+    "optimize": "npm run build",
+    "analyze": "ANALYZE=true vite build",
     "cache-status": "node scripts/cache-status.js"
   },
   "dependencies": {
@@ -39,7 +39,6 @@
     "eslint-plugin-react-refresh": "^0.4.3",
     "postcss": "^8.4.27",
     "tailwindcss": "^3.3.3",
-    "terser": "^5.19.2",
     "vercel": "^32.0.0",
     "vite": "^7.1.5",
     "vite-bundle-analyzer": "^0.7.0",

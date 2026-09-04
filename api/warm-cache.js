@@ -19,6 +19,7 @@
 //    (VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).
 import { fetchWithRetry } from './_lib/helpers.js';
 import { monthlyWindows, weeklyPrize, monthlyRegularPrizes, monthlyFinalPrizes, seasonPrizes, getWeeklyWinner, getMonthlyTop, getInLeagueRanks, isSeasonFinalGameweek } from './_lib/prizeConfig.js';
+import { getSupabaseServiceClient } from './_lib/supabase.js';
 
 // So "is the daily archive job actually succeeding" is a query
 // (scripts/cache-status.js) instead of trawling Vercel logs — this is the
@@ -27,12 +28,9 @@ import { monthlyWindows, weeklyPrize, monthlyRegularPrizes, monthlyFinalPrizes, 
 // failure here is swallowed rather than failing the cron run it's trying
 // to record.
 async function logCronRun(success, message) {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceKey) return;
   try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(supabaseUrl, serviceKey);
+    const supabase = await getSupabaseServiceClient();
+    if (!supabase) return;
     await supabase.from('cron_runs').insert({ success, message });
   } catch (error) {
     console.error('⚠️ Failed to log cron run (non-fatal):', error.message);
@@ -40,14 +38,10 @@ async function logCronRun(success, message) {
 }
 
 async function snapshotResults({ leagueId, season, bootstrap, gameweekTable: rawGameweekTable }) {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceKey) {
+  const supabase = await getSupabaseServiceClient();
+  if (!supabase) {
     return { skipped: 'Supabase not configured' };
   }
-
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabase = createClient(supabaseUrl, serviceKey);
 
   // Exclusions apply here exactly like they do live in the app (App.jsx's
   // filteredStandings/filteredGameweekTable) — "completely excluded from

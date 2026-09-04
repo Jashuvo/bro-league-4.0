@@ -18,8 +18,8 @@
 // here (their history has no 2025/26 entry to find) — that's correct, not
 // a bug: they weren't part of last season, current membership can only
 // backfill people who were actually playing FPL last season too.
-import { createClient } from '@supabase/supabase-js';
 import { seasonPrizes } from '../api/_lib/prizeConfig.js';
+import { getSupabaseServiceClient } from '../api/_lib/supabase.js';
 
 const LEAGUE_ID = process.env.VITE_FPL_LEAGUE_ID;
 const LAST_SEASON = '2025/26';
@@ -29,9 +29,8 @@ async function main() {
     console.error('❌ VITE_FPL_LEAGUE_ID is not set.');
     process.exit(1);
   }
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceKey) {
+  const supabase = await getSupabaseServiceClient();
+  if (!supabase) {
     console.error('❌ VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set.');
     process.exit(1);
   }
@@ -87,8 +86,6 @@ async function main() {
     console.log(`\n⏭️  Skipped (not in ${LAST_SEASON}):`);
     skipped.forEach((s) => console.log(`   - ${s}`));
   }
-
-  const supabase = createClient(supabaseUrl, serviceKey);
 
   // Delete-and-replace this season+category, not upsert — same reasoning
   // as api/warm-cache.js: re-running this script (e.g. someone rejoins,

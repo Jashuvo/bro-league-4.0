@@ -11,11 +11,17 @@
 // already wired up for the season archive — no new account/integration to
 // provision, and it's already proven to work.
 //
+import { getSupabaseServiceClient } from './supabase.js';
+
 // Writes use the service-role key (server-only, bypasses RLS) — nothing
 // about this table is reachable from the browser. `kv` is `null` (same
 // soft-fail contract the rest of api/*.js expects) whenever Supabase isn't
 // configured, so callers don't need to change based on which backend (or
-// none) is active.
+// none) is active. That null-ness has to be knowable SYNCHRONOUSLY (every
+// `if (kv)` caller checks it before ever awaiting anything), which is why
+// this still checks the env vars directly instead of just delegating
+// straight to the (async) shared helper — the client itself is still
+// built through that helper, just lazily, the first time get/set runs.
 function createKv() {
   const url = process.env.VITE_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -24,9 +30,7 @@ function createKv() {
   let clientPromise = null;
   async function getClient() {
     if (!clientPromise) {
-      clientPromise = import('@supabase/supabase-js').then(({ createClient }) =>
-        createClient(url, serviceKey, { auth: { persistSession: false } })
-      );
+      clientPromise = getSupabaseServiceClient();
     }
     return clientPromise;
   }

@@ -17,6 +17,7 @@
 // array rather than a 500 — nothing archived/excluded yet is a normal,
 // expected state, not an error.
 import { setCorsHeaders } from './_lib/helpers.js';
+import { getSupabaseAnonClient, getSupabaseServiceClient } from './_lib/supabase.js';
 
 // A 6-digit numeric PIN is scriptable (1M combinations) — cap repeated
 // wrong guesses per rolling window instead of leaving the check
@@ -68,18 +69,14 @@ async function handleExclusions(req, res, supabase, leagueId) {
     return res.status(200).json({ success: true, data: data || [] });
   }
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) {
-    return res.status(503).json({ success: false, error: 'Exclusions are read-only until SUPABASE_SERVICE_ROLE_KEY is configured' });
-  }
   // Re-create the client with the service-role key for this write — the
   // caller-supplied `supabase` above was built with the anon key, which
   // RLS blocks from writing here on purpose. Needed for the rate-limit
   // check below too (rate_limits has no anon policy either).
-  const { createClient } = await import('@supabase/supabase-js');
-  const writeClient = createClient(process.env.VITE_SUPABASE_URL, serviceKey, {
-    auth: { persistSession: false },
-  });
+  const writeClient = await getSupabaseServiceClient();
+  if (!writeClient) {
+    return res.status(503).json({ success: false, error: 'Exclusions are read-only until SUPABASE_SERVICE_ROLE_KEY is configured' });
+  }
 
   // POST (exclude) / DELETE (restore) both change shared state everyone
   // sees, so they're gated by a shared PIN instead of the anon key alone
@@ -155,19 +152,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'leagueId is required' });
   }
 
-  const url = process.env.VITE_SUPABASE_URL;
-  const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
+  const supabase = await getSupabaseAnonClient();
+  if (!supabase) {
     // No archive configured yet — not an error, just nothing to show (and
     // nothing writable, handled inside handleExclusions above).
     return res.status(200).json({ success: true, data: [] });
   }
 
   try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(url, anonKey);
-
     if (isExclusions) {
       return await handleExclusions(req, res, supabase, leagueId);
     }

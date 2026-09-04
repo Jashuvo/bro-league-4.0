@@ -6,6 +6,16 @@
 // re-declaring its own copy — that's how the four/five independent copies
 // of this data drifted last season.
 //
+// The gameweek windows and prize AMOUNTS below are imported from
+// api/_lib/prizeConfig.js, not redeclared here — that file used to be a
+// hand-maintained duplicate (it has to be Node-safe for the serverless
+// functions/scripts that use it, and this file can't be, since it reads
+// `import.meta.env` — a Vite build-time feature). But prizeConfig.js
+// itself has no Vite-only code, so it can just as easily be imported FROM
+// the browser side too: importing it here instead of copying its values
+// makes it the single real source of truth, with zero drift risk, rather
+// than "two copies, please keep them in sync by hand."
+//
 // Participant count is intentionally NOT here — it's live headcount, not
 // season config, so components read it straight from `leagueStats` /
 // `standings` instead of a number that would need updating by hand every
@@ -15,7 +25,15 @@
 //   - `leagueConfig.season` below
 //   - VITE_FPL_LEAGUE_ID / VITE_ENTRY_FEE / VITE_TOTAL_PRIZE_POOL in
 //     .env.local (and in the Vercel dashboard)
-//   - the prize amounts below, if the league changes how winnings are split
+//   - the prize amounts in api/_lib/prizeConfig.js, if the league changes
+//     how winnings are split — NOT here, that's the actual source now
+import {
+  monthlyWindows as sharedMonthlyWindows,
+  weeklyPrize,
+  monthlyRegularPrizes,
+  monthlyFinalPrizes,
+  seasonPrizes as sharedSeasonPrizes,
+} from '../../api/_lib/prizeConfig.js';
 
 export const leagueConfig = {
   name: import.meta.env.VITE_LEAGUE_NAME || 'BRO League 5',
@@ -29,28 +47,18 @@ export const totalGameweeks = 38;
 
 // 9 monthly competition windows of 4 gameweeks each, except the final one
 // which absorbs the extra gameweeks so they cover all 38.
-export const monthlyWindows = [
-  { id: 1, name: 'Month 1', start: 1, end: 4 },
-  { id: 2, name: 'Month 2', start: 5, end: 8 },
-  { id: 3, name: 'Month 3', start: 9, end: 12 },
-  { id: 4, name: 'Month 4', start: 13, end: 16 },
-  { id: 5, name: 'Month 5', start: 17, end: 20 },
-  { id: 6, name: 'Month 6', start: 21, end: 24 },
-  { id: 7, name: 'Month 7', start: 25, end: 28 },
-  { id: 8, name: 'Month 8', start: 29, end: 32 },
-  { id: 9, name: 'Final Month', start: 33, end: 38, isFinal: true },
-];
+export const monthlyWindows = sharedMonthlyWindows;
 
 const weeklyPrizeConfig = {
-  perWeek: 30,
+  perWeek: weeklyPrize,
   totalWeeks: totalGameweeks,
-  total: 30 * totalGameweeks,
+  total: weeklyPrize * totalGameweeks,
 };
 
 const monthlyPrizeConfig = {
   regularMonths: monthlyWindows.filter((w) => !w.isFinal).length,
-  regularPrizes: [350, 250, 150],
-  finalMonth: [500, 400, 250],
+  regularPrizes: monthlyRegularPrizes,
+  finalMonth: monthlyFinalPrizes,
   get total() {
     return monthlyWindows.reduce((sum, w) => {
       const amounts = w.isFinal ? this.finalMonth : this.regularPrizes;
@@ -59,14 +67,16 @@ const monthlyPrizeConfig = {
   },
 };
 
-// `color`/`tone` are design tokens from tailwind.config.js (never stock
-// Tailwind palette entries) — the amounts are the data, these just say which
-// podium metal each position wears.
-const seasonPrizes = [
-  { position: 1, amount: 800, emoji: '🥇', color: 'text-sunflower-ink', tone: 'fill-sunflower', label: 'Champion' },
-  { position: 2, amount: 600, emoji: '🥈', color: 'text-silver-ink', tone: 'fill-silver', label: 'Runner-up' },
-  { position: 3, amount: 400, emoji: '🥉', color: 'text-tangerine-ink', tone: 'fill-tangerine', label: 'Third Place' },
-];
+// `color`/`tone`/`emoji` are UI-only — display styling that has no reason
+// to exist server-side, so they're layered on here rather than living in
+// the shared position/amount/label data prizeConfig.js exports. Design
+// tokens from tailwind.config.js (never stock Tailwind palette entries).
+const PODIUM_STYLE = {
+  1: { emoji: '🥇', color: 'text-sunflower-ink', tone: 'fill-sunflower' },
+  2: { emoji: '🥈', color: 'text-silver-ink', tone: 'fill-silver' },
+  3: { emoji: '🥉', color: 'text-tangerine-ink', tone: 'fill-tangerine' },
+};
+const seasonPrizes = sharedSeasonPrizes.map((prize) => ({ ...prize, ...PODIUM_STYLE[prize.position] }));
 const seasonTotal = seasonPrizes.reduce((sum, p) => sum + p.amount, 0);
 
 const souvenirs = {
