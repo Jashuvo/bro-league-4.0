@@ -62,6 +62,7 @@ const CHIP_SHORT = {
 const SORTS = [
   { id: 'total', label: 'Total points' },
   { id: 'gw', label: 'This gameweek' },
+  { id: 'prize', label: 'Prize won' },
   { id: 'bench', label: 'Points benched' },
   { id: 'overall', label: 'Overall rank' },
   { id: 'name', label: 'Manager A–Z' },
@@ -357,6 +358,14 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
     switch (sortBy) {
       case 'gw':
         sorted.sort((a, b) => netGwPoints(b) - netGwPoints(a));
+        break;
+      case 'prize':
+        // Ties (most commonly both at ৳0) fall back to total points so the
+        // list doesn't just freeze in whatever order it happened to be in.
+        sorted.sort((a, b) =>
+          (b.totalPrizesWon || 0) - (a.totalPrizesWon || 0)
+          || (b.totalPoints || b.total || 0) - (a.totalPoints || a.total || 0)
+        );
         break;
       case 'bench':
         sorted.sort((a, b) => (b.benchPoints ?? -1) - (a.benchPoints ?? -1));
