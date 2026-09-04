@@ -21,6 +21,19 @@ export function setCorsHeaders(res) {
 }
 
 /**
+ * Every FPL entry/event/league ID is a positive integer — several routes
+ * (team-picks, manager-history, fixtures, league-transfers) build a
+ * fantasy.premierleague.com URL by interpolating a raw query-string value
+ * straight into it. Not a security boundary (this is a public HTTPS
+ * fetch, not a filesystem/shell/SQL context — there's no path-traversal
+ * or injection concern here), just fails fast with a clear 400 instead of
+ * whatever confusing error FPL's own API returns for a malformed id.
+ */
+export function isValidId(value) {
+  return /^\d+$/.test(String(value ?? ''));
+}
+
+/**
  * fetch() with a real timeout (native fetch ignores a `timeout` option —
  * this uses AbortController instead) and exponential-backoff retries on
  * network errors or non-OK responses.

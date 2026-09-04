@@ -201,6 +201,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             <img
               src={shirtSrc}
               alt=""
+              loading="lazy"
               className="w-10 h-10 object-contain drop-shadow-sm"
               onError={() => setShirtFailed(true)}
             />

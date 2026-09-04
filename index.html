@@ -27,24 +27,26 @@
     <link rel="apple-touch-icon" href="./apple-icon-180.png" />
 
     <!-- Open Graph / PWA Sharing -->
-    <!-- TODO: og:url/twitter:url are still a placeholder — set these to the
-         real production domain once this season's Vercel project is live. -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://your-project.vercel.app/" />
+    <meta property="og:url" content="https://bro-league-4-0.vercel.app/" />
     <meta property="og:title" content="BRO League 5 - Fantasy Premier League" />
     <meta property="og:description" content="Fantasy Premier League competition with live standings, prizes, and stats." />
     <meta property="og:image" content="./manifest-icon-512.png" />
 
     <!-- Twitter/X Card -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://your-project.vercel.app/" />
+    <meta property="twitter:url" content="https://bro-league-4-0.vercel.app/" />
     <meta property="twitter:title" content="BRO League 5 - Fantasy Premier League" />
     <meta property="twitter:description" content="Fantasy Premier League competition with live standings, prizes, and stats." />
     <meta property="twitter:image" content="./manifest-icon-512.png" />
-    
-    <!-- Performance & SEO -->
-    <meta name="robots" content="index, follow" />
-    <meta name="googlebot" content="index, follow" />
+
+    <!-- This is a PRIVATE league (real names, points, and prize money for a
+         specific group of friends) — deliberately kept out of search
+         indexing rather than "index, follow", which is what was here
+         before. robots.txt backs this up for crawlers that ignore
+         meta tags. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="googlebot" content="noindex, nofollow" />
     <link rel="preconnect" href="https://fantasy.premierleague.com" />
     <link rel="dns-prefetch" href="https://fantasy.premierleague.com" />
 

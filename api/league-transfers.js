@@ -6,7 +6,7 @@
 // counted for) has never been called anywhere in this codebase; the only
 // transfer figures used elsewhere are per-manager COUNTS
 // (event_transfers/event_transfers_cost), never which players moved.
-import { fetchWithRetry, setCorsHeaders, ConcurrencyLimiter } from './_lib/helpers.js';
+import { fetchWithRetry, setCorsHeaders, ConcurrencyLimiter, isValidId } from './_lib/helpers.js';
 import { kv } from './_lib/kv.js';
 
 export default async function handler(req, res) {
@@ -22,8 +22,8 @@ export default async function handler(req, res) {
 
   const { leagueId, gameweek } = req.query;
 
-  if (!leagueId || !gameweek) {
-    return res.status(400).json({ success: false, error: 'leagueId and gameweek are required' });
+  if (!isValidId(leagueId) || !isValidId(gameweek)) {
+    return res.status(400).json({ success: false, error: 'leagueId and gameweek are required and must be positive integers' });
   }
 
   const cacheKey = `fpl:league-transfers:${leagueId}:${gameweek}`;

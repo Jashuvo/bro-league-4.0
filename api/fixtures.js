@@ -7,7 +7,7 @@
 // per-fixture `stats` array carries all of that already; bootstrap-static
 // resolves player ids to names and team ids to names/crests. Powers the
 // Fixtures tab's match list and its per-match detail drill-down.
-import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
+import { fetchWithRetry, setCorsHeaders, isValidId } from './_lib/helpers.js';
 import { kv } from './_lib/kv.js';
 
 // Without this, every single fixtures request (live or long-finished)
@@ -60,8 +60,8 @@ export default async function handler(req, res) {
 
   const { event } = req.query;
 
-  if (!event) {
-    return res.status(400).json({ success: false, error: 'event (gameweek) is required' });
+  if (!isValidId(event)) {
+    return res.status(400).json({ success: false, error: 'event (gameweek) is required and must be a positive integer' });
   }
 
   const cacheKey = `fpl:fixtures:${event}`;

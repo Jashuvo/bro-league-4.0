@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import fplApi from '../services/fplApi';
+import PinPrompt from '../components/PinPrompt';
 
 const ExclusionContext = createContext();
 
@@ -13,6 +15,12 @@ const ExclusionContext = createContext();
 export function ExclusionProvider({ children }) {
   const [excludedManagers, setExcludedManagers] = useState([]);
   const [loading, setLoading] = useState(true);
+  // The PIN prompt is a single shared modal (see PinPrompt.jsx), driven by
+  // whichever exclude/restore/clear call is currently waiting on a PIN —
+  // `{ title, action }` while one's open, `null` otherwise. `action(pin)`
+  // is the actual write; PinPrompt owns showing/retrying on a wrong PIN,
+  // so this context never needs its own error-handling branch for that.
+  const [pinRequest, setPinRequest] = useState(null);
 
   useEffect(() => {
     fplApi.getExclusions().then((rows) => {
@@ -26,61 +34,55 @@ export function ExclusionProvider({ children }) {
   // Writes are PIN-gated server-side (see api/season-archive.js) — not
   // real auth, just enough friction that this stays deliberate on a
   // private league nobody outside the group has a link to. The PIN itself
-  // is cached in sessionStorage after a correct entry so it isn't
-  // retyped for every single exclude/restore within one visit.
-  const getPin = () => {
-    let pin = sessionStorage.getItem('exclusionPin');
-    if (!pin) {
-      pin = window.prompt('Enter the exclusion PIN to make this change:') || '';
-      if (pin) sessionStorage.setItem('exclusionPin', pin);
+  // is cached in sessionStorage (by PinPrompt, on a successful submit) so
+  // it isn't retyped for every single exclude/restore within one visit.
+  //
+  // `action` always takes the PIN as its one argument. If a cached PIN
+  // exists, it's tried first, silently — only on failure (wrong PIN,
+  // rate-limited, cache stale) does the modal actually appear, already
+  // primed to retry via the same `action`.
+  const withPin = (title, action) => {
+    const cachedPin = sessionStorage.getItem('exclusionPin');
+    if (cachedPin) {
+      return action(cachedPin).catch(() => {
+        sessionStorage.removeItem('exclusionPin');
+        setPinRequest({ title, action });
+      });
     }
-    return pin;
+    setPinRequest({ title, action });
+    return Promise.resolve();
   };
 
-  const forgetBadPin = () => sessionStorage.removeItem('exclusionPin');
-
-  const excludeTeam = async (id, name) => {
-    const pin = getPin();
-    if (!pin) return;
-    try {
+  const excludeTeam = (id, name) => withPin(
+    `Exclude ${name || `manager ${id}`}`,
+    async (pin) => {
       await fplApi.addExclusion(id, name, pin);
       setExcludedManagers((prev) => {
         const numericId = Number(id);
         if (prev.some((m) => Number(m.manager_id) === numericId)) return prev;
         return [...prev, { manager_id: numericId, manager_name: name }];
       });
-    } catch (error) {
-      forgetBadPin();
-      window.alert(error.message || 'Failed to exclude manager — check the PIN and try again.');
     }
-  };
+  );
 
-  const includeTeam = async (id) => {
-    const pin = getPin();
-    if (!pin) return;
-    try {
+  const includeTeam = (id) => withPin(
+    'Restore manager',
+    async (pin) => {
       await fplApi.removeExclusion(id, pin);
       const numericId = Number(id);
       setExcludedManagers((prev) => prev.filter((m) => Number(m.manager_id) !== numericId));
-    } catch (error) {
-      forgetBadPin();
-      window.alert(error.message || 'Failed to restore manager — check the PIN and try again.');
     }
-  };
+  );
 
   const isExcluded = (id) => excludedTeamIds.includes(Number(id));
 
-  const clearExclusions = async () => {
-    const pin = getPin();
-    if (!pin) return;
-    try {
+  const clearExclusions = () => withPin(
+    'Clear all exclusions',
+    async (pin) => {
       await fplApi.clearAllExclusions(pin);
       setExcludedManagers([]);
-    } catch (error) {
-      forgetBadPin();
-      window.alert(error.message || 'Failed to clear exclusions — check the PIN and try again.');
     }
-  };
+  );
 
   return (
     <ExclusionContext.Provider value={{
@@ -93,6 +95,9 @@ export function ExclusionProvider({ children }) {
       loading
     }}>
       {children}
+      <AnimatePresence>
+        {pinRequest && <PinPrompt request={pinRequest} onDone={() => setPinRequest(null)} />}
+      </AnimatePresence>
     </ExclusionContext.Provider>
   );
 }

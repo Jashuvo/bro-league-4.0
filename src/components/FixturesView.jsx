@@ -251,6 +251,7 @@ const TeamLabel = ({ team, align }) => (
       <img
         src={team.crest}
         alt=""
+        loading="lazy"
         className="w-6 h-6 sm:w-7 sm:h-7 shrink-0 object-contain"
         onError={(e) => {
           e.currentTarget.style.display = 'none';

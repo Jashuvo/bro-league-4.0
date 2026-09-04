@@ -1,5 +1,5 @@
 // api/league-complete.js - works with or without the Supabase-backed cache
-import { fetchWithRetry, setCorsHeaders, ConcurrencyLimiter } from './_lib/helpers.js';
+import { fetchWithRetry, setCorsHeaders, ConcurrencyLimiter, isValidId } from './_lib/helpers.js';
 import { kv } from './_lib/kv.js';
 
 if (kv) {
@@ -449,10 +449,10 @@ export default async function handler(req, res) {
 
   const { leagueId, force } = req.query;
 
-  if (!leagueId) {
+  if (!isValidId(leagueId)) {
     return res.status(400).json({
       success: false,
-      error: 'League ID is required'
+      error: 'League ID is required and must be a positive integer'
     });
   }
 

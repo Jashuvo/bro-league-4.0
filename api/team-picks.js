@@ -1,5 +1,5 @@
 // api/team-picks.js - COMPLETE FIXED VERSION
-import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
+import { fetchWithRetry, setCorsHeaders, isValidId } from './_lib/helpers.js';
 import { kv } from './_lib/kv.js';
 
 export default async function handler(req, res) {
@@ -16,10 +16,10 @@ export default async function handler(req, res) {
 
   const { managerId, eventId } = req.query;
 
-  if (!managerId || !eventId) {
+  if (!isValidId(managerId) || !isValidId(eventId)) {
     return res.status(400).json({
       success: false,
-      error: 'Manager ID and Event ID are required'
+      error: 'Manager ID and Event ID are required and must be positive integers'
     });
   }
 

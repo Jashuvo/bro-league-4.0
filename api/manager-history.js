@@ -1,5 +1,5 @@
 // api/manager-history.js - Vercel Serverless Function for Manager History Data
-import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
+import { fetchWithRetry, setCorsHeaders, isValidId } from './_lib/helpers.js';
 import { kv } from './_lib/kv.js';
 
 export default async function handler(req, res) {
@@ -16,10 +16,10 @@ export default async function handler(req, res) {
 
   const { managerId } = req.query;
 
-  if (!managerId) {
+  if (!isValidId(managerId)) {
     return res.status(400).json({
       success: false,
-      error: 'Manager ID is required'
+      error: 'Manager ID is required and must be a positive integer'
     });
   }
 
