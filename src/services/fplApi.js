@@ -465,10 +465,12 @@ class FPLApiService {
   // Always resolves to an array, never throws — an empty archive is a
   // normal, expected state (nothing captured yet, or Supabase not
   // configured), not an error.
-  async getSeasonArchive() {
+  async getSeasonArchive({ force = false } = {}) {
     const cacheKey = `season_archive_${this.leagueId}`;
-    const cached = this.getCache(cacheKey);
-    if (cached) return cached;
+    if (!force) {
+      const cached = this.getCache(cacheKey);
+      if (cached) return cached;
+    }
 
     return this.queueRequest(async () => {
       try {

@@ -203,9 +203,13 @@ function AppContent() {
     loadData();
   }, [loadData]);
 
-  useEffect(() => {
-    fplApi.getSeasonArchive().then(setSeasonArchive);
+  const loadSeasonArchive = useCallback((force = false) => {
+    fplApi.getSeasonArchive({ force }).then(setSeasonArchive);
   }, []);
+
+  useEffect(() => {
+    loadSeasonArchive();
+  }, [loadSeasonArchive]);
 
   // `gameweekInfo.isFinished` above comes straight from FPL's own event
   // `finished` flag, which only flips once bonus points are officially
@@ -267,6 +271,11 @@ function AppContent() {
 
   const handleRefresh = () => {
     loadData(true);
+    // loadData's own forceRefresh only covers standings/gameweekTable/etc
+    // — the season archive is a separate fetch on its own 60-minute cache
+    // (see loadSeasonArchive above), so the explicit Refresh button has to
+    // bust it too or "Refresh" silently doesn't refresh this part at all.
+    loadSeasonArchive(true);
   };
 
   const renderTabContent = () => {
