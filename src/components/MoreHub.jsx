@@ -33,14 +33,14 @@ const VIEWS = [
   {
     id: 'h2h',
     label: 'H2H',
-    hint: 'Any two bros',
+    hint: 'Full mini-league',
     tone: 'bg-coral',
     icon: <CornerFlags size={16} />,
     bannerTone: 'coral',
-    eyebrow: 'Pick two, settle it',
+    eyebrow: 'Real FPL H2H rules',
     art: <CornerFlags size={20} />,
     title: 'Head-to-Head',
-    subtitle: 'Bragging rights, gameweek by gameweek',
+    subtitle: 'A full mini-league table, gameweek by gameweek',
   },
   {
     id: 'awards',

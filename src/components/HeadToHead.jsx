@@ -1,31 +1,64 @@
 // src/components/HeadToHead.jsx
 //
-// Two things now: a simulated FPL-rules H2H mini-league (fixtures + table,
-// see src/utils/h2hSchedule.js for the schedule/scoring logic and why it's
-// deterministic rather than reshuffled per visit) and the original
-// pick-any-two-managers comparison tool. Everything here is reshaped from
-// `standings` and `gameweekTable`, which the app already has in state — no
-// extra fetching, no server-side storage needed (the schedule is a pure
-// function of who's in the league).
+// A simulated FPL-rules head-to-head mini-league laid on top of this
+// (classic) league's existing data — see src/utils/h2hSchedule.js for the
+// schedule/scoring logic and why it's deterministic rather than reshuffled
+// per visit. Everything here is reshaped from `standings` and
+// `gameweekTable`, which the app already has in state — no extra fetching,
+// no server-side storage needed (the schedule is a pure function of who's
+// in the league).
 import React, { useMemo, useState } from 'react';
-import { Swords, Minus, Trophy } from 'lucide-react';
+import { Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import SectionBanner from './ui/SectionBanner';
-import SegmentedControl from './ui/SegmentedControl';
-import { CornerFlags, Jersey, TrophyCup, RankBadge } from './ui/Doodles';
+import { CornerFlags, RankBadge } from './ui/Doodles';
 import { generateH2HSchedule, computeH2HStandings, seedFromIds, getNetPoints } from '../utils/h2hSchedule';
-
-const VIEWS = [
-  { id: 'league', label: 'League', icon: <Trophy size={16} /> },
-  { id: 'compare', label: 'Compare', icon: <Swords size={16} /> },
-];
 
 // `embedded` is set when this renders inside the More destination, whose own
 // SectionBanner already names the section — see MoreHub.jsx.
 const HeadToHead = ({ standings = [], gameweekTable = [], gameweekInfo = {}, loading = false, embedded = false }) => {
-  const [view, setView] = useState('league');
+  const totalGameweeks = gameweekInfo.total || 38;
+  const [selectedGameweek, setSelectedGameweek] = useState(gameweekInfo.current || 1);
+
+  const managerIds = useMemo(
+    () => standings.map((m) => m.id ?? m.entry),
+    [standings]
+  );
+  const managerById = useMemo(
+    () => new Map(standings.map((m) => [m.id ?? m.entry, m])),
+    [standings]
+  );
+
+  const schedule = useMemo(
+    () => generateH2HSchedule(managerIds, seedFromIds(managerIds), totalGameweeks),
+    [managerIds, totalGameweeks]
+  );
+
+  const table = useMemo(
+    () => computeH2HStandings(schedule, gameweekTable, standings),
+    [schedule, gameweekTable, standings]
+  );
+
+  const selectedFixtures = schedule.find((r) => r.gameweek === selectedGameweek)?.pairs || [];
+  const selectedGwRow = gameweekTable.find((gw) => gw.gameweek === selectedGameweek);
+  const selectedGwPoints = useMemo(() => {
+    const m = new Map();
+    (selectedGwRow?.managers || []).forEach((mgr) => m.set(mgr.id, getNetPoints(mgr)));
+    return m;
+  }, [selectedGwRow]);
+
+  // A gameweek with no row in gameweekTable at all hasn't been played yet
+  // (no FPL history for it) — the current gameweek before its own deadline
+  // is the one case that DOES have a row (FPL creates it early, all zeros)
+  // despite nothing having kicked off; `gameweekInfo.isFinished` only ever
+  // describes the CURRENT gameweek, so it's only trusted for that one.
+  const gwStatus = !selectedGwRow
+    ? 'upcoming'
+    : selectedGameweek === (gameweekInfo.current || 1) && !gameweekInfo.isFinished
+      ? 'current'
+      : 'completed';
 
   if (loading) {
     return (
@@ -40,8 +73,8 @@ const HeadToHead = ({ standings = [], gameweekTable = [], gameweekInfo = {}, loa
   if (standings.length < 2) {
     return (
       <div className="p-12 text-center">
-        <Swords className="w-14 h-14 mx-auto mb-4 text-ink/20" />
-        <p className="text-lg font-bold text-ink-soft">Need at least two managers to compare</p>
+        <Trophy className="w-14 h-14 mx-auto mb-4 text-ink/20" />
+        <p className="text-lg font-bold text-ink-soft">Need at least two managers for a mini-league</p>
       </div>
     );
   }
@@ -53,70 +86,65 @@ const HeadToHead = ({ standings = [], gameweekTable = [], gameweekInfo = {}, loa
           tone="coral"
           art={<CornerFlags size={20} />}
           title="Head-to-Head"
-          subtitle="A full mini-league, FPL H2H rules — plus pick-any-two bragging rights"
+          subtitle="A full mini-league, real FPL H2H rules"
         />
       )}
 
-      <SegmentedControl items={VIEWS} value={view} onChange={setView} layoutId="h2hSegment" />
+      {/* Gameweek navigation — same prev/next pattern as GameweekTable.jsx,
+          so past weeks' results are one tap away instead of only ever
+          showing whichever gameweek is currently live. */}
+      <div className="flex items-center gap-2 sm:gap-4 bg-surface-alt p-2.5 sm:p-3 rounded-3xl border-2 border-ink/85">
+        <button
+          onClick={() => setSelectedGameweek((gw) => Math.max(1, gw - 1))}
+          disabled={selectedGameweek <= 1}
+          aria-label="Previous gameweek"
+          className="w-11 h-11 shrink-0 rounded-2xl bg-surface-sunk text-ink-soft flex items-center justify-center btn-pop disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft size={20} />
+        </button>
 
-      {view === 'league' ? (
-        <H2HLeague standings={standings} gameweekTable={gameweekTable} gameweekInfo={gameweekInfo} />
-      ) : (
-        <CompareView standings={standings} gameweekTable={gameweekTable} />
-      )}
-    </motion.div>
-  );
-};
+        <div className="flex items-center gap-2.5 flex-grow min-w-0">
+          <CornerFlags size={22} className="shrink-0 hidden sm:block" />
+          <div className="min-w-0">
+            <div className="font-display font-bold text-base sm:text-lg text-ink leading-tight truncate">
+              Gameweek {selectedGameweek} Fixtures
+            </div>
+            <div className="text-[11px] sm:text-xs font-bold text-ink-soft mt-0.5 truncate">
+              {gwStatus === 'completed' && 'Final — points are settled'}
+              {gwStatus === 'current' && 'In progress — scores can still move'}
+              {gwStatus === 'upcoming' && 'Not played yet'}
+            </div>
+          </div>
+        </div>
 
-// ─── LEAGUE ─────────────────────────────────────────────────────────────────
-const H2HLeague = ({ standings, gameweekTable, gameweekInfo }) => {
-  const managerIds = useMemo(
-    () => standings.map((m) => m.id ?? m.entry),
-    [standings]
-  );
-  const managerById = useMemo(
-    () => new Map(standings.map((m) => [m.id ?? m.entry, m])),
-    [standings]
-  );
+        <span className="shrink-0 text-[11px] font-bold text-ink-soft tabular-nums">
+          {selectedGameweek}/{totalGameweeks}
+        </span>
 
-  const schedule = useMemo(
-    () => generateH2HSchedule(managerIds, seedFromIds(managerIds), gameweekInfo.total || 38),
-    [managerIds, gameweekInfo.total]
-  );
+        <button
+          onClick={() => setSelectedGameweek((gw) => Math.min(totalGameweeks, gw + 1))}
+          disabled={selectedGameweek >= totalGameweeks}
+          aria-label="Next gameweek"
+          className="w-11 h-11 shrink-0 rounded-2xl bg-violet/15 text-violet-ink flex items-center justify-center btn-pop disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <ChevronRight size={20} />
+        </button>
+      </div>
 
-  const table = useMemo(
-    () => computeH2HStandings(schedule, gameweekTable, standings),
-    [schedule, gameweekTable, standings]
-  );
-
-  const currentGw = gameweekInfo.current || 1;
-  const currentFixtures = schedule.find((r) => r.gameweek === currentGw)?.pairs || [];
-  const currentGwPoints = useMemo(() => {
-    const row = gameweekTable.find((gw) => gw.gameweek === currentGw);
-    const m = new Map();
-    (row?.managers || []).forEach((mgr) => m.set(mgr.id, getNetPoints(mgr)));
-    return m;
-  }, [gameweekTable, currentGw]);
-
-  return (
-    <div className="space-y-6">
-      {currentFixtures.length > 0 && (
+      {selectedFixtures.length > 0 && (
         <Card>
           <div className="flex items-center justify-between gap-3 mb-4">
-            <h3 className="text-lg font-display font-bold text-ink flex items-center gap-2">
-              <CornerFlags size={22} />
-              Gameweek {currentGw} Fixtures
-            </h3>
-            <Badge variant="accent">{currentFixtures.length} match{currentFixtures.length !== 1 ? 'es' : ''}</Badge>
+            <h3 className="text-lg font-display font-bold text-ink">Results</h3>
+            <Badge variant="accent">{selectedFixtures.length} match{selectedFixtures.length !== 1 ? 'es' : ''}</Badge>
           </div>
           <div className="space-y-2">
-            {currentFixtures.map(([aId, bId]) => {
+            {selectedFixtures.map(([aId, bId]) => {
               const a = managerById.get(aId);
               const b = managerById.get(bId);
               if (!a || !b) return null;
-              const aPts = currentGwPoints.get(aId);
-              const bPts = currentGwPoints.get(bId);
-              const played = aPts != null && bPts != null;
+              const aPts = selectedGwPoints.get(aId);
+              const bPts = selectedGwPoints.get(bId);
+              const played = gwStatus !== 'upcoming' && aPts != null && bPts != null;
               return (
                 <div key={`${aId}-${bId}`} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 p-3 rounded-2xl bg-surface-sunk border-2 border-ink/15">
                   <div className="min-w-0 text-right">
@@ -195,161 +223,8 @@ const H2HLeague = ({ standings, gameweekTable, gameweekInfo }) => {
           FPL&rsquo;s own H2H mode — scoring and tiebreaks (season total points) follow FPL&rsquo;s real H2H rules exactly.
         </p>
       </Card>
-    </div>
+    </motion.div>
   );
 };
-
-// ─── COMPARE (unchanged from before) ───────────────────────────────────────
-const CompareView = ({ standings, gameweekTable }) => {
-  const [managerAId, setManagerAId] = useState(standings[0]?.id ?? standings[0]?.entry ?? null);
-  const [managerBId, setManagerBId] = useState(standings[1]?.id ?? standings[1]?.entry ?? null);
-
-  const managerA = standings.find((m) => (m.id ?? m.entry) === managerAId);
-  const managerB = standings.find((m) => (m.id ?? m.entry) === managerBId);
-
-  const record = useMemo(() => {
-    if (!managerAId || !managerBId || managerAId === managerBId) {
-      return { weeks: [], aWins: 0, bWins: 0, draws: 0 };
-    }
-
-    let aWins = 0, bWins = 0, draws = 0;
-    const weeks = gameweekTable
-      .map((gw) => {
-        const a = gw.managers?.find((m) => m.id === managerAId);
-        const b = gw.managers?.find((m) => m.id === managerBId);
-        if (!a || !b) return null;
-
-        const aPoints = getNetPoints(a);
-        const bPoints = getNetPoints(b);
-        if (aPoints > bPoints) aWins++;
-        else if (bPoints > aPoints) bWins++;
-        else draws++;
-
-        return { gameweek: gw.gameweek, aPoints, bPoints };
-      })
-      .filter(Boolean);
-
-    return { weeks, aWins, bWins, draws };
-  }, [gameweekTable, managerAId, managerBId]);
-
-  return (
-    <div className="space-y-6">
-      <Card>
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-3">
-          <ManagerPicker
-            standings={standings}
-            value={managerAId}
-            onChange={setManagerAId}
-            excludeId={managerBId}
-          />
-          <div className="flex items-center justify-center">
-            <span className="w-11 h-11 rounded-full bg-sunflower border-2 border-ink/85 shadow-pop-sm flex items-center justify-center font-display font-bold text-ink text-sm">
-              VS
-            </span>
-          </div>
-          <ManagerPicker
-            standings={standings}
-            value={managerBId}
-            onChange={setManagerBId}
-            excludeId={managerAId}
-          />
-        </div>
-      </Card>
-
-      {managerA && managerB && managerAId !== managerBId && (
-        <>
-          <Card>
-            <div className="grid grid-cols-3 items-center text-center gap-3">
-              <div className="rounded-2xl border-2 border-violet/60 bg-violet/12 p-3">
-                <Jersey size={34} tone="fill-violet" className="mx-auto mb-1" />
-                <div className="text-3xl font-display font-bold text-violet-ink leading-none">{record.aWins}</div>
-                <div className="text-[10px] font-bold text-ink-soft uppercase tracking-wider mt-1 truncate">{managerA.managerName}</div>
-              </div>
-              <div>
-                <Badge variant="warning">{record.draws} draw{record.draws !== 1 ? 's' : ''}</Badge>
-                <div className="text-xs font-semibold text-ink-soft mt-2">{record.weeks.length} gameweeks played</div>
-              </div>
-              <div className="rounded-2xl border-2 border-coral/60 bg-coral/12 p-3">
-                <Jersey size={34} tone="fill-coral" className="mx-auto mb-1" />
-                <div className="text-3xl font-display font-bold text-coral-ink leading-none">{record.bWins}</div>
-                <div className="text-[10px] font-bold text-ink-soft uppercase tracking-wider mt-1 truncate">{managerB.managerName}</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t-2 border-dashed border-ink/15">
-              <div className="text-center">
-                <div className="text-xl font-display font-bold text-ink">{managerA.totalPoints ?? managerA.total ?? 0}</div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Season Total</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl font-display font-bold text-ink">{managerB.totalPoints ?? managerB.total ?? 0}</div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-ink-soft">Season Total</div>
-              </div>
-            </div>
-          </Card>
-
-          {record.weeks.length > 0 && (
-            <Card className="p-0 overflow-hidden">
-              {/* `min-w-[420px]` forced a sideways scroll on any phone. Four
-                  narrow columns fit 390px on their own once the padding is
-                  tightened and the two names are allowed to truncate. */}
-              <div>
-                <table className="w-full text-sm table-fixed">
-                  <thead>
-                    <tr className="border-b-2 border-ink/85 text-left bg-surface-sunk">
-                      <th className="p-2 sm:p-3 w-[64px] text-ink font-display font-bold">GW</th>
-                      <th className="p-2 sm:p-3 text-ink font-display font-bold text-right truncate">{managerA.managerName}</th>
-                      <th className="p-2 sm:p-3 w-[40px]"></th>
-                      <th className="p-2 sm:p-3 text-ink font-display font-bold truncate">{managerB.managerName}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...record.weeks].reverse().map((week) => (
-                      <tr key={week.gameweek} className="border-b border-ink/10 last:border-0">
-                        <td className="p-2 sm:p-3 font-semibold text-ink-soft">GW{week.gameweek}</td>
-                        <td className={`p-2 sm:p-3 text-right font-display font-bold ${week.aPoints > week.bPoints ? 'text-violet-ink' : 'text-ink'}`}>
-                          {week.aPoints}
-                        </td>
-                        <td className="p-2 sm:p-3 text-center text-ink-soft">
-                          {week.aPoints === week.bPoints ? <Minus size={14} className="mx-auto" /> : (
-                            <TrophyCup
-                              size={18}
-                              className="mx-auto"
-                              tone={week.aPoints > week.bPoints ? 'fill-violet' : 'fill-coral'}
-                            />
-                          )}
-                        </td>
-                        <td className={`p-2 sm:p-3 font-display font-bold ${week.bPoints > week.aPoints ? 'text-coral-ink' : 'text-ink'}`}>
-                          {week.bPoints}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-        </>
-      )}
-    </div>
-  );
-};
-
-const ManagerPicker = ({ standings, value, onChange, excludeId }) => (
-  <select
-    value={value ?? ''}
-    onChange={(e) => onChange(Number(e.target.value))}
-    className="w-full bg-surface-alt border-2 border-ink/85 rounded-2xl px-4 py-3 text-ink font-bold shadow-card focus:outline-none focus-visible:ring-2 focus-visible:ring-violet"
-  >
-    {standings.map((manager) => {
-      const id = manager.id ?? manager.entry;
-      return (
-        <option key={id} value={id} disabled={id === excludeId}>
-          {manager.managerName || manager.player_name} {id === excludeId ? '(selected)' : ''}
-        </option>
-      );
-    })}
-  </select>
-);
 
 export default HeadToHead;
