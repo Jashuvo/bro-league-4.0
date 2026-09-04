@@ -1,11 +1,11 @@
-// api/league-complete.js - Fixed version that works with or without Redis/KV
+// api/league-complete.js - works with or without the Supabase-backed cache
 import { fetchWithRetry, setCorsHeaders, ConcurrencyLimiter } from './_lib/helpers.js';
 import { kv } from './_lib/kv.js';
 
 if (kv) {
-  console.log('✅ Redis available for caching');
+  console.log('✅ Cache available (kv_cache table)');
 } else {
-  console.log('⚠️ REDIS_URL not set, running without cache');
+  console.log('⚠️ Supabase not configured, running without cache');
 }
 
 // Try to import waitUntil, but don't fail if it's not available (e.g. local
