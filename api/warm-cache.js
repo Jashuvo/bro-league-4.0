@@ -8,14 +8,17 @@
 // means one live FPL fetch instead of two separate crons each doing their
 // own full ~20-manager fan-out.
 //
-// 1. Cache warming — force-refreshes api/league-complete.js's KV cache so
-//    the first visitor of the day never pays for a cold fetch themselves.
-// 2. Season-archive snapshot — captures each finalized gameweek's winner
-//    and each completed month's top 3 into `season_archive`, going
-//    forward (see SUPABASE_ARCHIVE_PLAN.md §8). A no-op until Supabase is
-//    configured (VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).
+// 1. Cache warming — force-refreshes api/league-complete.js's cache so the
+//    first visitor of the day never pays for a cold fetch themselves.
+// 2. Season-archive snapshot — captures this season's weekly winners,
+//    monthly winners, and the full per-gameweek standings table (all net
+//    of transfer hits, all straight from FPL's own numbers) into
+//    `season_archive`, permanently — so none of it is lost the way last
+//    season's per-GW detail was once the season ended and FPL's API
+//    stopped exposing it. A no-op until Supabase is configured
+//    (VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).
 import { fetchWithRetry } from './_lib/helpers.js';
-import { monthlyWindows, weeklyPrize, monthlyRegularPrizes, monthlyFinalPrizes, getWeeklyWinner, getMonthlyTop } from './_lib/prizeConfig.js';
+import { monthlyWindows, weeklyPrize, monthlyRegularPrizes, monthlyFinalPrizes, seasonPrizes, getWeeklyWinner, getMonthlyTop } from './_lib/prizeConfig.js';
 
 async function snapshotResults({ leagueId, season, bootstrap, gameweekTable }) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -70,6 +73,56 @@ async function snapshotResults({ leagueId, season, bootstrap, gameweekTable }) {
         total_points: entry.totalPoints,
         prize_label: `${window.name} — #${index + 1}`,
         prize_amount: prizes[index],
+      });
+    });
+  });
+
+  // Total standing — one row PER MANAGER PER GAMEWEEK, for every gameweek
+  // played so far (not gated on data_checked like the two categories
+  // above — the daily rerun naturally overwrites an earlier estimate once
+  // bonus points do settle, via the same upsert). This is this project's
+  // own permanent, gameweek-by-gameweek record of the full table: FPL's
+  // API only ever exposes a season's per-GW detail while that season is
+  // in progress — once it ends, that granularity is gone for good, the
+  // same loss this project hit trying to backfill last season. Every
+  // number here is already net of transfer hits, straight from FPL's own
+  // official cumulative total_points.
+  //
+  // On the actual final gameweek, once it's finalized, the top 3 also get
+  // tagged with the season-end prize they've now actually won — turning
+  // this cron into the season-end capture too, instead of needing a
+  // separate one-off script the way last season's backfill did.
+  // The season's actual final gameweek (38) — NOT the highest gameweek
+  // currently in gameweekTable, which early in the season is just "the
+  // most recent one played so far" and would otherwise crown a season
+  // Champion after gameweek 2.
+  const finalGwNumber = bootstrap.totalGameweeks || 38;
+  gameweekTable.forEach((gw) => {
+    const isFinalGameweek = gw.gameweek === finalGwNumber && gwByNumber.get(gw.gameweek)?.data_checked;
+
+    // NOTE: manager.rank in gameweekTable is FPL's GLOBAL overall rank
+    // (among millions of players) — not this mini-league's rank, and
+    // useless here. The in-league rank for every gameweek (not just the
+    // final one) has to be computed by sorting this gameweek's own
+    // managers by cumulative total_points, same as the final-gameweek
+    // season-prize ranking below.
+    const inLeagueRanked = [...(gw.managers || [])].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+
+    (gw.managers || []).forEach((m) => {
+      const inLeagueRank = inLeagueRanked.findIndex((x) => x.id === m.id) + 1;
+      const prize = isFinalGameweek && seasonPrizes.find((p) => p.position === inLeagueRank);
+      rows.push({
+        league_id: String(leagueId),
+        season,
+        category: 'total_standing',
+        period: gw.gameweek,
+        manager_id: m.id,
+        manager_name: m.managerName || m.name,
+        team_name: m.teamName,
+        total_points: m.totalPoints,
+        final_rank: inLeagueRank,
+        prize_label: prize?.label || null,
+        prize_amount: prize?.amount || null,
       });
     });
   });

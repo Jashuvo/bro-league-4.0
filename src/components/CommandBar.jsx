@@ -27,6 +27,7 @@ const CommandBar = ({
   leagueStats,
   isRefreshing,
   onRefresh,
+  onOpenSeasonArchive,
 }) => {
   const { totalPrizePool } = leagueConfig;
   const destination = getDestination(activeTab);
@@ -80,9 +81,20 @@ const CommandBar = ({
             <h1 className="font-display font-bold text-xl lg:text-2xl leading-none text-ink truncate">
               {destination.name}
             </h1>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-soft mt-1 truncate">
-              {totalManagers || '–'} bros • {leagueConfig.season}
-            </p>
+            {onOpenSeasonArchive ? (
+              <button
+                type="button"
+                onClick={onOpenSeasonArchive}
+                className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-soft mt-1 truncate block"
+                aria-label={`Open ${leagueConfig.season} season archive`}
+              >
+                {totalManagers || '–'} bros • <span className="underline decoration-dotted underline-offset-2">{leagueConfig.season}</span>
+              </button>
+            ) : (
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-soft mt-1 truncate">
+                {totalManagers || '–'} bros • {leagueConfig.season}
+              </p>
+            )}
           </div>
 
           {/* Live pill + refresh sit next to the title on mobile so the chip

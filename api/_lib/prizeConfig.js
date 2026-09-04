@@ -26,6 +26,11 @@ export const monthlyWindows = [
 export const weeklyPrize = 30;
 export const monthlyRegularPrizes = [350, 250, 150];
 export const monthlyFinalPrizes = [500, 400, 250];
+export const seasonPrizes = [
+  { position: 1, amount: 800, label: 'Champion' },
+  { position: 2, amount: 600, label: 'Runner-up' },
+  { position: 3, amount: 400, label: 'Third Place' },
+];
 
 /**
  * Given one gameweekTable entry (league-complete.js's shape:

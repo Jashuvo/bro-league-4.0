@@ -47,7 +47,7 @@ const VIEWS = [
   },
 ];
 
-const PrizesHub = ({ gameweekTable = [], standings = [], gameweekInfo = {}, loading = false, seasonArchive = [] }) => {
+const PrizesHub = ({ gameweekTable = [], standings = [], gameweekInfo = {}, loading = false }) => {
   const [view, setView] = useState('weekly');
   const stats = usePrizeStats({ gameweekTable, standings, gameweekInfo });
 
@@ -136,7 +136,7 @@ const PrizesHub = ({ gameweekTable = [], standings = [], gameweekInfo = {}, load
             </div>
           )}
 
-          {view === 'season' && <SeasonPrizes stats={stats} standings={standings} seasonArchive={seasonArchive} />}
+          {view === 'season' && <SeasonPrizes stats={stats} standings={standings} />}
       </motion.div>
     </motion.div>
   );

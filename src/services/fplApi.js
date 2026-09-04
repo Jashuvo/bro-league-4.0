@@ -458,11 +458,13 @@ class FPLApiService {
     });
   }
 
-  // Past-season final standings (and, from 2026/27 onward, weekly/monthly
-  // winners) — see api/season-archive.js and SUPABASE_ARCHIVE_PLAN.md. Long
-  // TTL: this data never changes once a season is archived. Always resolves
-  // to an array, never throws — an empty archive is a normal, expected
-  // state (nothing archived yet), not an error.
+  // This season's permanent archive — weekly winners, monthly winners, and
+  // the full per-gameweek standings table, captured daily — see
+  // api/season-archive.js, api/warm-cache.js and SUPABASE_ARCHIVE_PLAN.md.
+  // A generous TTL is fine: the underlying cron only writes once a day.
+  // Always resolves to an array, never throws — an empty archive is a
+  // normal, expected state (nothing captured yet, or Supabase not
+  // configured), not an error.
   async getSeasonArchive() {
     const cacheKey = `season_archive_${this.leagueId}`;
     const cached = this.getCache(cacheKey);

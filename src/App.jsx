@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import fplApi from './services/fplApi';
 import { ThemeProvider } from './context/ThemeContext';
 import { ExclusionProvider, useExclusion } from './context/ExclusionContext';
@@ -13,6 +14,7 @@ import MoreHub from './components/MoreHub';
 import LoadingSpinner from './components/LoadingSpinner';
 import ErrorMessage from './components/ErrorMessage';
 import PWAUpdate from './components/PWAUpdate';
+import SeasonArchiveSheet from './components/SeasonArchiveSheet';
 
 function AppContent() {
   const { excludedTeamIds } = useExclusion();
@@ -27,11 +29,14 @@ function AppContent() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [authStatus, setAuthStatus] = useState({ authenticated: false, message: '' });
   const [lastUpdated, setLastUpdated] = useState(null);
-  // Past-season archive (see SUPABASE_ARCHIVE_PLAN.md) — fetched once,
-  // independent of loadData/initializeWithAuth entirely: it never touches
-  // standings/gameweekTable/leagueStats, and an empty result (nothing
-  // archived yet, or Supabase not configured) is a normal, silent state.
+  // This season's permanent archive (see SUPABASE_ARCHIVE_PLAN.md) —
+  // fetched once, independent of loadData/initializeWithAuth entirely: it
+  // never touches standings/gameweekTable/leagueStats, and an empty result
+  // (nothing archived yet, or Supabase not configured) is a normal, silent
+  // state. Surfaced via the season badge in CommandBar — see
+  // showSeasonArchive below.
   const [seasonArchive, setSeasonArchive] = useState([]);
+  const [showSeasonArchive, setShowSeasonArchive] = useState(false);
   // Load timing is logged rather than held in state: the old CompactHero was
   // the only thing that ever rendered it, and the CommandBar that replaced it
   // shows the live/offline pill and last-sync time instead.
@@ -302,7 +307,6 @@ function AppContent() {
             standings={filteredStandings}
             gameweekInfo={gameweekInfo}
             loading={loading}
-            seasonArchive={seasonArchive}
           />
         );
       case 'more':
@@ -351,6 +355,7 @@ function AppContent() {
           leagueStats={filteredLeagueStats}
           isRefreshing={isRefreshing}
           onRefresh={handleRefresh}
+          onOpenSeasonArchive={() => setShowSeasonArchive(true)}
         />
 
         <div className="max-w-[1500px] mx-auto px-4 lg:px-6 pt-5 pb-28 lg:pb-14">
@@ -365,6 +370,16 @@ function AppContent() {
           </div>
         </div>
       </Layout>
+
+      <AnimatePresence>
+        {showSeasonArchive && (
+          <SeasonArchiveSheet
+            open={showSeasonArchive}
+            onClose={() => setShowSeasonArchive(false)}
+            seasonArchive={seasonArchive}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
