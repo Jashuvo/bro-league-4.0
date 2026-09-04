@@ -8,21 +8,14 @@
 // resolves player ids to names and team ids to names/crests. Powers the
 // Fixtures tab's match list and its per-match detail drill-down.
 import { fetchWithRetry, setCorsHeaders } from './_lib/helpers.js';
+import { kv } from './_lib/kv.js';
 
-// Try to import KV, but don't fail if it's not available — same
-// soft-fail-everywhere pattern as league-complete.js. Without this, every
-// single fixtures request (live or long-finished) re-fetched the ENTIRE
-// bootstrap-static payload from FPL just to resolve player/team names,
-// relying solely on the CDN-level Cache-Control header below to avoid
-// redoing that work — which only helps repeat hits on the same Vercel edge
-// node, not the first request after it expires.
-let kv = null;
-try {
-  const kvModule = await import('@vercel/kv');
-  kv = kvModule.kv;
-} catch (error) {
-  console.log('⚠️ Redis/KV not available for fixtures, running without cache');
-}
+// Without this, every single fixtures request (live or long-finished)
+// re-fetched the ENTIRE bootstrap-static payload from FPL just to resolve
+// player/team names, relying solely on the CDN-level Cache-Control header
+// below to avoid redoing that work — which only helps repeat hits on the
+// same Vercel edge node, not the first request after it expires. See the
+// comment in _lib/kv.js for why this isn't `@vercel/kv`.
 
 // identifier -> the label FPL's own app uses. Order here is the order
 // sections render in on the frontend. An identifier FPL adds later that

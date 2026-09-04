@@ -1,14 +1,11 @@
 // api/league-complete.js - Fixed version that works with or without Redis/KV
 import { fetchWithRetry, setCorsHeaders, ConcurrencyLimiter } from './_lib/helpers.js';
+import { kv } from './_lib/kv.js';
 
-// Try to import KV, but don't fail if it's not available
-let kv = null;
-try {
-  const kvModule = await import('@vercel/kv');
-  kv = kvModule.kv;
-  console.log('✅ Redis/KV available for caching');
-} catch (error) {
-  console.log('⚠️ Redis/KV not available, running without cache');
+if (kv) {
+  console.log('✅ Redis available for caching');
+} else {
+  console.log('⚠️ REDIS_URL not set, running without cache');
 }
 
 // Try to import waitUntil, but don't fail if it's not available (e.g. local
