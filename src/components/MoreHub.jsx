@@ -56,7 +56,7 @@ const VIEWS = [
   },
 ];
 
-const MoreHub = ({ standings = [], gameweekTable = [], loading = false }) => {
+const MoreHub = ({ standings = [], gameweekTable = [], gameweekInfo = {}, loading = false }) => {
   const [view, setView] = useState('chips');
   const current = VIEWS.find((v) => v.id === view) || VIEWS[0];
 
@@ -104,7 +104,7 @@ const MoreHub = ({ standings = [], gameweekTable = [], loading = false }) => {
         {view === 'chips' && <ChipTracker standings={standings} loading={loading} embedded />}
 
         {view === 'h2h' && (
-          <HeadToHead standings={standings} gameweekTable={gameweekTable} loading={loading} embedded />
+          <HeadToHead standings={standings} gameweekTable={gameweekTable} gameweekInfo={gameweekInfo} loading={loading} embedded />
         )}
 
         {view === 'awards' && (

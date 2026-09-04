@@ -331,6 +331,7 @@ function AppContent() {
           <MoreHub
             standings={filteredStandings}
             gameweekTable={filteredGameweekTable}
+            gameweekInfo={gameweekInfo}
             loading={loading}
           />
         );
