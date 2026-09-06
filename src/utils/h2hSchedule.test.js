@@ -10,6 +10,16 @@ describe('generateH2HSchedule', () => {
     expect(a).toEqual(b);
   });
 
+  it('is deterministic regardless of the INPUT ORDER of manager IDs — real bug, caught live: two devices saw different fixtures/tables because the caller passed standings-ordered (current league rank) IDs, which shifts over time and differs between clients with different cache freshness. The seed alone doesn\'t make a Fisher-Yates shuffle order-independent; the input has to be canonicalized first.', () => {
+    const ids = [1, 2, 3, 4, 5, 6, 7, 8];
+    const seed = seedFromIds(ids); // seed itself is already order-independent (sorts before hashing)
+    const inOriginalOrder = generateH2HSchedule(ids, seed, 20);
+    const inRankOrder = generateH2HSchedule([8, 3, 1, 6, 2, 7, 4, 5], seed, 20); // same managers, different order
+    const inReverseOrder = generateH2HSchedule([...ids].reverse(), seed, 20);
+    expect(inRankOrder).toEqual(inOriginalOrder);
+    expect(inReverseOrder).toEqual(inOriginalOrder);
+  });
+
   it('every manager plays exactly one match per gameweek (even league size)', () => {
     const ids = [1, 2, 3, 4, 5, 6];
     const schedule = generateH2HSchedule(ids, seedFromIds(ids), 12);

@@ -87,10 +87,22 @@ function circleMethod(ids) {
  * rest of the season, the same way a real round-robin schedule would for
  * a season longer than one full cycle. Returns
  * `[{ gameweek, pairs: [[idA, idB], ...] }, ...]`.
+ *
+ * `managerIds` is sorted numerically before shuffling — this was a real
+ * bug caught live (different devices showing different fixtures/tables):
+ * the seed alone doesn't make the shuffle deterministic, because a
+ * Fisher-Yates shuffle's OUTPUT depends on the STARTING order of the
+ * array too, not just the seed. The caller was passing `standings`-
+ * ordered IDs (current league rank), which shifts over time and differs
+ * between two clients with different cache freshness — same seed,
+ * different starting order, completely different schedule. Sorting to a
+ * canonical order first means the shuffle always starts from the same
+ * place no matter what order the caller happened to have the IDs in.
  */
 export function generateH2HSchedule(managerIds, seed, totalGameweeks = 38) {
   if (managerIds.length < 2) return [];
-  const rounds = circleMethod(seededShuffle(managerIds, seed));
+  const canonicalOrder = [...managerIds].sort((a, b) => a - b);
+  const rounds = circleMethod(seededShuffle(canonicalOrder, seed));
   if (rounds.length === 0) return [];
   const schedule = [];
   for (let gw = 1; gw <= totalGameweeks; gw++) {
