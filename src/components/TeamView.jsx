@@ -35,16 +35,17 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
 
   const currentGameweek = gameweekInfo?.current || 1;
 
-  // A gameweek that isn't finalized can't trust a bare 0: FPL's live stats
+  // Whether the gameweek being viewed is over (`isFinished` comes from
+  // App.jsx's fixture polling, which corrects FPL's bonus-points lag). A
+  // gameweek that isn't finalized can't trust a bare 0: FPL's live stats
   // report 0 points / 0 minutes for every player whose match hasn't kicked
-  // off yet, so a "0 pts" there actually means "hasn't played", not
-  // "scored 0". Until the gameweek is marked finished (App's isFinished
-  // corrects FPL's own `finished`-flag lag via finishedProvisional), a pick
-  // with 0 minutes is shown as "–" / "not played" instead of a fake 0. A
-  // finished gameweek always shows the real figure — a 0 there is a
-  // legitimate "played 0 minutes" score. This also covers the
-  // liveDataAvailable === false case: unknown minutes fall back to 0, so
-  // the whole team reads "–" rather than a wall of fake zeros.
+  // off yet, so a "0 pts" there actually means "hasn't played", not "scored
+  // 0" — those players render "–" / "not played" instead of a fake 0. Once
+  // the gameweek is finished, a 0 is a legitimate "played 0 minutes" score
+  // and stays visible. This also covers the liveDataAvailable === false
+  // case: unknown minutes fall back to 0, so the whole team reads "–" rather
+  // than a wall of fake zeros. `minutes` is this exact gameweek's live
+  // figure from api/team-picks.js.
   const gwFinished = Boolean(gameweekInfo?.isFinished);
   const hasPlayed = (player) => gwFinished || (player.minutes || 0) > 0;
 
@@ -255,7 +256,12 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
             {player.name}
           </p>
           <div className="bg-ink text-center py-0.5">
-            <span className="text-xs font-display font-bold text-surface">{points}</span>
+            <span
+              className="text-xs font-display font-bold text-surface"
+              title={hasPlayed(player) ? `${player.name} — ${points} pts` : `${player.name} — hasn't played yet`}
+            >
+              {points}
+            </span>
           </div>
         </div>
       </motion.button>
