@@ -1,0 +1,43 @@
+version: 2
+
+# Keeps the toolchain current without anyone having to remember to look.
+# Grouped rather than one PR per package: a league tracker has no reason to
+# carry thirty open dependabot branches, and a single weekly PR per
+# ecosystem is reviewable.
+#
+# The group ordering matters — a package matching an earlier group stays
+# there. React comes first so react/react-dom/react-router (and their
+# types) always move together; a split major bump between react and
+# react-dom is the one update that reliably breaks the build.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      react:
+        patterns:
+          - react
+          - react-dom
+          - react-router-dom
+          - '@types/react*'
+      lint:
+        patterns:
+          - eslint*
+          - '@eslint/*'
+          - vite-plugin-eslint
+      tooling:
+        dependency-type: development
+        patterns:
+          - '*'
+      runtime:
+        dependency-type: production
+        patterns:
+          - '*'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

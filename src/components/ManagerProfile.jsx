@@ -57,7 +57,7 @@ const ManagerProfile = ({ manager, gameweekTable = [], standings = [], rankHisto
 
   const { position, chips } = profile;
   const climb = position.change;
-  const rankMoved = position.current && position.best && position.worst;
+  const hasPosition = position.current && position.best && position.worst;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-6">
@@ -116,7 +116,7 @@ const ManagerProfile = ({ manager, gameweekTable = [], standings = [], rankHisto
               <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink-soft">
                 League position
               </p>
-              {rankMoved && (
+              {hasPosition && (
                 <p className={cn(
                   'text-[12px] font-bold flex items-center gap-1',
                   climb > 0 ? 'text-pitch-ink' : climb < 0 ? 'text-coral-ink' : 'text-ink-soft'
@@ -130,7 +130,7 @@ const ManagerProfile = ({ manager, gameweekTable = [], standings = [], rankHisto
             </div>
             <RankTrendSparkline data={profile.rankTrend} maxRank={standings.length || 15} />
 
-            {rankMoved && (
+            {hasPosition && (
               <div className="grid grid-cols-3 gap-2 mt-3">
                 <StatTile label="Best" value={`#${position.best.rank}`} note={`GW${position.best.gw}`} tint="bg-tile-sage" />
                 <StatTile label="Worst" value={`#${position.worst.rank}`} note={`GW${position.worst.gw}`} tint="bg-tile-clay" />
@@ -201,6 +201,7 @@ const ManagerProfile = ({ manager, gameweekTable = [], standings = [], rankHisto
               </p>
             )}
           </div>
+
           {/* ── Chips ──────────────────────────────────────────────── */}
           <div className="bg-surface-alt rounded-2xl border-2 border-ink/85 p-4">
             <h3 className="text-[10px] font-display font-bold text-ink-soft uppercase tracking-[0.16em] mb-2.5 flex items-center gap-1.5">
@@ -209,7 +210,7 @@ const ManagerProfile = ({ manager, gameweekTable = [], standings = [], rankHisto
 
             {chips.played.length === 0 ? (
               <p className="text-[13px] font-semibold text-ink-soft">
-                All four still in the bank — nothing played yet this season.
+                Nothing played yet this season.
               </p>
             ) : (
               <div className="space-y-1.5">
@@ -229,12 +230,12 @@ const ManagerProfile = ({ manager, gameweekTable = [], standings = [], rankHisto
 
             {/* "Still holding" is scoped to the CURRENT half — FPL re-issues
                 the whole set at GW20, so a first-half wildcard is not a
-                second-half one. The sheet names the half rather than leaving
-                the reader to assume. */}
+                second-half one. The sheet names which half it means rather
+                than leaving the reader to assume. */}
             {chips.holding.length > 0 && (
               <div className="mt-3">
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink-soft mb-1.5">
-                  Still holding · {chips.half === 1 ? 'first' : 'second'} half of the season
+                  Still holding · {chips.half === 1 ? 'first' : 'second'} half
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {chips.holding.map((name) => (
