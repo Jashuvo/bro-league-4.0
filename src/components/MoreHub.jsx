@@ -6,6 +6,8 @@ import { ChipCard, CornerFlags, Medal, MoreDots } from './ui/Doodles';
 import ChipTracker from './ChipTracker';
 import HeadToHead from './HeadToHead';
 import SeasonAwards from './SeasonAwards';
+import CupBracket from './CupBracket';
+import SeasonRecords from './SeasonRecords';
 
 // ─── MORE ───────────────────────────────────────────────────────────────────
 //
@@ -41,6 +43,30 @@ const VIEWS = [
     art: <CornerFlags size={20} />,
     title: 'Head-to-Head',
     subtitle: 'A full mini-league table, gameweek by gameweek',
+  },
+  {
+    id: 'cup',
+    label: 'Cup',
+    hint: 'Season knockout',
+    tone: 'bg-sky',
+    icon: <CornerFlags size={16} />,
+    bannerTone: 'sky',
+    eyebrow: 'Straight knockout',
+    art: <CornerFlags size={20} />,
+    title: 'The Cup',
+    subtitle: 'Seeded knockout cup — each round decided on one gameweek',
+  },
+  {
+    id: 'records',
+    label: 'Records',
+    hint: 'Top-five boards',
+    tone: 'bg-mint',
+    icon: <Medal size={16} />,
+    bannerTone: 'mint',
+    eyebrow: 'Ranked season boards',
+    art: <Medal size={20} />,
+    title: 'Records',
+    subtitle: 'Top five in every season-long category',
   },
   {
     id: 'awards',
@@ -105,6 +131,14 @@ const MoreHub = ({ standings = [], gameweekTable = [], gameweekInfo = {}, loadin
 
         {view === 'h2h' && (
           <HeadToHead standings={standings} gameweekTable={gameweekTable} gameweekInfo={gameweekInfo} loading={loading} embedded />
+        )}
+
+        {view === 'cup' && (
+          <CupBracket standings={standings} gameweekTable={gameweekTable} gameweekInfo={gameweekInfo} loading={loading} embedded />
+        )}
+
+        {view === 'records' && (
+          <SeasonRecords standings={standings} gameweekTable={gameweekTable} loading={loading} embedded />
         )}
 
         {view === 'awards' && (
