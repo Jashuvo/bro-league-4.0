@@ -123,7 +123,7 @@ const ManagerProfile = ({ manager, gameweekTable = [], standings = [], rankHisto
                 )}>
                   {climb > 0 ? <TrendingUp size={14} /> : climb < 0 ? <TrendingDown size={14} /> : null}
                   {climb === 0
-                    ? 'Unchanged since GW1'
+                    ? `Unchanged since GW${profile.rankTrend[0].gw}`
                     : `${climb > 0 ? 'Up' : 'Down'} ${Math.abs(climb)} since GW${profile.rankTrend[0].gw}`}
                 </p>
               )}
@@ -209,7 +209,7 @@ const ManagerProfile = ({ manager, gameweekTable = [], standings = [], rankHisto
 
             {chips.played.length === 0 ? (
               <p className="text-[13px] font-semibold text-ink-soft">
-                Nothing played yet this season.
+                All four still in the bank — nothing played yet this season.
               </p>
             ) : (
               <div className="space-y-1.5">
@@ -228,9 +228,9 @@ const ManagerProfile = ({ manager, gameweekTable = [], standings = [], rankHisto
             )}
 
             {/* "Still holding" is scoped to the CURRENT half — FPL re-issues
-                the whole set at GW20, so an unplayed first-half wildcard is
-                not an unplayed second-half one. The heading says which half
-                it means rather than leaving the reader to assume. */}
+                the whole set at GW20, so a first-half wildcard is not a
+                second-half one. The sheet names the half rather than leaving
+                the reader to assume. */}
             {chips.holding.length > 0 && (
               <div className="mt-3">
                 <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-ink-soft mb-1.5">

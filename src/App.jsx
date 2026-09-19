@@ -235,6 +235,13 @@ function AppContent() {
 
     let cancelled = false;
     const check = () => {
+      // Same rule as the data poll further down: a hidden tab has nobody
+      // watching, so the request would be spent for nothing. Unlike the
+      // data poll there's no interval-wide early return needed — this
+      // effect's own visibilitychange listener re-checks the moment the
+      // tab comes back, so a hidden tab simply skips ticks and resumes on
+      // return without having to wait out a full 60s.
+      if (document.visibilityState !== 'visible') return;
       fplApi.getFixtures(gameweekInfo.current).then((data) => {
         if (!cancelled && data?.finishedProvisional) {
           setGameweekInfo((prev) =>
@@ -246,9 +253,11 @@ function AppContent() {
 
     check();
     const interval = setInterval(check, 60000);
+    document.addEventListener('visibilitychange', check);
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', check);
     };
   }, [gameweekInfo.current, gameweekInfo.isFinished]);
 
