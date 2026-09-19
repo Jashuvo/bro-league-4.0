@@ -103,10 +103,11 @@ const PlayerDetail = ({ player, onClose }) => {
 
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-ink-soft mb-2">This gameweek</div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <Stat label="Points" value={player.points} tone="bg-tile-lilac" />
               <Stat label="Minutes" value={player.minutes ?? 0} />
               <Stat label="Bonus" value={player.bonus ?? 0} />
+              <Stat label="BPS" value={player.bps ?? 0} />
             </div>
           </div>
 
