@@ -1,6 +1,7 @@
 // api/league-complete.js - works with or without the Supabase-backed cache
 import { fetchWithRetry, setCorsHeaders, ConcurrencyLimiter, isValidId } from './_lib/helpers.js';
 import { kv } from './_lib/kv.js';
+import { shapeManager, buildGameweekTable, buildLeagueStats, MAX_MANAGERS } from './_lib/leagueShape.js';
 
 if (kv) {
   console.log('✅ Cache available (kv_cache table)');
@@ -137,22 +138,28 @@ async function fetchFreshLeagueData(leagueId) {
   // Cap the manager-detail fan-out so a large league can't blow the
   // function's time budget — standings above this cut are still counted
   // in totalManagers below but won't have per-manager history/chips data.
-  const MAX_MANAGERS = 20;
+  // (MAX_MANAGERS comes from _lib/leagueShape.js.)
   const totalManagers = standingsData.standings.results.length;
   const managers = standingsData.standings.results.slice(0, MAX_MANAGERS);
 
-  // Use concurrency limiter for manager data fetching
-  const limiter = new ConcurrencyLimiter(3); // Max 3 concurrent requests
+  // Per-manager fan-out: ONE fetch per manager (/history/), down from up
+  // to three. The old code also fetched /entry/{id} per manager, but every
+  // field it provided that anyone reads (manager name, team name, overall
+  // rank) is already on the classic-standings row — player_name,
+  // entry_name and summary_overall_rank respectively — and the fields
+  // nobody read (region, started_event, favourite_team) are simply gone.
+  // The per-gameweek history itself can't come from anywhere else (FPL has
+  // no league-wide per-GW endpoint), so /history/ stays.
+  // Concurrency 6: safe for 20 fetches against FPL (their own frontend
+  // fires far more in parallel), and with the fetch count down the wall
+  // clock of a cold cache miss lands well under the old 3-concurrency/60-
+  // fetch version.
+  const limiter = new ConcurrencyLimiter(6);
 
   const managerPromises = managers.map(entry =>
     limiter.run(async () => {
       try {
         const fetchList = [
-          fetchWithRetry(
-            `https://fantasy.premierleague.com/api/entry/${entry.entry}/`,
-            { timeout: 8000 },
-            1 // Less retries for individual managers
-          ),
           fetchWithRetry(
             `https://fantasy.premierleague.com/api/entry/${entry.entry}/history/`,
             { timeout: 8000 },
@@ -171,24 +178,10 @@ async function fetchFreshLeagueData(leagueId) {
           );
         }
 
-        const [managerResponse, historyResponse, picksResponse] = await Promise.all(fetchList);
+        const [historyResponse, picksResponse] = await Promise.all(fetchList);
 
-        let managerData = null;
         let historyData = null;
         let liveBenchPoints = null;
-
-        if (managerResponse.ok) {
-          const manager = await managerResponse.json();
-          managerData = {
-            firstName: manager.player_first_name || '',
-            lastName: manager.player_last_name || '',
-            teamName: manager.name || entry.entry_name || 'Unknown Team',
-            region: manager.player_region_name || '',
-            startedEvent: manager.started_event || 1,
-            overallRank: manager.summary_overall_rank || 0,
-            favoriteTeam: manager.favourite_team || null
-          };
-        }
 
         if (historyResponse.ok) {
           const history = await historyResponse.json();
@@ -227,7 +220,6 @@ async function fetchFreshLeagueData(leagueId) {
 
         return {
           ...entry,
-          managerData,
           historyData,
           liveBenchPoints
         };
@@ -235,7 +227,6 @@ async function fetchFreshLeagueData(leagueId) {
         console.warn(`⚠️ Partial data for manager ${entry.entry}:`, error.message);
         return {
           ...entry,
-          managerData: null,
           historyData: null,
           liveBenchPoints: null
         };
@@ -246,130 +237,32 @@ async function fetchFreshLeagueData(leagueId) {
   // Wait for all manager data
   const managersWithData = await Promise.all(managerPromises);
 
-  // Transform standings with enhanced data
-  const transformedStandings = managersWithData.map((entry) => {
-    const managerName = entry.managerData
-      ? `${entry.managerData.firstName} ${entry.managerData.lastName}`.trim() || `Manager ${entry.entry}`
-      : entry.player_name || `Manager ${entry.entry}`;
-
-    const teamName = entry.managerData?.teamName || entry.entry_name || 'Unknown Team';
-
-    // Get current gameweek hits
-    const currentGWHits = entry.historyData?.currentSeason?.find(h => h.event === currentGameweek)?.event_transfers_cost || 0;
-
-    // Calculate form (last 5 gameweeks)
-    let form = 'N/A';
-    let avgPoints = 0;
-    if (entry.historyData?.currentSeason?.length > 0) {
-      const recentGames = entry.historyData.currentSeason.slice(-5);
-      if (recentGames.length > 0) {
-        const totalPoints = recentGames.reduce((sum, gw) => sum + gw.points, 0);
-        avgPoints = Math.round(totalPoints / recentGames.length);
-        form = `${avgPoints} pts avg`;
-      }
-    }
-
-    return {
-      id: entry.entry,
-      managerName: managerName,
-      teamName: teamName,
-      totalPoints: entry.total,
-      gameweekPoints: entry.event_total || 0,
-      gameweekHits: currentGWHits,
-      rank: entry.rank,
-      lastRank: entry.last_rank,
-      rankChange: (entry.last_rank || entry.rank) - entry.rank,
-      form: form,
-      avgPoints: avgPoints,
-      overallRank: entry.managerData?.overallRank || 0,
-      hasData: !!entry.managerData,
-      chips: entry.historyData?.chips || [],
-      bankValue: entry.historyData?.currentSeason?.[entry.historyData.currentSeason.length - 1]?.bank || 0,
-      teamValue: entry.historyData?.currentSeason?.[entry.historyData.currentSeason.length - 1]?.value || 100
-    };
-  });
-
-  // Calculate gameweek history table
-  const gameweekTable = [];
-  const maxGameweek = Math.max(
-    ...managersWithData
-      .filter(m => m.historyData?.currentSeason?.length > 0)
-      .map(m => m.historyData.currentSeason.length),
-    0
+  // Transform standings with enhanced data — the field mapping lives in
+  // _lib/leagueShape.js so it can be unit-tested in isolation.
+  const transformedStandings = managersWithData.map((entry) =>
+    shapeManager(entry, entry.historyData, currentGameweek)
   );
 
-  for (let gw = 1; gw <= maxGameweek; gw++) {
-    const gwData = {
-      gameweek: gw,
-      managers: []
-    };
+  // Build the per-gameweek table (see _lib/leagueShape.js).
+  const liveBenchByManager = new Map(
+    managersWithData
+      .filter((m) => m.liveBenchPoints != null)
+      .map((m) => [m.entry, m.liveBenchPoints])
+  );
+  const gameweekTable = buildGameweekTable(managersWithData, new Map(
+    managersWithData.map((m) => [m.entry, m.historyData?.currentSeason || []])
+  ), {
+    currentGameweek,
+    currentGwIsFinal,
+    liveBenchByManager
+  });
 
-    managersWithData.forEach(manager => {
-      const gwHistory = manager.historyData?.currentSeason?.find(h => h.event === gw);
-      if (gwHistory) {
-        // This row is the live, in-progress gameweek — prefer the
-        // already-fresh standings/entry figures (and our own recomputed
-        // bench points) over the /history/ snapshot for it. See the
-        // currentGwIsFinal comment above managerPromises.
-        const isLiveCurrentGw = gw === currentGameweek && !currentGwIsFinal;
-        gwData.managers.push({
-          id: manager.entry,
-          name: manager.entry_name || manager.player_name,
-          managerName: manager.player_name || manager.entry_name,
-          teamName: manager.entry_name,
-          points: isLiveCurrentGw ? (manager.event_total ?? gwHistory.points) : gwHistory.points,
-          totalPoints: isLiveCurrentGw ? (manager.total ?? gwHistory.total_points) : gwHistory.total_points,
-          rank: isLiveCurrentGw ? (manager.managerData?.overallRank || gwHistory.overall_rank) : gwHistory.overall_rank,
-          transfers: gwHistory.event_transfers,
-          transferCost: gwHistory.event_transfers_cost,
-          benchPoints: isLiveCurrentGw && manager.liveBenchPoints != null
-            ? manager.liveBenchPoints
-            : gwHistory.points_on_bench
-        });
-      }
-    });
+    // (standings transform + gameweek table + league stats are built above
+  // via _lib/leagueShape.js.)
 
-    if (gwData.managers.length > 0) {
-      // Sort by gameweek points for ranking
-      gwData.managers.sort((a, b) => b.points - a.points);
-      gwData.winner = gwData.managers[0]?.name || 'N/A';
-      gwData.highestScore = gwData.managers[0]?.points || 0;
-      gwData.averageScore = Math.round(
-        gwData.managers.reduce((sum, m) => sum + m.points, 0) / gwData.managers.length
-      );
-      gameweekTable.push(gwData);
-    }
-  }
-
-  // Calculate league statistics (guarded against an empty standings list,
-  // which would otherwise turn these into NaN/-Infinity/Infinity and flow
-  // straight into the UI instead of erroring visibly).
-  const managerCount = transformedStandings.length;
-  const leagueStats = managerCount === 0 ? {
-    totalManagers,
-    averageScore: 0,
-    highestTotal: 0,
-    lowestTotal: 0,
-    averageGameweekScore: 0,
-    highestGameweekScore: 0,
-    totalChipsUsed: 0,
-    averageTeamValue: 0
-  } : {
-    totalManagers,
-    averageScore: Math.round(
-      transformedStandings.reduce((sum, m) => sum + m.totalPoints, 0) / managerCount
-    ),
-    highestTotal: Math.max(...transformedStandings.map(m => m.totalPoints)),
-    lowestTotal: Math.min(...transformedStandings.map(m => m.totalPoints)),
-    averageGameweekScore: Math.round(
-      transformedStandings.reduce((sum, m) => sum + m.gameweekPoints, 0) / managerCount
-    ),
-    highestGameweekScore: Math.max(...transformedStandings.map(m => m.gameweekPoints)),
-    totalChipsUsed: transformedStandings.reduce((sum, m) => sum + m.chips.length, 0),
-    averageTeamValue: Math.round(
-      transformedStandings.reduce((sum, m) => sum + m.teamValue, 0) / managerCount * 10
-    ) / 10
-  };
+  // Calculate league statistics (guarded against an empty standings list —
+  // the guard itself lives in buildLeagueStats)
+  const leagueStats = buildLeagueStats(transformedStandings, totalManagers);
 
   const processingTime = Date.now() - startTime;
 
