@@ -21,7 +21,7 @@ const InsightsPanel = ({ gameweekTable = [], gameweek, standings = [], status = 
       <WeeklyStory gameweekTable={gameweekTable} gameweek={gameweek} standings={standings} />
       <CaptainWatch standings={standings} gameweek={gameweek} enabled={picksEnabled} status={status} />
       <PriceWatch gameweek={gameweek} />
-      <TransferLeaderboard gameweekTable={gameweekTable} />
+      <TransferLeaderboard gameweekTable={gameweekTable} gameweek={gameweek} />
     </div>
   );
 };

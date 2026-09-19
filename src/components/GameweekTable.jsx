@@ -414,7 +414,13 @@ const GameweekTable = ({ gameweekTable = [], currentGameweek = 1, currentGamewee
             managerId={selectedTeam.id}
             managerName={selectedTeam.managerName}
             teamName={selectedTeam.teamName}
-            gameweekInfo={{ current: selectedGameweek }}
+            gameweekInfo={{
+              current: selectedGameweek,
+              // Drives TeamView's "hasn't played" handling for this exact
+              // gameweek — completed rows show real zeros, anything else
+              // (current/upcoming) shows "–" for picks with no minutes yet.
+              isFinished: selectedGameweekStatus === 'completed'
+            }}
             onClose={() => setSelectedTeam(null)}
           />
         )
