@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronRight, Search, UserX, UserCheck, Settings } from 'lucide-react';
+import { ChevronRight, Search, UserX, UserCheck, Settings, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TeamView from './TeamView';
 import Card from './ui/Card';
@@ -7,6 +7,7 @@ import Button from './ui/Button';
 import { RankBadge, StandingsScene, Coins, Jersey, Ball } from './ui/Doodles';
 import PrizeBreakdown from './PrizeBreakdown';
 import InsightsFAB from './InsightsFAB';
+import ManagerProfile from './ManagerProfile';
 import { useExclusion } from '../context/ExclusionContext';
 import RankTrendSparkline from './RankTrendSparkline';
 import { monthlyWindows, prizeStructure } from '../data/leagueData';
@@ -98,6 +99,10 @@ const formatTeamValue = (value) =>
 const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagueStats = {}, gameweekTable = [] }) => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
+  // A manager's full-season profile — the same row's data, aggregated. Held
+  // separately from `selectedTeam` so the two sheets are alternatives from
+  // the actions row rather than a stack.
+  const [selectedProfile, setSelectedProfile] = useState(null);
   const [selectedPrizeManager, setSelectedPrizeManager] = useState(null);
   const [showExclusionSettings, setShowExclusionSettings] = useState(false);
   const [query, setQuery] = useState('');
@@ -869,8 +874,10 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                             )}
                           </div>
 
-                          {/* Three actions */}
-                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3.5">
+                          {/* Four actions. Two-up at lg, four-up at xl —
+                              four full-width buttons in one lg row left
+                              each one too narrow for its label. */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3 mt-3.5">
                             <Button
                               variant="primary"
                               className="w-full justify-center min-h-[48px] rounded-full bg-ink text-surface hover:bg-ink/90"
@@ -880,6 +887,17 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                               }}
                             >
                               <Jersey size={19} tone="fill-coral" /> View the XI
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              className="w-full justify-center min-h-[48px] rounded-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedProfile(manager);
+                              }}
+                            >
+                              <TrendingUp size={19} /> Season profile
                             </Button>
 
                             {/* Always reachable now. It used to be rendered
@@ -937,6 +955,19 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
           teamName={selectedTeam.teamName}
           gameweekInfo={gameweekInfo}
           onClose={() => setSelectedTeam(null)}
+        />
+      )}
+
+      {/* Season profile — no fetch of its own: everything it shows is already
+          in `gameweekTable` / `standings`, and it receives the rank-trend map
+          the table above already computed rather than rebuilding it. */}
+      {selectedProfile && (
+        <ManagerProfile
+          manager={selectedProfile}
+          gameweekTable={gameweekTable}
+          standings={standings}
+          rankHistory={rankHistoryByManager}
+          onClose={() => setSelectedProfile(null)}
         />
       )}
 
