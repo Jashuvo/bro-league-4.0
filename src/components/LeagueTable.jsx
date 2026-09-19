@@ -11,6 +11,8 @@ import { useExclusion } from '../context/ExclusionContext';
 import RankTrendSparkline from './RankTrendSparkline';
 import { monthlyWindows, prizeStructure } from '../data/leagueData';
 import { computeRankHistory } from '../utils/rankHistory';
+import { computeRecentForm } from '../utils/formGuide';
+import FormDots from './ui/FormDots';
 import { cn } from '../utils/cn';
 
 // ─── THE STANDINGS TABLE ────────────────────────────────────────────────────
@@ -243,6 +245,20 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
     return ranked[0] ? String(ranked[0].id) : null;
   }, [gameweekTable, currentGW]);
 
+  // Recent form per manager — the last five PLAYED gameweeks, each judged
+  // against that gameweek's league average on net points. Derived from
+  // gameweekTable alone (no fetching, no extra API calls); see
+  // utils/formGuide.js for the rule and why it's "above the field" rather
+  // than a W/D/L strip.
+  const formByManager = useMemo(() => {
+    const map = {};
+    standings.forEach((manager) => {
+      const id = String(manager.id || manager.entry);
+      map[id] = computeRecentForm(gameweekTable, manager.id || manager.entry, 5);
+    });
+    return map;
+  }, [gameweekTable, standings]);
+
   const enhancedStandings = useMemo(() => {
     return standings.map((manager, index) => {
       const id = manager.id || manager.entry;
@@ -253,6 +269,7 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
         position: index + 1,
         totalPrizesWon: calculateTotalPrizesWon(id),
         benchPoints: benchByManager[String(id)],
+        form: formByManager[String(id)] || [],
         chipThisGw: chips.find((chip) => chip.event === currentGW) || null,
         chipsPlayed: chips,
         initials: initialsOf(manager.managerName || manager.player_name),
@@ -261,7 +278,7 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
     });
     // calculateTotalPrizesWon closes over gameweekTable/gameweekInfo, both of
     // which are already listed here.
-  }, [standings, gameweekTable, gameweekInfo, benchByManager, currentGW]);
+  }, [standings, gameweekTable, gameweekInfo, benchByManager, formByManager, currentGW]);
 
   // Cumulative league-position history per manager, derived from
   // gameweekTable — powers the "Rank Trend" sparkline in each expanded row.
@@ -620,6 +637,13 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                           <span className="block text-[13px] font-bold text-ink-soft leading-tight truncate">
                             {manager.managerName || manager.player_name}
                           </span>
+                          {/* Recent form sits under the name rather than in a
+                              column of its own — the grid above is already ten
+                              columns wide, and this keeps the dots tied to the
+                              manager they describe. */}
+                          <span className="mt-1 flex">
+                            <FormDots form={manager.form} showLabel />
+                          </span>
                         </span>
                       </div>
 
@@ -696,6 +720,9 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                               {CHIP_SHORT[manager.chipThisGw.name] || chipLabel(manager.chipThisGw.name)}
                             </span>
                           )}
+                        </span>
+                        <span className="mt-1 flex">
+                          <FormDots form={manager.form} />
                         </span>
                       </span>
                       <span className="text-right shrink-0">
@@ -781,6 +808,44 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                               </p>
                             </div>
                           )}
+
+                          {/* Recent form — the same five dots the row shows,
+                                spelled out with each week's delta against the
+                                league average so the colours aren't a mystery. */}
+                            {manager.form.length > 0 && (
+                              <div className="bg-surface-alt rounded-[18px] px-4 py-3.5 mt-3.5">
+                                <div className="flex items-center justify-between gap-3 flex-wrap">
+                                  <span className="text-[11.5px] font-bold uppercase tracking-[0.04em] text-ink-soft">
+                                    Recent form
+                                  </span>
+                                  <FormDots form={manager.form} />
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                                  {manager.form.map((f) => (
+                                    <span
+                                      key={f.gameweek}
+                                      className={cn(
+                                        'inline-flex items-center gap-1.5 rounded-full border-2 px-2.5 py-0.5 text-[11.5px] font-bold tabular-nums',
+                                        f.trend === 'up'
+                                          ? 'bg-pitch/15 border-pitch/60 text-pitch-ink'
+                                          : f.trend === 'down'
+                                            ? 'bg-coral/15 border-coral/60 text-coral-ink'
+                                            : 'bg-surface-sunk border-ink/25 text-ink-soft'
+                                      )}
+                                    >
+                                      GW{f.gameweek}
+                                      <span>{f.delta > 0 ? `+${f.delta}` : f.delta}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                                <p className="text-[10.5px] font-bold text-ink-soft mt-2 leading-tight">
+                                  Net of transfer hits, against that gameweek&apos;s league average
+                                  {manager.form[manager.form.length - 1]
+                                    ? ` — GW${manager.form[manager.form.length - 1].gameweek} average: ${manager.form[manager.form.length - 1].leagueAvg}.`
+                                    : '.'}
+                                </p>
+                              </div>
+                            )}
 
                           {/* Rank trend */}
                           <div className="bg-surface-alt rounded-[18px] p-4 mt-3.5">

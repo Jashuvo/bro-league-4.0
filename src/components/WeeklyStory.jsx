@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen } from 'lucide-react';
 import Card from './ui/Card';
+import ShareButton from './ShareButton';
 import { Boot, CornerFlags, Coins, FormArrow, Bench } from './ui/Doodles';
 import { computeRankHistory } from '../utils/rankHistory';
 
@@ -27,6 +28,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek, standings = [] }) => {
     if (top) {
       list.push({
         art: <Boot size={26} />, tint: 'bg-tangerine/40',
+        plain: `${top.managerName || top.name} topped GW${gameweek} with ${top.net} pts`,
         text: <><strong>{top.managerName || top.name}</strong> topped the gameweek with <strong>{top.net} pts</strong></>,
       });
     }
@@ -37,6 +39,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek, standings = [] }) => {
       if (margin <= 3) {
         list.push({
           art: <CornerFlags size={26} />, tint: 'bg-sky/40',
+          plain: `${top.managerName || top.name} edged out ${runnerUp.managerName || runnerUp.name} by ${margin} point${margin === 1 ? '' : 's'}`,
           text: <><strong>{top.managerName || top.name}</strong> just edged out <strong>{runnerUp.managerName || runnerUp.name}</strong> by {margin} point{margin === 1 ? '' : 's'}</>,
         });
       }
@@ -45,6 +48,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek, standings = [] }) => {
     if (bottom && bottom.id !== top.id) {
       list.push({
         art: <FormArrow size={26} direction="down" />, tint: 'bg-bubblegum/35',
+        plain: `Wooden spoon: ${bottom.managerName || bottom.name} with ${bottom.net} pts`,
         text: <><strong>{bottom.managerName || bottom.name}</strong> picked up the wooden spoon with just <strong>{bottom.net} pts</strong></>,
       });
     }
@@ -53,6 +57,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek, standings = [] }) => {
     if (benchLeader && benchLeader.benchPoints > 10) {
       list.push({
         art: <Bench size={26} />, tint: 'bg-sunflower/40',
+        plain: `${benchLeader.managerName || benchLeader.name} left ${benchLeader.benchPoints} pts on the bench`,
         text: <><strong>{benchLeader.managerName || benchLeader.name}</strong> left <strong>{benchLeader.benchPoints} pts</strong> stranded on the bench</>,
       });
     }
@@ -61,6 +66,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek, standings = [] }) => {
     if (hitLeader && hitLeader.transferCost > 0) {
       list.push({
         art: <Coins size={26} />, tint: 'bg-coral/25',
+        plain: `${hitLeader.managerName || hitLeader.name} paid -${hitLeader.transferCost} pts in transfer hits`,
         text: <><strong>{hitLeader.managerName || hitLeader.name}</strong> paid <strong>-{hitLeader.transferCost} pts</strong> in transfer hits</>,
       });
     }
@@ -81,6 +87,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek, standings = [] }) => {
       if (riser?.delta > 0 && byId[riser.id]) {
         list.push({
           art: <FormArrow size={26} direction="up" />, tint: 'bg-mint/40',
+          plain: `${byId[riser.id].managerName || byId[riser.id].name} climbed ${riser.delta} spot${riser.delta === 1 ? '' : 's'} to #${riser.rank}`,
           text: <><strong>{byId[riser.id].managerName || byId[riser.id].name}</strong> climbed {riser.delta} spot{riser.delta === 1 ? '' : 's'} to #{riser.rank}</>,
         });
       }
@@ -88,6 +95,7 @@ const WeeklyStory = ({ gameweekTable = [], gameweek, standings = [] }) => {
       if (faller?.delta < 0 && faller.id !== riser?.id && byId[faller.id]) {
         list.push({
           art: <FormArrow size={26} direction="down" tone="fill-coral" />, tint: 'bg-coral/25',
+          plain: `${byId[faller.id].managerName || byId[faller.id].name} dropped ${Math.abs(faller.delta)} spot${Math.abs(faller.delta) === 1 ? '' : 's'} to #${faller.rank}`,
           text: <><strong>{byId[faller.id].managerName || byId[faller.id].name}</strong> dropped {Math.abs(faller.delta)} spot{Math.abs(faller.delta) === 1 ? '' : 's'} to #{faller.rank}</>,
         });
       }
@@ -95,6 +103,14 @@ const WeeklyStory = ({ gameweekTable = [], gameweek, standings = [] }) => {
 
     return list;
   }, [gameweekTable, gameweek, standings]);
+
+  // The same beats as plain text, for the group chat. Kept in step with the
+  // rendered beats by living on the beat objects themselves rather than
+  // being re-derived from JSX (which you can't read text out of).
+  const shareText = useMemo(
+    () => [`GW${gameweek} — BRO League`, ...beats.map((beat) => `• ${beat.plain}`)].join('\n'),
+    [beats, gameweek]
+  );
 
   if (beats.length === 0) return null;
 
@@ -106,10 +122,21 @@ const WeeklyStory = ({ gameweekTable = [], gameweek, standings = [] }) => {
           system font supplies — glossy, multicoloured, and nothing at all like
           the flat outlined drawings everywhere else on the page. */}
       <Card className="p-5">
-        <h3 className="text-base font-display font-bold text-ink flex items-center gap-2 mb-3.5">
+        <h3 className="text-base font-display font-bold text-ink flex items-center gap-2 mb-3.5 flex-wrap">
           <BookOpen className="text-violet-ink" size={18} />
           This week&rsquo;s story
-          <span className="ml-auto text-[11px] font-bold text-ink-soft">Written from the results</span>
+          <span className="ml-auto flex items-center gap-2">
+            <span className="text-[11px] font-bold text-ink-soft hidden sm:inline">Written from the results</span>
+            {/* "Something worth screenshotting into the group chat" — only
+                made literal: same beats, as plain text. */}
+            <ShareButton
+              className="h-8 px-3 text-[12px]"
+              title={`BRO League — GW${gameweek}`}
+              text={shareText}
+            >
+              Share
+            </ShareButton>
+          </span>
         </h3>
         <ul className="space-y-2">
           {beats.map((beat, i) => (
