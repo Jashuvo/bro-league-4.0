@@ -5,7 +5,7 @@ import Badge from './ui/Badge';
 import SegmentedControl from './ui/SegmentedControl';
 import { Whistle, CalendarDoodle, TrophyCup } from './ui/Doodles';
 import { leagueConfig } from '../data/leagueData';
-import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // This project's own permanent record — weekly winners, monthly winners,
 // and the full per-gameweek standings table — captured daily into
@@ -111,7 +111,7 @@ const SeasonArchiveSheet = ({ open, onClose, seasonArchive = [], standings = [] 
     };
   }, [seasonRows]);
 
-  useEscapeKey(onClose, open);
+  const panelRef = useFocusTrap(onClose, open);
 
   if (!open) return null;
 
@@ -126,6 +126,7 @@ const SeasonArchiveSheet = ({ open, onClose, seasonArchive = [], standings = [] 
     >
       <div onClick={onClose} className="absolute inset-0 bg-scrim/75" />
       <motion.div
+        ref={panelRef}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Lock, AlertCircle } from 'lucide-react';
-import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // A styled stand-in for window.prompt()/alert() when excluding/restoring a
 // manager — those native dialogs were the one place left in the app that
@@ -16,7 +16,7 @@ const PinPrompt = ({ request, onDone }) => {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEscapeKey(() => onDone(), !!request);
+  const panelRef = useFocusTrap(() => onDone(), !!request);
 
   if (!request) return null;
 
@@ -51,6 +51,7 @@ const PinPrompt = ({ request, onDone }) => {
     >
       <div onClick={handleCancel} className="absolute inset-0 bg-scrim/75" />
       <motion.div
+        ref={panelRef}
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}

@@ -7,7 +7,7 @@ import Button from './ui/Button';
 import { Jersey, Ball, PitchGraphic, Confetti } from './ui/Doodles';
 import fplApi from '../services/fplApi';
 import PlayerDetail from './PlayerDetail';
-import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // FPL's own kit-image CDN — the same one fantasy.premierleague.com's pitch
 // view points <img> tags at, keyed by team.code (api/team-picks.js already
@@ -26,12 +26,16 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   const [careerHistory, setCareerHistory] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
 
-  // `active: !selectedPlayer` — while a player's own detail sheet is open
-  // on top of this one, THIS listener is deliberately not attached at all,
-  // so Escape only ever reaches PlayerDetail's own useEscapeKey call (which
-  // closes just the player sheet) instead of also closing TeamView
-  // underneath it in the same keystroke.
-  useEscapeKey(onClose, !selectedPlayer);
+  // `escapeActive: !selectedPlayer` — while a player's own detail sheet is
+  // open on top of this one, THIS sheet's Escape is deliberately not
+  // attached at all, so Escape only ever reaches PlayerDetail's own
+  // listener (which closes just the player sheet) instead of also closing
+  // TeamView underneath it in the same keystroke. The Tab trap itself stays
+  // ACTIVE through that — the hook's LIFO stack means only the topmost
+  // sheet reacts to Tab, so focus can't be yanked out of the player sheet
+  // and back into this one, and this sheet's scroll lock (and its
+  // restore-focus target) survive the child opening and closing.
+  const panelRef = useFocusTrap(onClose, true, !selectedPlayer);
 
   const currentGameweek = gameweekInfo?.current || 1;
 
@@ -322,6 +326,7 @@ const TeamView = ({ managerId, managerName, teamName, gameweekInfo, onClose }) =
   return createPortal(
     <div className="fixed inset-0 bg-scrim/70 flex items-center justify-center z-50 p-3 md:p-6">
       <motion.div
+        ref={panelRef}
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 50 }}

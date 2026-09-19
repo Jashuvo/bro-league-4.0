@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Ball } from './ui/Doodles';
 import InsightsPanel from './InsightsPanel';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // ─── MOBILE INSIGHTS SHORTCUT ───────────────────────────────────────────────
 //
@@ -21,6 +22,10 @@ import InsightsPanel from './InsightsPanel';
 // every prop this needs — no new data fetching, no App.jsx plumbing.
 const InsightsFAB = ({ gameweekTable = [], gameweek, standings = [], status = 'current' }) => {
   const [open, setOpen] = useState(false);
+  // Same focus/Tab/scroll-lock treatment as the other sheets — this one is a
+  // portal rendered outside InsightsFAB's own subtree, so the trap (not just
+  // Escape) is what keeps Tab from wandering back into the page behind it.
+  const panelRef = useFocusTrap(() => setOpen(false), open);
 
   return (
     <>
@@ -59,6 +64,7 @@ const InsightsFAB = ({ gameweekTable = [], gameweek, standings = [], status = 'c
             style={{ backgroundColor: 'rgb(var(--c-scrim) / 0.6)' }}
           />
           <motion.div
+            ref={panelRef}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}

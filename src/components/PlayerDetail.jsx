@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { X, AlertCircle, Sparkles } from 'lucide-react';
 import { Jersey } from './ui/Doodles';
 import { cn } from '../utils/cn';
-import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 
 // Same crest CDN FixturesView points at, keyed by team.code — see
 // api/fixtures.js for where this pattern first got verified.
@@ -17,10 +17,12 @@ const crestUrl = (teamCode) =>
 // the player's name and price.
 const PlayerDetail = ({ player, onClose }) => {
   const [crestFailed, setCrestFailed] = useState(false);
-  // `active` guards the listener rather than skipping the hook call
-  // itself — the early `return null` below would otherwise make this a
-  // conditional hook call whenever `player` toggles.
-  useEscapeKey(onClose, !!player);
+  // Traps Tab inside the sheet, locks the page behind it, and hands focus
+  // back to the player's name-plate on close. `active` guards the listener
+  // rather than skipping the hook call itself — the early `return null`
+  // below would otherwise make this a conditional hook call whenever
+  // `player` toggles.
+  const panelRef = useFocusTrap(onClose, !!player);
 
   if (!player) return null;
 
@@ -46,6 +48,7 @@ const PlayerDetail = ({ player, onClose }) => {
         className="absolute inset-0 bg-scrim/75"
       />
       <motion.div
+        ref={panelRef}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
