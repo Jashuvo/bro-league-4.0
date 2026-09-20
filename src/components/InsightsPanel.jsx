@@ -3,7 +3,6 @@ import FixtureAlerts from './FixtureAlerts';
 import WeeklyStory from './WeeklyStory';
 import CaptainWatch from './CaptainWatch';
 import PriceWatch from './PriceWatch';
-import BonusWatch from './BonusWatch';
 import TransferLeaderboard from './TransferLeaderboard';
 
 // Everything "worth reading beyond the leaderboard" for one gameweek, in one
@@ -21,7 +20,6 @@ const InsightsPanel = ({ gameweekTable = [], gameweek, standings = [], status = 
       <FixtureAlerts />
       <WeeklyStory gameweekTable={gameweekTable} gameweek={gameweek} standings={standings} />
       <CaptainWatch standings={standings} gameweek={gameweek} enabled={picksEnabled} status={status} />
-      <BonusWatch standings={standings} gameweek={gameweek} enabled={status === 'current'} status={status} />
       <PriceWatch gameweek={gameweek} />
       <TransferLeaderboard gameweekTable={gameweekTable} gameweek={gameweek} />
     </div>
