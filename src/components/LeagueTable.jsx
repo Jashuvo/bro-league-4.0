@@ -13,6 +13,7 @@ import RankTrendSparkline from './RankTrendSparkline';
 import { monthlyWindows, prizeStructure } from '../data/leagueData';
 import { computeRankHistory } from '../utils/rankHistory';
 import { computeRecentForm } from '../utils/formGuide';
+import { calculatePrizeBreakdown, calculateTotalPrizesWon } from '../utils/prizeMath';
 import FormDots from './ui/FormDots';
 import { cn } from '../utils/cn';
 
@@ -112,122 +113,14 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
   const currentGW = gameweekInfo.current || 1;
   const gwFinished = !!gameweekInfo.isFinished;
 
-  // Calculate total prizes won (Logic preserved)
-  const calculateTotalPrizesWon = (managerId) => {
-    let totalWon = 0;
-
-    if (gameweekTable.length === 0) return 0;
-
-    const getNetPoints = (manager) => {
-      const rawPoints = manager.gameweekPoints || manager.points || 0;
-      const transfersCost = manager.transfersCost || manager.event_transfers_cost || manager.transferCost || manager.transfers_cost || manager.penalty || manager.hit || manager.gameweekHits || 0;
-      return rawPoints - transfersCost;
-    };
-
-    // Weekly Prizes - Only count FINISHED gameweeks
-    const lastCompletedGW = gwFinished ? currentGW : currentGW - 1;
-    for (let gw = 1; gw <= lastCompletedGW; gw++) {
-      const gameweekData = gameweekTable.find(g => g.gameweek === gw);
-      if (!gameweekData?.managers) continue;
-      const sortedManagers = [...gameweekData.managers]
-        .filter(m => (m.gameweekPoints || m.points || 0) > 0)
-        .sort((a, b) => getNetPoints(b) - getNetPoints(a));
-      const managerRank = sortedManagers.findIndex(m => m.id === managerId) + 1;
-      if (managerRank === 1) totalWon += prizeStructure.weekly.perWeek;
-    }
-
-    // Monthly Prizes - a month only "counts" once its last gameweek has
-    // actually finished, not merely once we've reached it (matches the
-    // weekly-prize gating above).
-    monthlyWindows.forEach((month) => {
-      const isMonthFinished = currentGW > month.end || (currentGW === month.end && gwFinished);
-      if (isMonthFinished) {
-        const allMonthlyScores = gameweekTable
-          .filter(gw => gw.gameweek >= month.start && gw.gameweek <= month.end)
-          .reduce((scores, gw) => {
-            gw.managers?.forEach(manager => {
-              if (!scores[manager.id]) scores[manager.id] = 0;
-              scores[manager.id] += getNetPoints(manager);
-            });
-            return scores;
-          }, {});
-        const sortedMonthly = Object.entries(allMonthlyScores).sort((a, b) => b[1] - a[1]);
-        const monthlyRank = sortedMonthly.findIndex(([id]) => id == managerId) + 1;
-        if (monthlyRank >= 1 && monthlyRank <= 3) {
-          const prizes = month.isFinal ? prizeStructure.monthly.finalMonth : prizeStructure.monthly.regularPrizes;
-          totalWon += prizes[monthlyRank - 1];
-        }
-      }
-    });
-    return totalWon;
-  };
-
-  // Calculate detailed prize breakdown for a manager
-  const calculatePrizeBreakdown = (managerId) => {
-    const weeklyWins = [];
-    const monthlyWins = [];
-
-    if (gameweekTable.length === 0) {
-      return { weeklyWins, monthlyWins, totalPrizes: 0 };
-    }
-
-    const getNetPoints = (manager) => {
-      const rawPoints = manager.gameweekPoints || manager.points || 0;
-      const transfersCost = manager.transfersCost || manager.event_transfers_cost || manager.transferCost || manager.transfers_cost || manager.penalty || manager.hit || 0;
-      return rawPoints - transfersCost;
-    };
-
-    // Weekly Prizes - Only count FINISHED gameweeks
-    const lastCompletedGW = gwFinished ? currentGW : currentGW - 1;
-    for (let gw = 1; gw <= lastCompletedGW; gw++) {
-      const gameweekData = gameweekTable.find(g => g.gameweek === gw);
-      if (!gameweekData?.managers) continue;
-      const sortedManagers = [...gameweekData.managers]
-        .filter(m => (m.gameweekPoints || m.points || 0) > 0)
-        .sort((a, b) => getNetPoints(b) - getNetPoints(a));
-      const managerRank = sortedManagers.findIndex(m => m.id === managerId) + 1;
-      if (managerRank === 1) {
-        const winnerData = sortedManagers[0];
-        weeklyWins.push({
-          gameweek: gw,
-          points: getNetPoints(winnerData),
-          prize: prizeStructure.weekly.perWeek
-        });
-      }
-    }
-
-    // Monthly Prizes - same "actually finished" gating as calculateTotalPrizesWon above
-    monthlyWindows.forEach((month) => {
-      const isMonthFinished = currentGW > month.end || (currentGW === month.end && gwFinished);
-      if (isMonthFinished) {
-        const allMonthlyScores = gameweekTable
-          .filter(gw => gw.gameweek >= month.start && gw.gameweek <= month.end)
-          .reduce((scores, gw) => {
-            gw.managers?.forEach(manager => {
-              if (!scores[manager.id]) scores[manager.id] = 0;
-              scores[manager.id] += getNetPoints(manager);
-            });
-            return scores;
-          }, {});
-        const sortedMonthly = Object.entries(allMonthlyScores).sort((a, b) => b[1] - a[1]);
-        const monthlyRank = sortedMonthly.findIndex(([id]) => id == managerId) + 1;
-        if (monthlyRank >= 1 && monthlyRank <= 3) {
-          const prizes = month.isFinal ? prizeStructure.monthly.finalMonth : prizeStructure.monthly.regularPrizes;
-          monthlyWins.push({
-            month: month.id,
-            position: monthlyRank,
-            points: allMonthlyScores[managerId],
-            prize: prizes[monthlyRank - 1]
-          });
-        }
-      }
-    });
-
-    const totalPrizes = weeklyWins.reduce((sum, w) => sum + w.prize, 0) +
-      monthlyWins.reduce((sum, w) => sum + w.prize, 0);
-
-    return { weeklyWins, monthlyWins, totalPrizes };
-  };
+  // Prize arithmetic lives in src/utils/prizeMath.js so it can be unit-tested
+  // — it used to be two near-identical loops in here (one totalling a
+  // manager's winnings, one building the breakdown modal) that had to be kept
+  // in agreement by eye. Everything season-specific it needs is passed in.
+  const prizeCtx = useMemo(
+    () => ({ currentGW, gwFinished, monthlyWindows, prizeStructure }),
+    [currentGW, gwFinished]
+  );
 
   // Points left on the bench, this gameweek. `points_on_bench` already rides
   // through api/league-complete.js into gameweekTable[].managers[].benchPoints —
@@ -272,7 +165,7 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
         ...manager,
         id,
         position: index + 1,
-        totalPrizesWon: calculateTotalPrizesWon(id),
+        totalPrizesWon: calculateTotalPrizesWon(gameweekTable, id, prizeCtx),
         benchPoints: benchByManager[String(id)],
         form: formByManager[String(id)] || [],
         chipThisGw: chips.find((chip) => chip.event === currentGW) || null,
@@ -281,9 +174,9 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
         avatarTone: AVATAR_TONES[index % AVATAR_TONES.length],
       };
     });
-    // calculateTotalPrizesWon closes over gameweekTable/gameweekInfo, both of
-    // which are already listed here.
-  }, [standings, gameweekTable, gameweekInfo, benchByManager, formByManager, currentGW]);
+    // The prize math reads gameweekTable; prizeCtx carries the gameweek
+    // (and whether it's finished) the prizes are gated on.
+  }, [standings, gameweekTable, prizeCtx, benchByManager, formByManager, currentGW]);
 
   // Cumulative league-position history per manager, derived from
   // gameweekTable — powers the "Rank Trend" sparkline in each expanded row.
@@ -914,7 +807,7 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                                 e.stopPropagation();
                                 setSelectedPrizeManager({
                                   ...manager,
-                                  prizeData: calculatePrizeBreakdown(manager.id)
+                                  prizeData: calculatePrizeBreakdown(gameweekTable, manager.id, prizeCtx)
                                 });
                               }}
                             >

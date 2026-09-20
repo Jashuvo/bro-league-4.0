@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { prizeStructure, grandTotal } from '../../data/leagueData';
+import { getNetPoints } from '../../utils/prizeMath';
 
 // Every prize figure the Prizes destination shows, computed once from data
 // the app already has in state (`gameweekTable` + `standings`) and shared by
@@ -10,12 +11,10 @@ import { prizeStructure, grandTotal } from '../../data/leagueData';
 // and Prize Distribution merged into one destination — the Weekly and Season
 // views both need slices of it, and neither should recompute its own.
 
-const netPoints = (manager) => {
-  const raw = manager?.gameweekPoints ?? manager?.points ?? 0;
-  const cost = manager?.transfersCost ?? manager?.event_transfers_cost ?? manager?.transferCost ?? 0;
-  return raw - cost;
-};
-
+// Net points (gameweek points after transfer hits) comes from the shared,
+// unit-tested src/utils/prizeMath.js — this file used to carry its own
+// near-identical copy, which is exactly how two prize figures in the app
+// drift apart.
 export const usePrizeStats = ({ gameweekTable = [], standings = [], gameweekInfo = {} }) => {
   const currentGW = gameweekInfo.current || 1;
   const totalGWs = gameweekInfo.total || 38;
@@ -48,7 +47,7 @@ export const usePrizeStats = ({ gameweekTable = [], standings = [], gameweekInfo
 
     gameweekTable.forEach((gw) => {
       if (gw.managers && gw.managers.length > 0) {
-        const sortedManagers = [...gw.managers].sort((a, b) => netPoints(b) - netPoints(a));
+        const sortedManagers = [...gw.managers].sort((a, b) => getNetPoints(b) - getNetPoints(a));
 
         if (sortedManagers[0]) {
           const winner = sortedManagers[0];
@@ -64,11 +63,11 @@ export const usePrizeStats = ({ gameweekTable = [], standings = [], gameweekInfo
             gameweek: gw.gameweek,
             name: winnerName,
             teamName: winner.teamName || winner.entry_name,
-            points: netPoints(winner),
+            points: getNetPoints(winner),
             runnerUp: sortedManagers[1]
               ? {
                 name: sortedManagers[1].managerName || sortedManagers[1].name,
-                points: netPoints(sortedManagers[1])
+                points: getNetPoints(sortedManagers[1])
               }
               : null,
             prize: prizeStructure.weekly.perWeek
