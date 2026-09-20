@@ -64,6 +64,24 @@ export default defineConfig({
   base: './',
   build: {
     outDir: 'dist',
-    assetsDir: 'assets'
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        // Split the two big runtime libraries out of the app chunk. They
+        // change only when the dependency is upgraded, while the app chunk
+        // changes on every deploy — keeping them separate means a returning
+        // visitor re-downloads the app code alone instead of the whole
+        // 375 kB (118 kB gzipped) bundle. The tab views are already split
+        // by the lazy imports in App.jsx; this is the last big slice.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('framer-motion')) return 'vendor-motion';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          if (id.includes('react-dom') || id.includes('scheduler')) return 'vendor-react';
+          if (/node_modules\/react\//.test(id)) return 'vendor-react';
+          return undefined;
+        }
+      }
+    }
   }
 })
