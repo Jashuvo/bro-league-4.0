@@ -1,5 +1,6 @@
 // src/services/fplApi.js - Optimized FPL API Service with Enhanced Error Handling
 import { leagueConfig } from '../data/leagueData';
+import { loadLastGood, saveLastGood } from '../utils/lastGoodSnapshot';
 
 class FPLApiService {
   constructor() {
@@ -247,6 +248,13 @@ class FPLApiService {
         // Cache for 2 minutes (matching server cache)
         this.setCache(cacheKey, result.data, 2);
 
+        // Remember this payload for the next cold load — if FPL (or the
+        // network) is down when someone opens the app on matchday, this is
+        // what fills the screen instead of an empty one. Only real data is
+        // stored: `saveLastGood` refuses an empty payload, so a fallback
+        // response can never overwrite a good snapshot.
+        saveLastGood(this.leagueId, result.data);
+
         return result.data;
 
       } catch (error) {
@@ -259,6 +267,16 @@ class FPLApiService {
           staleCache.isStale = true;
           staleCache.error = error.message;
           return staleCache;
+        }
+
+        // Nothing in memory (typically a cold page load) — use the last
+        // payload that actually came from FPL on this device. Returned
+        // flagged `isStale` with an age, so the UI dates the numbers
+        // instead of presenting them as live.
+        const lastGood = loadLastGood(this.leagueId);
+        if (lastGood) {
+          console.log('🕒 Returning last saved league snapshot due to error');
+          return { ...lastGood, error: error.message };
         }
 
         // Return fallback data

@@ -11,6 +11,7 @@ import ErrorMessage from './components/ErrorMessage';
 import ErrorBoundary from './components/ErrorBoundary';
 import PWAUpdate from './components/PWAUpdate';
 import SeasonArchiveSheet from './components/SeasonArchiveSheet';
+import { formatStaleAge, hasLeagueData, loadLastGood } from './utils/lastGoodSnapshot';
 
 // One destination's code loads only when someone actually opens it,
 // instead of the whole app shipping as one bundle up front — the app has
@@ -45,6 +46,11 @@ function AppContent() {
   // showSeasonArchive below.
   const [seasonArchive, setSeasonArchive] = useState([]);
   const [showSeasonArchive, setShowSeasonArchive] = useState(false);
+  // Set when what's on screen came from the last-good snapshot rather than a
+  // live fetch — `{ ageMs }` (or `{ ageMs: null }` when the age isn't known,
+  // e.g. the in-memory stale cache). Drives the "showing the last saved data
+  // from X ago" banner, and clears itself the moment a live payload lands.
+  const [staleSnapshot, setStaleSnapshot] = useState(null);
   // Load timing is logged rather than held in state: the old CompactHero was
   // the only thing that ever rendered it, and the CommandBar that replaced it
   // shows the live/offline pill and last-sync time instead.
@@ -138,12 +144,16 @@ function AppContent() {
       // [], leagueStats: {}, all of which are truthy and would otherwise
       // sail straight past the `if (result.x)` checks below and overwrite
       // a perfectly good screen with a blank one). Only apply the payload
-      // when it's actually live data. A SILENT background poll additionally
-      // leaves the status pill alone on that path too — same reasoning as
-      // the catch block further down: one 60-second tick failing shouldn't
-      // flip "Live data" to "Offline" out from under data that's still
-      // sitting there correctly; let the next successful tick speak for
-      // itself, same as if this one had been skipped entirely.
+      // when it's actually live data — or the last-good snapshot, which is
+      // real data that just isn't fresh (`isStale`, dated by staleAgeMs).
+      // A SILENT background poll additionally leaves the status pill alone
+      // on that path too — same reasoning as the catch block further down:
+      // one 60-second tick failing shouldn't flip "Live data" to "Offline"
+      // out from under data that's still sitting there correctly; let the
+      // next successful tick speak for itself, same as if this one had been
+      // skipped entirely.
+      const usable = result.authenticated || (result.isStale && hasLeagueData(result));
+
       if (!silent || result.authenticated) {
         setAuthStatus({
           authenticated: result.authenticated,
@@ -153,7 +163,15 @@ function AppContent() {
         });
       }
 
-      if (result.authenticated) {
+      // The banner follows the data on screen: dated when this payload came
+      // from the snapshot, gone the moment a live one arrives.
+      if (result.isStale) {
+        setStaleSnapshot((prev) => ({ ageMs: result.staleAgeMs ?? prev?.ageMs ?? null }));
+      } else if (result.authenticated) {
+        setStaleSnapshot(null);
+      }
+
+      if (usable) {
         if (result.standings && result.standings.length > 0) {
           setStandings(result.standings);
         }
@@ -205,6 +223,32 @@ function AppContent() {
         setIsRefreshing(false);
       }
     }
+  }, []);
+
+  // Hydrate from the last-good snapshot BEFORE the first fetch resolves, so a
+  // cold load on a bad connection shows the league straight away instead of
+  // sitting on a spinner for the whole retry budget (two retries with
+  // exponential backoff). Whatever the fetch brings back replaces this, and
+  // the banner above the content always says which of the two is on screen.
+  // Mount-only: `loadData` below is what owns this state from then on.
+  useEffect(() => {
+    const snapshot = loadLastGood(fplApi.leagueId);
+    if (!snapshot) return;
+
+    const currentGW = snapshot.bootstrap?.currentGameweek || 1;
+    const currentGWData = snapshot.bootstrap?.gameweeks?.find((gw) => gw.id === currentGW);
+
+    setStandings(snapshot.standings);
+    setGameweekTable(snapshot.gameweekTable);
+    setLeagueStats(snapshot.leagueStats);
+    setBootstrap(snapshot.bootstrap || {});
+    setGameweekInfo({
+      current: currentGW,
+      total: snapshot.bootstrap?.totalGameweeks || 38,
+      // Same source as the live path: FPL's own event `finished` flag.
+      isFinished: !!currentGWData?.finished
+    });
+    setStaleSnapshot({ ageMs: snapshot.staleAgeMs });
   }, []);
 
   useEffect(() => {
@@ -389,6 +433,15 @@ function AppContent() {
           {error && (
             <ErrorMessage
               message={error}
+              onRetry={() => loadData(true)}
+            />
+          )}
+          {/* Not an error — real league data, just not live. Says how old it
+              is rather than letting stale points pass for current ones. */}
+          {!error && staleSnapshot && (
+            <ErrorMessage
+              type="warning"
+              message={`Showing the last saved data${staleSnapshot.ageMs != null ? ` from ${formatStaleAge(staleSnapshot.ageMs)}` : ''} — FPL isn't responding right now, so points may have moved since. It will refresh on its own once the connection is back.`}
               onRetry={() => loadData(true)}
             />
           )}
