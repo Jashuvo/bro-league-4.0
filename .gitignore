@@ -15,6 +15,8 @@ dist-ssr
 # Any dotenv file, including the accidental ".env" (with trailing spaces)
 # that used to be committed here — see git history if you ever need it.
 .env*
+# …but the checked-in template IS the point of .env.example.
+!.env.example
 
 # Supabase CLI's local cache (project ref, pooler URL, tool versions) —
 # machine-local state, not project config. The linked project ref lives in
