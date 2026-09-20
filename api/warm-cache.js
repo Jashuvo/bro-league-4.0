@@ -21,6 +21,7 @@ import { fetchWithRetry } from './_lib/helpers.js';
 import { monthlyWindows, weeklyPrize, monthlyRegularPrizes, monthlyFinalPrizes, seasonPrizes, getWeeklyWinner, getMonthlyTop, getInLeagueRanks, isSeasonFinalGameweek } from './_lib/prizeConfig.js';
 import { getSupabaseServiceClient } from './_lib/supabase.js';
 import { kv } from './_lib/kv.js';
+import { pickDueMessages } from './_lib/pushSend.js';
 import webpush from 'web-push';
 
 // So "is the daily archive job actually succeeding" is a query
@@ -192,21 +193,19 @@ async function snapshotResults({ leagueId, season, bootstrap, gameweekTable: raw
 }
 
 // ── Matchday push notifications ────────────────────────────────────────────
-// The sending half of api/push.js's subscription store. Two message types,
-// both de-duplicated through the kv_cache table so the daily cron can never
-// resend one it already sent:
-//
-//   results  — the most recent gameweek whose bonus points are officially
-//              in (`data_checked`), announcing its winner
-//   deadline — the next gameweek's deadline, once it's inside
-//              DEADLINE_WINDOW_HOURS (the cron runs at 06:00 daily, so in
-//              practice this fires on the last run before the deadline —
-//              anything from ~6 to ~30 hours ahead, never precise)
+// The IO half of api/_lib/pushSend.js's decision logic. `pickDueMessages`
+// decides WHAT is due (pure, unit-tested); this function does the parts a
+// unit test can't: reading/writing the sent-flags in kv, the actual
+// web-push sends, and pruning subscriptions the push service reports as
+// gone (404/410 — an unsubscribed or expired subscription that would
+// otherwise be retried forever).
 //
 // Deliberately best-effort, like the archive snapshot: a push failure must
-// never fail the cache warming it shares a cron slot with.
-const DEADLINE_WINDOW_HOURS = 36;
-const PUSH_FLAG_TTL_SECONDS = 14 * 24 * 60 * 60; // long past any resend window
+// never fail the cache warming it shares a cron slot with. A partially-
+// failed broadcast still sets its flag — retrying tomorrow against the
+// same settled gameweek would just duplicate the ping for everyone the
+// first attempt did reach.
+const PUSH_FLAG_TTL_SECONDS = 14 * 24 * 60 * 60;
 
 async function sendPushNotifications({ leagueId, bootstrap, gameweekTable }) {
   const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
@@ -215,9 +214,6 @@ async function sendPushNotifications({ leagueId, bootstrap, gameweekTable }) {
   }
   if (!kv) {
     return { skipped: 'KV not configured — sends could not be de-duplicated' };
-  }
-  if (!bootstrap?.gameweeks?.length) {
-    return { skipped: 'no gameweek metadata in the league payload' };
   }
 
   const supabase = await getSupabaseServiceClient();
@@ -236,19 +232,7 @@ async function sendPushNotifications({ leagueId, bootstrap, gameweekTable }) {
     VAPID_PRIVATE_KEY
   );
 
-  const gwByNumber = new Map(bootstrap.gameweeks.map((gw) => [gw.id, gw]));
-  const sent = [];
-
-  // One broadcast = send to every subscriber, prune endpoints the push
-  // service reports as gone (404/410 — an unsubscribed or expired
-  // subscription that would otherwise be retried forever), then mark the
-  // flag so tomorrow's run skips it. A partially-failed broadcast still
-  // sets the flag: retrying tomorrow against the same settled gameweek
-  // would just duplicate the ping for everyone it did reach.
   const broadcast = async ({ flagKey, title, body }) => {
-    const alreadySent = await kv.get(flagKey);
-    if (alreadySent) return false;
-
     const payload = JSON.stringify({ title, body, url: '/' });
     const results = await Promise.allSettled(
       subs.map((sub) =>
@@ -271,50 +255,29 @@ async function sendPushNotifications({ leagueId, bootstrap, gameweekTable }) {
     if (prunes.length > 0) await Promise.allSettled(prunes);
 
     await kv.set(flagKey, { at: new Date().toISOString() }, { ex: PUSH_FLAG_TTL_SECONDS });
-    return true;
   };
 
-  // ── Results: latest gameweek with settled bonus points ──
-  const finalized = (gameweekTable || []).filter((gw) => gwByNumber.get(gw.gameweek)?.data_checked);
-  if (finalized.length > 0) {
-    const lastFinalGw = Math.max(...finalized.map((gw) => gw.gameweek));
-    const winner = getWeeklyWinner(finalized.find((gw) => gw.gameweek === lastFinalGw));
-    if (winner) {
-      const didSend = await broadcast({
-        flagKey: `push_sent_results_gw${lastFinalGw}`,
-        title: `GW${lastFinalGw} results are in`,
-        body: `${winner.managerName}${winner.teamName ? ` (${winner.teamName})` : ''} topped the week with ${winner.netPoints} pts`,
-      });
-      if (didSend) sent.push(`results:gw${lastFinalGw}`);
+  // WHAT is due comes from the tested picker; the kv flag check stays here
+  // so the picker can stay pure.
+  const sentKeys = new Set();
+  const due = pickDueMessages({
+    gameweeks: bootstrap.gameweeks || [],
+    gameweekTable: gameweekTable || [],
+    now: Date.now(),
+  });
+  const sent = [];
+
+  for (const message of due) {
+    if (sentKeys.has(message.flagKey)) continue;
+    if (await kv.get(message.flagKey)) {
+      sentKeys.add(message.flagKey);
+      continue;
     }
+    await broadcast(message);
+    sent.push(message.flagKey);
   }
 
-  // ── Deadline: next gameweek once it's inside the reminder window ──
-  const now = Date.now();
-  const upcoming = bootstrap.gameweeks
-    .filter((gw) => gw.deadline_time && new Date(gw.deadline_time).getTime() > now)
-    .sort((a, b) => new Date(a.deadline_time).getTime() - new Date(b.deadline_time).getTime())[0];
-
-  if (upcoming) {
-    const hoursUntil = (new Date(upcoming.deadline_time).getTime() - now) / 3_600_000;
-    if (hoursUntil <= DEADLINE_WINDOW_HOURS) {
-      // The league is Bangladesh-based (prizes in ৳) — show the deadline in
-      // Dhaka time, not whichever timezone the cron server happens to sit in.
-      const when = new Date(upcoming.deadline_time).toLocaleString('en-GB', {
-        timeZone: 'Asia/Dhaka',
-        weekday: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      const didSend = await broadcast({
-        flagKey: `push_sent_deadline_gw${upcoming.id}`,
-        title: `GW${upcoming.id} deadline soon`,
-        body: `Deadline ${when} Dhaka time — lock in your transfers`,
-      });
-      if (didSend) sent.push(`deadline:gw${upcoming.id}`);
-    }
-  }
-
+  if (sent.length === 0) return { skipped: 'nothing due', subscribers: subs.length };
   return { subscribers: subs.length, sent };
 }
 
