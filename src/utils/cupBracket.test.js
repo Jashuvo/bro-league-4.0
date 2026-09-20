@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   bracketSizeFor,
   roundGameweeks,
-  buildCupBracket
+  buildCupBracket,
+  cupProgressFor
 } from './cupBracket';
 
 const manager = (id, total) => ({ id, managerName: `Manager ${id}`, totalPoints: total });
@@ -119,5 +120,67 @@ describe('buildCupBracket', () => {
     const cup = buildCupBracket([], []);
     expect(cup.bracketSize).toBe(0);
     expect(cup.rounds).toEqual([]);
+  });
+});
+
+describe('cupProgressFor', () => {
+  // Four managers → one semi-final round and the final (GW8, then GW38).
+  const standings = [1, 2, 3, 4].map((id) => manager(id, 1000 - id * 10));
+  const options = { totalGameweeks: 38, startGameweek: 8 };
+
+  // Seeds 1..4 pair as 1v4 and 2v3; 1 and 3 win their semi.
+  const semiDecided = [gwTable(8, { 1: 60, 2: 50, 3: 70, 4: 40 })];
+
+  it('reports nothing before any round has been decided', () => {
+    const progress = cupProgressFor(standings, [], options);
+    expect(progress.started).toBe(false);
+    // Still knows where everyone stands — the tag just isn't shown yet.
+    expect(progress.byManager.get(1).status).toBe('alive');
+  });
+
+  it('marks the semi-final losers eliminated in the round they lost', () => {
+    const progress = cupProgressFor(standings, semiDecided, options);
+    expect(progress.started).toBe(true);
+
+    const out = progress.byManager.get(2);
+    expect(out.status).toBe('eliminated');
+    expect(out.roundName).toBe('Semi-finals');
+    expect(out.roundAbbrev).toBe('SF');
+
+    expect(progress.byManager.get(4).status).toBe('eliminated');
+  });
+
+  it('advances the winners into the final', () => {
+    const progress = cupProgressFor(standings, semiDecided, options);
+    const finalist = progress.byManager.get(1);
+    expect(finalist.status).toBe('alive');
+    expect(finalist.roundName).toBe('Final');
+    expect(finalist.gameweek).toBe(38);
+  });
+
+  it('crowns a champion and eliminates the runner-up once the final is played', () => {
+    const progress = cupProgressFor(
+      standings,
+      [...semiDecided, gwTable(38, { 1: 40, 3: 55 })],
+      options
+    );
+    expect(progress.championId).toBe(3);
+    expect(progress.byManager.get(3).status).toBe('champion');
+    expect(progress.byManager.get(1).status).toBe('eliminated');
+  });
+
+  it('leaves managers outside the bracket without a position', () => {
+    // Seven managers seed a four-strong bracket — three miss out entirely.
+    const seven = [1, 2, 3, 4, 5, 6, 7].map((id) => manager(id, 1000 - id * 10));
+    const progress = cupProgressFor(seven, semiDecided, { totalGameweeks: 38, startGameweek: 8 });
+    expect([...progress.byManager.keys()].sort((a, b) => a - b)).toEqual([1, 2, 3, 4]);
+    expect(progress.byManager.get(5)).toBeUndefined();
+  });
+
+  it('handles a league too small for a cup', () => {
+    const progress = cupProgressFor([manager(1, 100)], [], options);
+    expect(progress.started).toBe(false);
+    expect(progress.byManager.size).toBe(0);
+    expect(progress.championId).toBeNull();
   });
 });

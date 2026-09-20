@@ -164,7 +164,14 @@ const CommandBar = ({
                 <span className="block text-[9px] font-bold uppercase tracking-[0.14em] text-ink-soft leading-none">Deadline</span>
                 <span className="block font-display font-bold text-[13px] lg:text-sm text-violet-ink leading-tight tabular-nums truncate">
                   {nextDeadline.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  {/* The clock time, not just the date: "Sat 21 Sep" doesn't
+                      tell anyone when to actually set their team, and the
+                      app's own deadline reminder pushes are timed off this
+                      same moment. Rendered in the viewer's own timezone,
+                      which is what FPL itself shows them. */}
                   {' • '}
+                  {nextDeadline.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  {' · '}
                   <LiveCountdown deadline={nextDeadline} />
                 </span>
               </span>

@@ -14,6 +14,7 @@ import { monthlyWindows, prizeStructure } from '../data/leagueData';
 import { computeRankHistory } from '../utils/rankHistory';
 import { computeRecentForm } from '../utils/formGuide';
 import { calculatePrizeBreakdown, calculateTotalPrizesWon } from '../utils/prizeMath';
+import { cupProgressFor } from '../utils/cupBracket';
 import FormDots from './ui/FormDots';
 import { cn } from '../utils/cn';
 
@@ -183,6 +184,19 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
   const rankHistoryByManager = useMemo(
     () => computeRankHistory(gameweekTable, standings),
     [gameweekTable, standings]
+  );
+
+  // Where each manager stands in the cup, for the small tag on their row —
+  // derived from the very same bracket More → Cup renders, so the two can
+  // never disagree. Nothing is shown until the cup has actually started
+  // (`started`): tagging all sixteen managers before a ball is kicked would
+  // be noise, not information.
+  const cupProgress = useMemo(
+    () => cupProgressFor(standings, gameweekTable, {
+      totalGameweeks: gameweekInfo.total || 38,
+      startGameweek: 8
+    }),
+    [standings, gameweekTable, gameweekInfo.total]
   );
 
   // The "magic number": how many points separate the season top-3 cutoff
@@ -498,6 +512,7 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
               const benchInk = benched >= 8 ? 'text-coral-ink' : 'text-ink-soft';
               const rowTone = position <= 3 ? 'bg-surface' : 'bg-tile-row';
               const wonThisGw = currentGwLeaderId === String(manager.id);
+              const cup = cupProgress.started ? cupProgress.byManager.get(manager.id) : null;
 
               return (
                 <div key={manager.id}>
@@ -538,9 +553,12 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                           {/* Recent form sits under the name rather than in a
                               column of its own — the grid above is already ten
                               columns wide, and this keeps the dots tied to the
-                              manager they describe. */}
-                          <span className="mt-1 flex">
+                              manager they describe. The cup tag rides along
+                              here for the same reason: it is a property of the
+                              manager, not a stat worth a column. */}
+                          <span className="mt-1 flex items-center gap-1.5">
                             <FormDots form={manager.form} showLabel />
+                            <CupTag cup={cup} />
                           </span>
                         </span>
                       </div>
@@ -619,8 +637,9 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
                             </span>
                           )}
                         </span>
-                        <span className="mt-1 flex">
+                        <span className="mt-1 flex items-center gap-1.5">
                           <FormDots form={manager.form} />
+                          <CupTag cup={cup} compact />
                         </span>
                       </span>
                       <span className="text-right shrink-0">
@@ -887,6 +906,45 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
 };
 
 /* ─────────────────────────────── row pieces ──────────────────────────────*/
+
+// The cup tag on a standings row. States are visually distinct on purpose:
+// still in (tinted, positive), out (ghost — it's history, not news), and
+// champion (gold, the same token the rest of the app uses for a win).
+// `compact` drops the "Cup" label for the phone row, where the round is
+// the only part that won't crowd out the manager's name.
+const CupTag = ({ cup, compact = false }) => {
+  if (!cup) return null;
+
+  const TONES = {
+    champion: 'bg-sunflower border-ink/85 text-ink',
+    alive: 'bg-tile-sky border-ink/85 text-ink',
+    eliminated: 'bg-surface-sunk border-ink/25 text-ink-soft',
+  };
+
+  const label = cup.status === 'champion'
+    ? (compact ? '🏆' : 'Cup won')
+    : cup.status === 'eliminated'
+      ? (compact ? cup.roundAbbrev : `Cup out · ${cup.roundAbbrev}`)
+      : (compact ? cup.roundAbbrev : `Cup · ${cup.roundAbbrev}`);
+
+  return (
+    <span
+      className={cn(
+        'shrink-0 rounded-full border-2 px-1.5 text-[9.5px] font-bold whitespace-nowrap',
+        TONES[cup.status] || TONES.alive
+      )}
+      title={
+        cup.status === 'champion'
+          ? 'Won the cup'
+          : cup.status === 'eliminated'
+            ? `Out of the cup — lost the ${cup.roundName} (GW${cup.gameweek})`
+            : `Still in the cup — ${cup.roundName} in GW${cup.gameweek}`
+      }
+    >
+      {label}
+    </span>
+  );
+};
 
 const StatTile = ({ label, value, note, tone = 'bg-surface-alt', labelClass = 'text-ink-soft', valueClass = 'text-ink' }) => (
   <div className={cn('rounded-[18px] px-4 py-3.5', tone)}>

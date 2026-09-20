@@ -145,3 +145,66 @@ export function buildCupBracket(
 
   return { bracketSize, startGameweek: gwForRound[0], rounds, champion };
 }
+
+// Short forms for the standings-row tag, where the full round name
+// ("Quarter-finals") is far wider than a table row allows.
+const ROUND_ABBREV = {
+  Final: 'Final',
+  'Semi-finals': 'SF',
+  'Quarter-finals': 'QF',
+};
+
+const abbrevFor = (roundName) => ROUND_ABBREV[roundName] || roundName.replace(/^Round of /, 'R');
+
+/**
+ * Where each manager stands in the cup, for the small tag on a standings
+ * row — the bracket itself lives in More → Cup, and this is the signpost to
+ * it. Derived from the same `buildCupBracket` the bracket view renders, so
+ * the tag can never disagree with the bracket.
+ *
+ * Returns `{ started, byManager, championId }`. `byManager` maps a manager
+ * id to `{ id, status, roundName, roundAbbrev, gameweek }` where status is
+ *   • 'alive'      — in the cup, their current round not yet decided (or
+ *                    won the round they were last seen in),
+ *   • 'eliminated' — lost the round named,
+ *   • 'champion'   — won the final.
+ * Managers outside the bracket (a 20-strong league seeds 16) are simply
+ * absent — there is no tag for "didn't qualify".
+ *
+ * `started` is false until the opening round has actually been decided: a
+ * tag on all sixteen managers before a ball is kicked is pure noise, so
+ * callers should show nothing until there is a real position to report.
+ */
+export function cupProgressFor(standings = [], gameweekTable = [], options = {}) {
+  const cup = buildCupBracket(standings, gameweekTable, options);
+  const byManager = new Map();
+
+  if (cup.rounds.length === 0) {
+    return { started: false, byManager, championId: null };
+  }
+
+  const started = cup.rounds.some((round) => round.matches.some((match) => match.decided));
+
+  cup.rounds.forEach((round, index) => {
+    const isFinalRound = index === cup.rounds.length - 1;
+    round.matches.forEach((match) => {
+      [match.a, match.b].forEach((side) => {
+        if (!side) return;
+        // Written in round order and overwritten as a manager advances, so
+        // the last entry standing for anyone is the round they are actually
+        // in — or the one that knocked them out.
+        byManager.set(side.id, {
+          id: side.id,
+          status: match.decided
+            ? (match.winnerId === side.id ? (isFinalRound ? 'champion' : 'alive') : 'eliminated')
+            : 'alive',
+          roundName: round.name,
+          roundAbbrev: abbrevFor(round.name),
+          gameweek: round.gameweek,
+        });
+      });
+    });
+  });
+
+  return { started, byManager, championId: cup.champion?.id ?? null };
+}
