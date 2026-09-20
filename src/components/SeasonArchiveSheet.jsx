@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, ScrollText, ChevronDown } from 'lucide-react';
+import { X, ScrollText, ChevronDown, GitCompare } from 'lucide-react';
 import Badge from './ui/Badge';
 import SegmentedControl from './ui/SegmentedControl';
 import { Whistle, CalendarDoodle, TrophyCup } from './ui/Doodles';
 import { leagueConfig } from '../data/leagueData';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { buildSeasonComparison } from '../utils/seasonCompare';
 
 // This project's own permanent record — weekly winners, monthly winners,
 // and the full per-gameweek standings table — captured daily into
@@ -26,6 +27,7 @@ const VIEWS = [
   { id: 'weekly', label: 'Weekly', icon: <Whistle size={16} /> },
   { id: 'monthly', label: 'Monthly', icon: <CalendarDoodle size={16} /> },
   { id: 'standings', label: 'Standings', icon: <TrophyCup size={16} /> },
+  { id: 'compare', label: 'Compare', icon: <GitCompare size={16} /> },
 ];
 
 const SeasonArchiveSheet = ({ open, onClose, seasonArchive = [], standings = [] }) => {
@@ -110,6 +112,19 @@ const SeasonArchiveSheet = ({ open, onClose, seasonArchive = [], standings = [] 
         .sort((a, b) => (a.final_rank || 0) - (b.final_rank || 0)),
     };
   }, [seasonRows]);
+
+  // Same-time-last-season comparison — deliberately NOT filtered to the
+  // picker's season: the whole point is live season vs. the one before,
+  // whatever the picker is showing. Pure util (seasonCompare.js) decides
+  // whether a previous season exists and lines the gameweeks up.
+  const compare = useMemo(
+    () => buildSeasonComparison({
+      seasonArchive,
+      currentSeason: leagueConfig.season,
+      standings,
+    }),
+    [seasonArchive, standings]
+  );
 
   const panelRef = useFocusTrap(onClose, open);
 
@@ -224,6 +239,59 @@ const SeasonArchiveSheet = ({ open, onClose, seasonArchive = [], standings = [] 
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {view === 'compare' && (
+                <div className="space-y-2">
+                  {!compare.available ? (
+                    <EmptyNote
+                      text={compare.reason === 'previous-season-incomplete'
+                        ? `Last season's archive stops before GW${compare.gameweek}, so there's no same-time snapshot to compare against yet.`
+                        : 'Nothing to compare against yet — this unlocks once a second season has been captured week by week.'}
+                    />
+                  ) : (
+                    <>
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-ink-soft px-1">
+                        {`Now (GW${compare.gameweek}) vs. same time in ${compare.previousSeason}`}
+                      </p>
+                      {compare.rows.map((row) => (
+                        <div
+                          key={row.managerId}
+                          className="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-sunk border-2 border-ink/15"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-8 h-8 shrink-0 rounded-full bg-ink/10 flex items-center justify-center text-xs font-display font-bold text-ink">
+                              {row.currentRank ?? '–'}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="font-bold text-ink truncate">
+                                {row.name}
+                                {row.isNew && <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">new</Badge>}
+                              </div>
+                              {row.teamName && <div className="text-[11px] font-bold text-ink-soft truncate">{row.teamName}</div>}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-sm font-display font-bold text-violet-ink">
+                              {row.currentTotal?.toLocaleString()}
+                              {row.previousTotal != null && (
+                                <span className="text-ink-soft font-sans font-semibold text-xs"> vs {row.previousTotal.toLocaleString()}</span>
+                              )}
+                            </div>
+                            {row.delta != null && (
+                              <Badge
+                                variant={row.delta > 0 ? 'success' : row.delta < 0 ? 'accent' : 'secondary'}
+                                className="mt-0.5 text-[10px] px-1.5 py-0"
+                              >
+                                {row.delta > 0 ? '▲' : row.delta < 0 ? '▼' : '＝'} {Math.abs(row.delta)} pts
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
 

@@ -20,6 +20,8 @@
 import { fetchWithRetry } from './_lib/helpers.js';
 import { monthlyWindows, weeklyPrize, monthlyRegularPrizes, monthlyFinalPrizes, seasonPrizes, getWeeklyWinner, getMonthlyTop, getInLeagueRanks, isSeasonFinalGameweek } from './_lib/prizeConfig.js';
 import { getSupabaseServiceClient } from './_lib/supabase.js';
+import { kv } from './_lib/kv.js';
+import webpush from 'web-push';
 
 // So "is the daily archive job actually succeeding" is a query
 // (scripts/cache-status.js) instead of trawling Vercel logs — this is the
@@ -189,6 +191,133 @@ async function snapshotResults({ leagueId, season, bootstrap, gameweekTable: raw
   return { rowsWritten: rows.length };
 }
 
+// ── Matchday push notifications ────────────────────────────────────────────
+// The sending half of api/push.js's subscription store. Two message types,
+// both de-duplicated through the kv_cache table so the daily cron can never
+// resend one it already sent:
+//
+//   results  — the most recent gameweek whose bonus points are officially
+//              in (`data_checked`), announcing its winner
+//   deadline — the next gameweek's deadline, once it's inside
+//              DEADLINE_WINDOW_HOURS (the cron runs at 06:00 daily, so in
+//              practice this fires on the last run before the deadline —
+//              anything from ~6 to ~30 hours ahead, never precise)
+//
+// Deliberately best-effort, like the archive snapshot: a push failure must
+// never fail the cache warming it shares a cron slot with.
+const DEADLINE_WINDOW_HOURS = 36;
+const PUSH_FLAG_TTL_SECONDS = 14 * 24 * 60 * 60; // long past any resend window
+
+async function sendPushNotifications({ leagueId, bootstrap, gameweekTable }) {
+  const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    return { skipped: 'VAPID keys not configured' };
+  }
+  if (!kv) {
+    return { skipped: 'KV not configured — sends could not be de-duplicated' };
+  }
+  if (!bootstrap?.gameweeks?.length) {
+    return { skipped: 'no gameweek metadata in the league payload' };
+  }
+
+  const supabase = await getSupabaseServiceClient();
+  if (!supabase) return { skipped: 'Supabase not configured' };
+
+  const { data: subs, error } = await supabase
+    .from('push_subscriptions')
+    .select('endpoint, p256dh, auth')
+    .eq('league_id', String(leagueId));
+  if (error) throw error;
+  if (!subs || subs.length === 0) return { skipped: 'no subscribers' };
+
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:admin@bro-league.app',
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY
+  );
+
+  const gwByNumber = new Map(bootstrap.gameweeks.map((gw) => [gw.id, gw]));
+  const sent = [];
+
+  // One broadcast = send to every subscriber, prune endpoints the push
+  // service reports as gone (404/410 — an unsubscribed or expired
+  // subscription that would otherwise be retried forever), then mark the
+  // flag so tomorrow's run skips it. A partially-failed broadcast still
+  // sets the flag: retrying tomorrow against the same settled gameweek
+  // would just duplicate the ping for everyone it did reach.
+  const broadcast = async ({ flagKey, title, body }) => {
+    const alreadySent = await kv.get(flagKey);
+    if (alreadySent) return false;
+
+    const payload = JSON.stringify({ title, body, url: '/' });
+    const results = await Promise.allSettled(
+      subs.map((sub) =>
+        webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          payload
+        )
+      )
+    );
+
+    const prunes = results
+      .map((result, index) => {
+        if (result.status !== 'rejected') return null;
+        const statusCode = result.reason?.statusCode;
+        return statusCode === 404 || statusCode === 410
+          ? supabase.from('push_subscriptions').delete().eq('endpoint', subs[index].endpoint)
+          : null;
+      })
+      .filter(Boolean);
+    if (prunes.length > 0) await Promise.allSettled(prunes);
+
+    await kv.set(flagKey, { at: new Date().toISOString() }, { ex: PUSH_FLAG_TTL_SECONDS });
+    return true;
+  };
+
+  // ── Results: latest gameweek with settled bonus points ──
+  const finalized = (gameweekTable || []).filter((gw) => gwByNumber.get(gw.gameweek)?.data_checked);
+  if (finalized.length > 0) {
+    const lastFinalGw = Math.max(...finalized.map((gw) => gw.gameweek));
+    const winner = getWeeklyWinner(finalized.find((gw) => gw.gameweek === lastFinalGw));
+    if (winner) {
+      const didSend = await broadcast({
+        flagKey: `push_sent_results_gw${lastFinalGw}`,
+        title: `GW${lastFinalGw} results are in`,
+        body: `${winner.managerName}${winner.teamName ? ` (${winner.teamName})` : ''} topped the week with ${winner.netPoints} pts`,
+      });
+      if (didSend) sent.push(`results:gw${lastFinalGw}`);
+    }
+  }
+
+  // ── Deadline: next gameweek once it's inside the reminder window ──
+  const now = Date.now();
+  const upcoming = bootstrap.gameweeks
+    .filter((gw) => gw.deadline_time && new Date(gw.deadline_time).getTime() > now)
+    .sort((a, b) => new Date(a.deadline_time).getTime() - new Date(b.deadline_time).getTime())[0];
+
+  if (upcoming) {
+    const hoursUntil = (new Date(upcoming.deadline_time).getTime() - now) / 3_600_000;
+    if (hoursUntil <= DEADLINE_WINDOW_HOURS) {
+      // The league is Bangladesh-based (prizes in ৳) — show the deadline in
+      // Dhaka time, not whichever timezone the cron server happens to sit in.
+      const when = new Date(upcoming.deadline_time).toLocaleString('en-GB', {
+        timeZone: 'Asia/Dhaka',
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      const didSend = await broadcast({
+        flagKey: `push_sent_deadline_gw${upcoming.id}`,
+        title: `GW${upcoming.id} deadline soon`,
+        body: `Deadline ${when} Dhaka time — lock in your transfers`,
+      });
+      if (didSend) sent.push(`deadline:gw${upcoming.id}`);
+    }
+  }
+
+  return { subscribers: subs.length, sent };
+}
+
 export default async function handler(req, res) {
   // Only allow GET requests
   if (req.method !== 'GET') {
@@ -242,15 +371,30 @@ export default async function handler(req, res) {
       snapshot = { error: snapshotError.message };
     }
 
+    // Matchday push — same best-effort contract as the snapshot above.
+    let push = { skipped: 'not attempted' };
+    try {
+      push = await sendPushNotifications({ leagueId, bootstrap: data.bootstrap, gameweekTable: data.gameweekTable });
+    } catch (pushError) {
+      console.error('⚠️ sendPushNotifications failed:', pushError);
+      push = { error: pushError.message };
+    }
+
     const snapshotSummary = snapshot.error
       ? `cache warmed, archive failed: ${snapshot.error}`
       : `cache warmed, ${snapshot.rowsWritten ?? 0} archive row(s) written`;
-    await logCronRun(!snapshot.error, snapshotSummary);
+    const pushSummary = push.error
+      ? `push failed: ${push.error}`
+      : push.sent?.length
+        ? `push sent: ${push.sent.join(', ')}`
+        : `push skipped: ${push.skipped || 'nothing due'}`;
+    await logCronRun(!snapshot.error, `${snapshotSummary}; ${pushSummary}`);
 
     return res.status(200).json({
       success: true,
       message: 'Cache warmed',
       snapshot,
+      push,
       timestamp: new Date().toISOString()
     });
   } catch (error) {

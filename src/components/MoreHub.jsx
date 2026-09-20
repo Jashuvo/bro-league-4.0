@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SectionBanner from './ui/SectionBanner';
 import SegmentedControl from './ui/SegmentedControl';
@@ -8,6 +9,7 @@ import HeadToHead from './HeadToHead';
 import SeasonAwards from './SeasonAwards';
 import CupBracket from './CupBracket';
 import SeasonRecords from './SeasonRecords';
+import PushNotifications from './PushNotifications';
 
 // ─── MORE ───────────────────────────────────────────────────────────────────
 //
@@ -80,6 +82,18 @@ const VIEWS = [
     title: 'Season Awards',
     subtitle: 'The superlatives nobody asked for, updated every gameweek',
   },
+  {
+    id: 'alerts',
+    label: 'Alerts',
+    hint: 'Push notifications',
+    tone: 'bg-violet',
+    icon: <Bell size={16} />,
+    bannerTone: 'violet',
+    eyebrow: 'Matchday notifications',
+    art: <Bell size={20} />,
+    title: 'Matchday Alerts',
+    subtitle: 'Deadline reminders and weekly results, straight to your phone',
+  },
 ];
 
 const MoreHub = ({ standings = [], gameweekTable = [], gameweekInfo = {}, loading = false }) => {
@@ -144,6 +158,8 @@ const MoreHub = ({ standings = [], gameweekTable = [], gameweekInfo = {}, loadin
         {view === 'awards' && (
           <SeasonAwards standings={standings} gameweekTable={gameweekTable} loading={loading} embedded />
         )}
+
+        {view === 'alerts' && <PushNotifications />}
       </motion.div>
     </motion.div>
   );

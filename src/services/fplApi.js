@@ -561,6 +561,54 @@ class FPLApiService {
     this.cacheExpiry.delete(`exclusions_${this.leagueId}`);
   }
 
+  // ── Matchday push notifications ──────────────────────────────────────────
+  // Plumbing for api/push.js. Deliberately NOT cached or queued like the
+  // reads above: these are one-shot user actions, and the public-key fetch
+  // is only made when the notifications card mounts.
+  //
+  // Both resolve to `false` on any failure — the UI treats that as "didn't
+  // take" and shows the error state; nothing here should throw into a
+  // component that's just toggling a setting.
+  async getPushPublicKey() {
+    try {
+      const response = await this.fetchWithRetry(`${this.apiBaseUrl}/push`, { timeout: 10000 });
+      const result = await response.json();
+      return result.success ? result.publicKey || null : null;
+    } catch (error) {
+      console.error('❌ Error fetching push public key:', error);
+      return null;
+    }
+  }
+
+  async subscribeToPush(subscription) {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: subscription.endpoint, keys: subscription.toJSON().keys }),
+      });
+      const result = await response.json();
+      return Boolean(result.success);
+    } catch (error) {
+      console.error('❌ Error subscribing to push:', error);
+      return false;
+    }
+  }
+
+  async unsubscribeFromPush(endpoint) {
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/push?endpoint=${encodeURIComponent(endpoint)}`,
+        { method: 'DELETE' }
+      );
+      const result = await response.json();
+      return Boolean(result.success);
+    } catch (error) {
+      console.error('❌ Error unsubscribing from push:', error);
+      return false;
+    }
+  }
+
   // Fixture list + full per-match stat breakdown for one gameweek — see
   // api/fixtures.js. Cached briefly while the gameweek's still live (scores
   // can still move), much longer once every fixture in it has finished —

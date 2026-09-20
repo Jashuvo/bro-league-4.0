@@ -16,8 +16,13 @@ export const USER_AGENT = 'BRO-League-4.0/1.0';
  */
 export function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // DELETE is in the list because two endpoints accept it (season-archive's
+  // exclusions and push.js subscriptions) and a browser preflights every
+  // DELETE — leaving it out here made the preflight response name methods
+  // that didn't include DELETE, and Chrome/Firefox block the real request
+  // before it ever reaches the handler.
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-exclusion-pin');
 }
 
 /**

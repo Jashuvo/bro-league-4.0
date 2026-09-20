@@ -52,7 +52,12 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // The generated sw.js has no push-event hooks of its own — this
+        // injects public/push-listener.js's `push`/`notificationclick`
+        // handlers into it so web-push broadcasts (sent by the warm-cache
+        // cron) actually show notifications.
+        importScripts: ['/push-listener.js']
       }
     })
   ],
