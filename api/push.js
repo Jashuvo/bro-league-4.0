@@ -18,18 +18,23 @@
 //            notifications off, or the push service reported the
 //            subscription as gone).
 //
-// Subscriptions live in `push_subscriptions` (see its migration). Writes
-// come from the browser with the anon key, so that table's RLS allows
-// anon INSERT/DELETE but deliberately no SELECT — the subscriber list is
-// only ever read server-side with the service-role key.
-//
+// Subscriptions live in `push_subscriptions` (see its migration). Writes are
+// made HERE with the service-role key, not with the browser's anon key:
+// api/push.js saves with .upsert(onConflict: endpoint), which is INSERT ...
+// ON CONFLICT — and Postgres (17, verified live) checks the table's SELECT
+// policy for ANY on-conflict statement, even a non-conflicting one. That
+// table deliberately has no SELECT policy (the subscriber list is
+// server-side only), so an anon-keyed upsert always dies with "new row
+// violates row-level security policy". Going through the service key inside
+// this one server function keeps that invariant intact: the REST table stays
+// anon-blind, and the input below is validated before it's ever written.
 // No subscription is validated for ownership — anon can delete any
 // endpoint it names. That's inherent to push (the endpoint URL is the
 // credential) and harmless here: messages carry league-wide news, nothing
 // per-user worth spoofing, and the real abuse risk (spamming sends) is
 // gated behind warm-cache's CRON_SECRET, not this endpoint.
 import { setCorsHeaders } from './_lib/helpers.js';
-import { getSupabaseAnonClient } from './_lib/supabase.js';
+import { getSupabaseServiceClient } from './_lib/supabase.js';
 
 export default async function handler(req, res) {
   setCorsHeaders(res);
@@ -52,9 +57,9 @@ export default async function handler(req, res) {
     });
   }
 
-  const supabase = await getSupabaseAnonClient();
+  const supabase = await getSupabaseServiceClient();
   if (!supabase) {
-    return res.status(200).json({ success: false, error: 'Subscriptions not configured (no Supabase)' });
+    return res.status(200).json({ success: false, error: 'Subscriptions not configured (no Supabase service key)' });
   }
 
   try {
