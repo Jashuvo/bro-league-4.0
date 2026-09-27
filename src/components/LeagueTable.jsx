@@ -96,7 +96,17 @@ const LeagueTable = ({ standings = [], loading = false, gameweekInfo = {}, leagu
   // manager's winnings, one building the breakdown modal) that had to be kept
   // in agreement by eye. Everything season-specific it needs is passed in.
   const prizeCtx = useMemo(
-    () => ({ currentGW, gwFinished, monthlyWindows, prizeStructure }),
+    () => ({
+      currentGW,
+      gwFinished,
+      monthlyWindows,
+      prizeStructure,
+      // collectWeeklyWins reads the per-week amount straight off ctx —
+      // forgetting this key made every weekly prize `undefined`, so the
+      // breakdown total rendered as ৳NaN. See the "total drifts" note in
+      // prizeMath.js's header.
+      perWeekPrize: prizeStructure.weekly.perWeek,
+    }),
     [currentGW, gwFinished]
   );
 

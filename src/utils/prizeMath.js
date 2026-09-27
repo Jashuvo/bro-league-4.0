@@ -48,7 +48,11 @@ const rankGameweek = (gameweekData) => [...(gameweekData?.managers || [])]
  * bonus points keep moving until then, so mid-gameweek the leader is not yet
  * a winner and the prize is not yet real.
  */
-export function collectWeeklyWins(gameweekTable, managerId, { currentGW, gwFinished, perWeekPrize }) {
+export function collectWeeklyWins(gameweekTable, managerId, { currentGW, gwFinished, perWeekPrize, prizeStructure }) {
+  // `perWeekPrize` is the explicit override; `prizeStructure.weekly.perWeek`
+  // is the safety net so a caller that forgets to pass it gets the real
+  // amount instead of `prize: undefined` → ৳NaN totals everywhere.
+  const perWeek = perWeekPrize ?? prizeStructure?.weekly?.perWeek ?? 0;
   const wins = [];
   if (!gameweekTable?.length) return wins;
 
@@ -60,7 +64,7 @@ export function collectWeeklyWins(gameweekTable, managerId, { currentGW, gwFinis
     const ranked = rankGameweek(gameweekData);
     const rank = ranked.findIndex((m) => m.id === managerId) + 1;
     if (rank === 1) {
-      wins.push({ gameweek: gw, points: getNetPoints(ranked[0]), prize: perWeekPrize });
+      wins.push({ gameweek: gw, points: getNetPoints(ranked[0]), prize: perWeek });
     }
   }
   return wins;
